@@ -11,10 +11,15 @@ The [Actor Model](https://en.wikipedia.org/wiki/Actor_model) is used to build di
 In its simplest form the goal of this project is to provide the ability to write actors in Functional Way that are typed leveraging [scalaz-zio](https://github.com/scalaz/scalaz-zio). However for a fully usable system will need the following components:
 
 - Supervision
+
 - Actor Mailbox/Queue
+
 - Actor Monitoring and Metrics
+
 - Actor persistence
+
 - Message Stashing
+
 - Message Routing / Actor Registry
 
 This summarizes the goals of this project well. We will be adding a detailed
@@ -23,11 +28,15 @@ project wiki: [Technical Design Document](https://github.com/scalaz/scalaz-actor
 
 
 # Competition
-[Akka](https://akka.io) (Scala & Java)
-[Akka .net](https://getakka.net) (C#)
-[Orleans](https://dotnet.github.io/orleans/) (C#)
-[Erlang/Otp](http://www.erlang.org) (Erlang)
-[Elixir](https://elixir-lang.org) (Elixir)
+- [Akka](https://akka.io) (Scala & Java)
+
+- [Akka .net](https://getakka.net) (C#)
+
+- [Orleans](https://dotnet.github.io/orleans/) (C#)
+
+- [Erlang/Otp](http://www.erlang.org) (Erlang)
+
+- [Elixir](https://elixir-lang.org) (Elixir)
 
 # Background and Example
 [Scalaz 8 vs Akka Actors](https://www.youtube.com/watch?v=Eihz7kqn6mU)
