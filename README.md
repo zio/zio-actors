@@ -66,8 +66,9 @@ We differentiate ourselves from the above competition by having the following be
 - Light Weight
 
 # Background and Example
-[Scalaz 8 vs Akka Actors](https://www.youtube.com/watch?v=Eihz7kqn6mU)
-[Scalaz 8 vs Akka Actors slides](https://www.slideshare.net/jdegoes/scalaz-8-vs-akka-actors)
+
+- [Scalaz 8 vs Akka Actors](https://www.youtube.com/watch?v=Eihz7kqn6mU)
+- [Scalaz 8 vs Akka Actors slides](https://www.slideshare.net/jdegoes/scalaz-8-vs-akka-actors)
 
 # Library Documentation
 Coming soon !
