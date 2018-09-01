@@ -66,7 +66,7 @@ flycheck_*.el
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
 
 # Thumbnails
 ._*
@@ -362,6 +362,15 @@ captures/
 .idea/dictionaries
 .idea/libraries
 .idea/caches
+.idea/compiler.xml
+.idea/encodings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/sbt.xml
+.idea/scala_compiler.xml
+.idea/codeStyles/codeStyleConfig.xml
+.idea/codeStyles/Project.xml
+.idea/hydra.xml
 
 # Keystore files
 # Uncomment the following line if you do not want to check your keystore files in.
