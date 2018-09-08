@@ -28,7 +28,7 @@ object Actors {
     //    }
   }
 
-  val QueueSize = 1000
+  val QueueSize = 10000
 
   /**
    * Makes an actor that starts with state `S`, and with each input
