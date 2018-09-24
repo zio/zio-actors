@@ -1,26 +1,33 @@
 package scalaz.actors.examples
 
-import scalaz._
-import Scalaz._
+import scalaz.Scalaz._
 import scalaz.actors.Actors._
 import scalaz.zio.console.putStrLn
-import scalaz.zio.{ App, IO, Schedule }
+import scalaz.zio.{ App, IO }
 
 object ActorTestApp extends App {
 
-  def makeCounterActor: IO[Nothing, Actor[Nothing, Int, Int]] =
-    makeActor[Int, Nothing, Int, Int](Supervisor.retry(Schedule.never))(0) {
-      (counter: Int, n: Int) =>
-        IO.point((counter + n, counter + n))
+  sealed trait Counter[+ _]
+  case class Add(n: Int) extends Counter[Unit]
+  case object Get        extends Counter[Int]
+  case object Print      extends Counter[String]
+
+  val handler: MessageHandler[Int, Nothing, Counter] = new MessageHandler[Int, Nothing, Counter] {
+    override def receive[A](state: Int, msg: Counter[A]): IO[Nothing, (Int, A)] = msg match {
+      case Add(n) => IO.point((state + n, ()))
+      case Get    => IO.point((state, state))
+      case Print  => IO.point((state, state.shows))
     }
+  }
 
   override def run(args: List[String]): IO[Nothing, ExitStatus] =
     (for {
-      counter <- makeCounterActor
-      res     <- counter ! 2
+      counter <- makeActor(0)(handler)(Supervisor.none)
+      res     <- counter ! Get
       _       <- putStrLn(res.shows)
-      res2    <- counter ! 10
-      _       <- putStrLn(res2.shows)
+      _       <- counter ! Add(1)
+      res2    <- counter ! Print
+      _       <- putStrLn(res2)
     } yield ()).attempt
       .map(_.fold(_ => 1, _ => 0))
       .map(ExitStatus.ExitNow(_))
