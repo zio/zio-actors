@@ -4,10 +4,13 @@ import scalaz.zio.{ IO, Promise, Queue, Ref, Schedule }
 
 object Actors {
 
-  case class Actor[+E, -A, +B](run: A => IO[E, B])(runStop: => IO[Nothing, Unit]) {
-    def !(a: A): IO[E, B] = run(a)
+  trait Actor[+E, -F[+ _]] {
+    def ![A](fa: F[A]): IO[E, A]
+    def stop(): IO[Nothing, Unit]
+  }
 
-    def stop(): IO[Nothing, Unit] = runStop
+  trait MessageHandler[S, +E, -F[+ _]] {
+    def receive[A](state: S, msg: F[A]): IO[E, (S, A)]
   }
 
   trait Supervisor[E] {
@@ -16,52 +19,57 @@ object Actors {
 
   object Supervisor {
 
+    def none: Supervisor[Nothing] = retry(Schedule.never)
+
     def retry[E](policy: Schedule[E, _]): Supervisor[E] =
       new Supervisor[E] {
 
         def supervise[A](io: IO[E, A], error: E): IO[E, A] =
           io.retry(policy)
       }
-
-    //    def log[E]: Supervisor[E] = new Supervisor[E]{
-    //      def supervise[A](io: IO[E, A], error: E): IO[E, A] = ???
-    //    }
   }
 
   val QueueSize = 10000
 
-  /**
-   * Makes an actor that starts with state `S`, and with each input
-   * message `A`, produces an output message `B` and a new state `S`.
-   */
-  def makeActor[S, E, A, B](
-    supervisor: Supervisor[E]
-  )(s: S)(receive: (S, A) => IO[E, (S, B)]): IO[Nothing, Actor[E, A, B]] =
+  type PendingMessage[E, F[_], A] = (F[A], Promise[E, A])
+
+  def makeActor[S, E, F[+ _]](initial: S)(
+    messageHandler: MessageHandler[S, E, F]
+  )(supervisor: Supervisor[E]): IO[Nothing, Actor[E, F]] = {
+
+    def process[A](msg: PendingMessage[E, F, A], state: Ref[S]): IO[Nothing, Unit] =
+      for {
+        s             <- state.get
+        (fa, promise) = msg
+        receiver      = messageHandler.receive(s, fa)
+        completer     = ((s: S, a: A) => state.set(s) *> promise.complete(a)).tupled
+        _ <- receiver.redeem(
+              e =>
+                supervisor
+                  .supervise(receiver, e)
+                  .redeem(promise.error, completer),
+              completer
+            )
+      } yield ()
+
     for {
-      state <- Ref(s)
-      queue <- Queue.bounded[(A, Promise[E, B])](QueueSize)
+      state <- Ref(initial)
+      queue <- Queue.bounded[PendingMessage[E, F, _]](QueueSize)
       fiber <- (for {
-                t            <- queue.take
-                s            <- state.get
-                (a, promise) = t
-                receiver     = receive(s, a)
-                completer    = ((s: S, b: B) => state.set(s) *> promise.complete(b)).tupled
-                _ <- receiver.redeem(
-                      e =>
-                        supervisor
-                          .supervise(receiver, e)
-                          .redeem(promise.error, completer),
-                      completer
-                    )
+                t <- queue.take
+                _ <- process(t, state)
               } yield ()).forever.fork
     } yield
-      Actor[E, A, B] { a: A =>
-        for {
-          promise <- Promise.make[E, B]
-          _       <- queue.offer((a, promise))
-          value   <- promise.get
-        } yield value
-      } {
-        fiber.interrupt
+      new Actor[E, F] {
+        override def ![A](a: F[A]): IO[E, A] =
+          for {
+            promise <- Promise.make[E, A]
+            _       <- queue.offer((a, promise))
+            value   <- promise.get
+          } yield value
+        override def stop(): IO[Nothing, Unit] =
+          fiber.interrupt
+        // TODO queue.shutdown
       }
+  }
 }
