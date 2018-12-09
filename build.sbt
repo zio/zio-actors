@@ -26,7 +26,7 @@ addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck"
 
 libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core" % "7.2.26",
-  "org.scalaz" %% "scalaz-zio"  % "0.2.6"
+  "org.scalaz" %% "scalaz-zio"  % "0.5.0"
 )
 
 lazy val root =
