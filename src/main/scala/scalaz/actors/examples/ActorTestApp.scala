@@ -28,7 +28,5 @@ object ActorTestApp extends App {
       _       <- counter ! Add(1)
       res2    <- counter ! Print
       _       <- putStrLn(res2)
-    } yield ()).attempt
-      .map(_.fold(_ => 1, _ => 0))
-      .map(ExitStatus.ExitNow(_))
+    } yield ()).attempt.map(r => ExitStatus.ExitNow(if (r.isLeft) 1 else 0))
 }
