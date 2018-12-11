@@ -8,6 +8,10 @@ object Main {
     val harness = PureHarness.makeFromPrinter { (result, name) =>
       println(s"${name.reverse.mkString}: $result")
     }
-    new ActorsSuite().tests(harness)((), Nil).print()
+
+    val result = new ActorsSuite().tests(harness)((), Nil)
+
+    result.print()
+    if (result.failed) throw new Exception("some tests failed")
   }
 }

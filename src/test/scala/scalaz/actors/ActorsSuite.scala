@@ -7,10 +7,14 @@ final class ActorsSuite {
   def tests[A](harness: Harness[A]): A = {
     import harness._
 
-    section {
+    section(
       test("Sanity check") { () =>
         assert(1 + 1 == 2)
+      },
+
+      test("Propagate errors to supervisor") { () =>
+        assert(1 + 1 == 2)
       }
-    }
+    )
   }
 }
