@@ -1,7 +1,8 @@
 package scalaz.actors
 
+import java.util.concurrent.atomic.AtomicInteger
 import scalaz.actors.Actors.{ MessageHandler, Supervisor }
-import scalaz.zio.{ IO, RTS }
+import scalaz.zio.{ IO, RTS, Schedule }
 import testz.{ Harness, assert }
 
 final class ActorsSuite extends RTS {
@@ -38,7 +39,28 @@ final class ActorsSuite extends RTS {
         assert(c1 == 2 && c2 == 0)
       },
       test("Propagate errors to supervisor") { () =>
-        assert(1 + 1 == 2)
+        sealed trait Message[+ _]
+        case object Tick extends Message[Unit]
+
+        val failures = new AtomicInteger(0)
+
+        val handler = new MessageHandler[Unit, String, Message] {
+          override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
+            msg match {
+              case Tick => IO.point(failures.incrementAndGet()) *> IO.fail("failure")
+            }
+        }
+
+        val maxRetries = 10
+
+        val io = for {
+          actor <- Actors.makeActor(())(handler)(Supervisor.retry(Schedule.recurs(maxRetries)))
+          _     <- actor ! Tick
+        } yield (())
+
+        val result = unsafeRunSync(io.redeem(_ => IO.unit, _ => IO.unit))
+
+        assert(result.succeeded == true && failures.get == maxRetries + 1)
       }
     )
   }
