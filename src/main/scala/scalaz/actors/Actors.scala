@@ -68,7 +68,7 @@ object Actors {
             value   <- promise.get
           } yield value
         override def stop(): IO[Nothing, Unit] =
-          fiber.interrupt
+          fiber.interrupt *> IO.unit
         // TODO queue.shutdown
       }
   }
