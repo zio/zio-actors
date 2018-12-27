@@ -73,9 +73,6 @@ We differentiate ourselves from the above competition by having the following be
 # Library Documentation
 Coming soon !
 
-# Current Project Contributors
-[Current Team](https://github.com/scalaz/scalaz-actors/wiki/Team)
-
 ## Contributing
 [Documentation for contributors](CONTRIBUTING.md)
 

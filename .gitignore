@@ -454,3 +454,6 @@ project/plugins/project/
 .lib/
 *.class
 *.log
+
+.metals/
+.bloop/

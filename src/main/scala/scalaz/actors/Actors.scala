@@ -9,7 +9,7 @@ trait Actor[+E, -F[+ _]] {
 }
 
 object Actor {
-  val DefaultActorMailboxSize = 10000
+  val DefaultActorMailboxSize = ActorConfig.getMailboxSize()
 
   trait Stateful[S, +E, -F[+ _]] {
     def receive[A](state: S, msg: F[A]): IO[E, (S, A)]
