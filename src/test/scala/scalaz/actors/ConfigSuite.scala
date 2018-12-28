@@ -10,7 +10,7 @@ final class ConfigSuite extends RTS {
 
     section(
       test("fetching mailboxSize") { () =>
-        val mSize: Int = ActorConfig.getMailboxSize()
+        val mSize: Int = ActorConfig.config.orThrow().mailboxSize
         assert(mSize == 10000)
       },
     )

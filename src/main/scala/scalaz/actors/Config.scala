@@ -19,7 +19,4 @@ object ActorConfig{
         mailboxSize = mSize getOrElse 10000
       )
     }
-
-  def getMailboxSize(): Int =
-    config.result.fold(_.messages, _.mailboxSize).toString.toInt
 }

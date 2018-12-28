@@ -9,7 +9,7 @@ trait Actor[+E, -F[+ _]] {
 }
 
 object Actor {
-  val DefaultActorMailboxSize = ActorConfig.getMailboxSize()
+  val DefaultActorMailboxSize = ActorConfig.config.orThrow().mailboxSize
 
   trait Stateful[S, +E, -F[+ _]] {
     def receive[A](state: S, msg: F[A]): IO[E, (S, A)]
@@ -51,7 +51,6 @@ object Actor {
             _       <- queue.offer((a, promise))
             value   <- promise.get
           } yield value
-        // TODO: Shutdown queue
         override val stop: IO[Nothing, Unit] = fiber.interrupt *> IO.unit
       }
   }
