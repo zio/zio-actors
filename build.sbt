@@ -24,17 +24,17 @@ credentials in ThisBuild ++= sonataCredentials.toSeq
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
-val cirisVersion = "0.12.0"
+val cirisVersion  = "0.12.0"
 val scalazVersion = "7.2.26"
-val testzVersion = "0.0.5"
-val zioVersion = "0.5.0"
+val testzVersion  = "0.0.5"
+val zioVersion    = "0.5.0"
 
 libraryDependencies ++= Seq(
-    "is.cir" %% "ciris-core" % cirisVersion,
-    "is.cir" %% "ciris-enumeratum" % cirisVersion,
-    "org.scalaz" %% "scalaz-core"  % scalazVersion,
-    "org.scalaz" %% "scalaz-zio"   % zioVersion,
-    "org.scalaz" %% "testz-stdlib" % testzVersion
+  "is.cir"     %% "ciris-core"       % cirisVersion,
+  "is.cir"     %% "ciris-enumeratum" % cirisVersion,
+  "org.scalaz" %% "scalaz-core"      % scalazVersion,
+  "org.scalaz" %% "scalaz-zio"       % zioVersion,
+  "org.scalaz" %% "testz-stdlib"     % testzVersion
 )
 
 lazy val root =
