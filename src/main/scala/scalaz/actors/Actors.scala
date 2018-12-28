@@ -15,8 +15,10 @@ object Actor {
     def receive[A](state: S, msg: F[A]): IO[E, (S, A)]
   }
 
-  final def stateful[S, E, F[+ _]](supervisor: Supervisor[E],
-                                   mailboxSize: Int = DefaultActorMailboxSize)(initial: S)(
+  final def stateful[S, E, F[+ _]](
+    supervisor: Supervisor[E],
+    mailboxSize: Int = DefaultActorMailboxSize
+  )(initial: S)(
     stateful: Actor.Stateful[S, E, F]
   ): IO[Nothing, Actor[E, F]] = {
     type PendingMessage[E, F[_], A] = (F[A], Promise[E, A])
