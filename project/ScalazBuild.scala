@@ -28,7 +28,7 @@ object Scalaz {
     "-Ywarn-nullary-unit",
     "-Ywarn-numeric-widen",
     "-Ywarn-value-discard",
-    // "-Xfatal-warnings"
+    "-Xfatal-warnings"
   )
 
   def extraOptions(scalaVersion: String) =
