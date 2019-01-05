@@ -1,11 +1,13 @@
 package scalaz.actors
 
+import scala.collection.immutable.List
+
 import scalaz.zio.{ IO, Promise, Queue, Ref, Schedule }
 
 trait Actor[+E, -F[+ _]] {
   def ![A](fa: F[A]): IO[E, A]
 
-  val stop: IO[Nothing, Unit]
+  def stop: IO[Nothing, List[_]]
 }
 
 object Actor {
@@ -41,7 +43,7 @@ object Actor {
     for {
       state <- Ref(initial)
       queue <- Queue.bounded[PendingMessage[E, F, _]](mailboxSize)
-      fiber <- (for {
+      _ <- (for {
                 t <- queue.take
                 _ <- process(t, state)
               } yield ()).forever.fork
@@ -53,7 +55,11 @@ object Actor {
             _       <- queue.offer((a, promise))
             value   <- promise.get
           } yield value
-        override val stop: IO[Nothing, Unit] = fiber.interrupt *> IO.unit
+        override def stop: IO[Nothing, List[_]] =
+          for {
+            tall <- queue.takeAll
+            _ <- queue.shutdown
+          } yield tall
       }
   }
 }
