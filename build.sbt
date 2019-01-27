@@ -24,10 +24,14 @@ credentials in ThisBuild ++= sonataCredentials.toSeq
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
+val scalazVersion = "7.2.26"
+val testzVersion  = "0.0.5"
+val zioVersion    = "0.5.3"
+
 libraryDependencies ++= Seq(
-  "org.scalaz" %% "scalaz-core"  % "7.2.26",
-  "org.scalaz" %% "scalaz-zio"   % "0.5.0",
-  "org.scalaz" %% "testz-stdlib" % "0.0.5"
+  "org.scalaz" %% "scalaz-core"  % scalazVersion,
+  "org.scalaz" %% "scalaz-zio"   % zioVersion,
+  "org.scalaz" %% "testz-stdlib" % testzVersion
 )
 
 lazy val root =

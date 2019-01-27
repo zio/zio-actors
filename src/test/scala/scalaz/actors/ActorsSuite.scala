@@ -1,7 +1,7 @@
 package scalaz.actors
 
 import java.util.concurrent.atomic.AtomicInteger
-import scalaz.actors.Actors.{ MessageHandler, Supervisor }
+import scalaz.actors.Actor.Stateful
 import scalaz.zio.{ IO, RTS, Schedule }
 import testz.{ Harness, assert }
 
@@ -17,7 +17,7 @@ final class ActorsSuite extends RTS {
         case object Increase extends Message[Unit]
         case object Get      extends Message[Int]
 
-        val handler = new MessageHandler[Int, Nothing, Message] {
+        val handler = new Stateful[Int, Nothing, Message] {
           override def receive[A](state: Int, msg: Message[A]): IO[Nothing, (Int, A)] =
             msg match {
               case Reset    => IO.point((0, ()))
@@ -27,7 +27,7 @@ final class ActorsSuite extends RTS {
         }
 
         val io = for {
-          actor <- Actors.makeActor(0)(handler)(Supervisor.none)
+          actor <- Actor.stateful(Supervisor.none)(0)(handler)
           _     <- actor ! Increase
           _     <- actor ! Increase
           c1    <- actor ! Get
@@ -44,7 +44,7 @@ final class ActorsSuite extends RTS {
 
         val failures = new AtomicInteger(0)
 
-        val handler = new MessageHandler[Unit, String, Message] {
+        val handler = new Stateful[Unit, String, Message] {
           override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
             msg match {
               case Tick => IO.point(failures.incrementAndGet()) *> IO.fail("failure")
@@ -54,7 +54,7 @@ final class ActorsSuite extends RTS {
         val maxRetries = 10
 
         val io = for {
-          actor <- Actors.makeActor(())(handler)(Supervisor.retry(Schedule.recurs(maxRetries)))
+          actor <- Actor.stateful(Supervisor.retry(Schedule.recurs(maxRetries)))(())(handler)
           _     <- actor ! Tick
         } yield (())
 
@@ -62,6 +62,9 @@ final class ActorsSuite extends RTS {
 
         assert(result.succeeded == true && failures.get == maxRetries + 1)
       }
+      // test("Stop Processing Messages") { () =>
+
+      // }
     )
   }
 }

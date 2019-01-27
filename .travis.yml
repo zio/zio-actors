@@ -23,7 +23,7 @@ jobs:
     - &test
       stage: test
       name: "Test for 2.12"
-      script: sbt ++TRAVIS_SCALA_VERSION test:run
+      script: sbt ++TRAVIS_SCALA_VERSION test
     - <<: *test
       scala: 2.11.12
       name: "Test for 2.11"
