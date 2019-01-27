@@ -26,12 +26,12 @@ addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck"
 
 val scalazVersion = "7.2.26"
 val testzVersion  = "0.0.5"
-val zioVersion    = "0.5.0"
+val zioVersion    = "0.5.3"
 
 libraryDependencies ++= Seq(
-  "org.scalaz" %% "scalaz-core"      % scalazVersion,
-  "org.scalaz" %% "scalaz-zio"       % zioVersion,
-  "org.scalaz" %% "testz-stdlib"     % testzVersion
+  "org.scalaz" %% "scalaz-core"  % scalazVersion,
+  "org.scalaz" %% "scalaz-zio"   % zioVersion,
+  "org.scalaz" %% "testz-stdlib" % testzVersion
 )
 
 lazy val root =

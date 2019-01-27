@@ -44,9 +44,9 @@ object Actor {
       state <- Ref(initial)
       queue <- Queue.bounded[PendingMessage[E, F, _]](mailboxSize)
       _ <- (for {
-                t <- queue.take
-                _ <- process(t, state)
-              } yield ()).forever.fork
+            t <- queue.take
+            _ <- process(t, state)
+          } yield ()).forever.fork
     } yield
       new Actor[E, F] {
         override def ![A](a: F[A]): IO[E, A] =
@@ -58,7 +58,7 @@ object Actor {
         override def stop: IO[Nothing, List[_]] =
           for {
             tall <- queue.takeAll
-            _ <- queue.shutdown
+            _    <- queue.shutdown
           } yield tall
       }
   }
