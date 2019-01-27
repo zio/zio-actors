@@ -61,11 +61,10 @@ final class ActorsSuite extends RTS {
         val result = unsafeRunSync(io.redeem(_ => IO.unit, _ => IO.unit))
 
         assert(result.succeeded == true && failures.get == maxRetries + 1)
-      },
-      // test("Stop Processing Messages") { () => 
-        
-      // }
+      }
+      // test("Stop Processing Messages") { () =>
 
+      // }
     )
   }
 }
