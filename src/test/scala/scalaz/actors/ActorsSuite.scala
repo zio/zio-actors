@@ -20,9 +20,9 @@ final class ActorsSuite extends RTS {
         val handler = new Stateful[Int, Nothing, Message] {
           override def receive[A](state: Int, msg: Message[A]): IO[Nothing, (Int, A)] =
             msg match {
-              case Reset    => IO.point((0, ()))
-              case Increase => IO.point((state + 1, ()))
-              case Get      => IO.point((state, state))
+              case Reset    => IO.succeedLazy((0, ()))
+              case Increase => IO.succeedLazy((state + 1, ()))
+              case Get      => IO.succeedLazy((state, state))
             }
         }
 
@@ -47,7 +47,7 @@ final class ActorsSuite extends RTS {
         val handler = new Stateful[Unit, String, Message] {
           override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
             msg match {
-              case Tick => IO.point(failures.incrementAndGet()) *> IO.fail("failure")
+              case Tick => IO.succeedLazy(failures.incrementAndGet()) *> IO.fail("failure")
             }
         }
 

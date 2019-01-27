@@ -30,12 +30,12 @@ object Actor {
         s             <- state.get
         (fa, promise) = msg
         receiver      = stateful.receive(s, fa)
-        completer     = ((s: S, a: A) => state.set(s) *> promise.complete(a)).tupled
+        completer     = ((s: S, a: A) => state.set(s) *> promise.succeed(a)).tupled
         _ <- receiver.redeem(
               e =>
                 supervisor
                   .supervise(receiver, e)
-                  .redeem(_ => promise.error(e), completer),
+                  .redeem(_ => promise.fail(e), completer),
               completer
             )
       } yield ()
@@ -53,7 +53,7 @@ object Actor {
           for {
             promise <- Promise.make[E, A]
             _       <- queue.offer((a, promise))
-            value   <- promise.get
+            value   <- promise.await
           } yield value
         override def stop: IO[Nothing, List[_]] =
           for {
