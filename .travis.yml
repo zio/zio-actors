@@ -43,6 +43,6 @@ jobs:
     - &publishSite
       stage: publishMicrosite
       name: "Publish Microsite"
-      script: sbt ++$TRAVIS_SCALA_VERSION docs/publishMicrosite
+      script: sbt ++$TRAVIS_SCALA_VERSION microsite/publishMicrosite
 
 
