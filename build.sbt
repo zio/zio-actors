@@ -30,7 +30,7 @@ val zioVersion    = "0.6.0"
 
 libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core"  % scalazVersion,
-  "org.scalaz" %% "scalaz-actors"   % zioVersion,
+  "org.scalaz" %% "scalaz-zio"   % zioVersion,
   "org.scalaz" %% "testz-stdlib" % testzVersion
 )
 
