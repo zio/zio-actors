@@ -39,16 +39,16 @@ lazy val root =
     .settings(
       stdSettings("actors")
     )
-  .aggregate(
+    .aggregate(
       microsite
-  )
+    )
 
 lazy val microsite = project
   .enablePlugins(MicrositesPlugin)
   .settings(
     scalacOptions -= "-Yno-imports",
-    scalacOptions ~= { _ filterNot (_ startsWith "-Ywarn") },
-    scalacOptions ~= { _ filterNot (_ startsWith "-Xlint") },
+    scalacOptions ~= { _.filterNot(_.startsWith("-Ywarn")) },
+    scalacOptions ~= { _.filterNot(_.startsWith("-Xlint")) },
     skip in publish := true,
     libraryDependencies ++= Seq(
       "com.github.ghik" %% "silencer-lib" % "1.3.1",
