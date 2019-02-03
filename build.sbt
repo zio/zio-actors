@@ -44,7 +44,6 @@ lazy val root =
   )
 
 lazy val microsite = project
-  /* .dependsOn(root) */
   .enablePlugins(MicrositesPlugin)
   .settings(
     scalacOptions -= "-Yno-imports",
