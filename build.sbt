@@ -61,7 +61,7 @@ lazy val microsite = project
         href="https://github.com/scalaz/scalaz-actors">Scalaz-actors Maintainers</a></p> |""".stripMargin
     ),
     micrositeName := "Scalaz Actors",
-    micrositeDescription := "Type-safe, composable asynchronous and concurrent programming for Scala",
+    micrositeDescription := "A high-performance, purely-functional library for building, composing, and supervising typed actors based on Scalaz ZIO",
     micrositeAuthor := "scalaz-actors contributors",
     micrositeOrganizationHomepage := "https://github.com/scalaz/scalaz-actors",
     micrositeGitterChannelUrl := "scalaz/scalaz-actors",

@@ -13,4 +13,4 @@ Include Scalaz Actors in your project by adding the following to your `build.sbt
 
 # Learning More
 
-To learn more about Scalaz Actors, see the [Overview](overview/index.html).
+To learn more about Scalaz Actors, see the [Overview](overview.html).
