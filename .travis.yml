@@ -21,7 +21,7 @@ stages:
   - name: test
   - name: microsite
   - name: publishMicrosite
-    if: tag IS present
+    if: (branch = master) OR (tag IS present)
 
 jobs:
   include:
