@@ -14,3 +14,26 @@ The [Actor Model](https://en.wikipedia.org/wiki/Actor_model) is used to build di
 In its simplest form the goal of this project is to provide the ability to write actors in Functional Way that are typed leveraging [scalaz-zio](https://github.com/scalaz/scalaz-zio).
 
 To learn more about how Scalaz Actors can help you accomplish the impossible, see [Getting Started](getting_started.html) and [Overview](overview.html).
+
+# Scalaz Actors current alternatives
+- [Akka](https://akka.io) (Scala & Java)
+
+- [Akka .net](https://getakka.net) (C#)
+
+- [Orleans](https://dotnet.github.io/orleans/) (C#)
+
+- [Erlang/Otp](http://www.erlang.org) (Erlang)
+
+- [Elixir](https://elixir-lang.org) (Elixir)
+
+We differentiate ourselves from the above competition by having the following benefits: 
+- Purely Functional
+- Everything Typed
+- Light Weight
+
+# Background and Example
+
+- [Scalaz 8 vs Akka Actors](https://www.youtube.com/watch?v=Eihz7kqn6mU)
+- [Scalaz 8 vs Akka Actors slides](https://www.slideshare.net/jdegoes/scalaz-8-vs-akka-actors)
+
+
