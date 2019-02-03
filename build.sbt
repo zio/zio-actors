@@ -30,7 +30,7 @@ val zioVersion    = "0.6.0"
 
 libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core"  % scalazVersion,
-  "org.scalaz" %% "scalaz-zio"   % zioVersion,
+  "org.scalaz" %% "scalaz-actors"   % zioVersion,
   "org.scalaz" %% "testz-stdlib" % testzVersion
 )
 
@@ -39,3 +39,50 @@ lazy val root =
     .settings(
       stdSettings("actors")
     )
+  .aggregate(
+      microsite
+  )
+
+lazy val microsite = project
+  /* .dependsOn(root) */
+  .enablePlugins(MicrositesPlugin)
+  .settings(
+    scalacOptions -= "-Yno-imports",
+    scalacOptions ~= { _ filterNot (_ startsWith "-Ywarn") },
+    scalacOptions ~= { _ filterNot (_ startsWith "-Xlint") },
+    skip in publish := true,
+    libraryDependencies ++= Seq(
+      "com.github.ghik" %% "silencer-lib" % "1.3.1",
+      "commons-io"      % "commons-io"    % "2.6"
+    ),
+    micrositeFooterText := Some(
+      """
+        |<p>&copy; 2019 <a
+        href="https://github.com/scalaz/scalaz-actors">Scalaz-actors Maintainers</a></p> |""".stripMargin
+    ),
+    micrositeName := "Scalaz Actors",
+    micrositeDescription := "Type-safe, composable asynchronous and concurrent programming for Scala",
+    micrositeAuthor := "scalaz-actors contributors",
+    micrositeOrganizationHomepage := "https://github.com/scalaz/scalaz-actors",
+    micrositeGitterChannelUrl := "scalaz/scalaz-actors",
+    micrositeGitHostingUrl := "https://github.com/scalaz/scalaz-actors",
+    micrositeGithubOwner := "scalaz",
+    micrositeGithubRepo := "scalaz-actors",
+    micrositeFavicons := Seq(microsites.MicrositeFavicon("favicon.png", "512x512")),
+    micrositeDocumentationUrl := s"https://javadoc.io/doc/org.scalaz/scalaz-actors_2.12/${(version in Compile).value}",
+    micrositeDocumentationLabelDescription := "Scaladoc",
+    micrositeBaseUrl := "/scalaz-actors",
+    micrositePalette := Map(
+      "brand-primary"   -> "#990000",
+      "brand-secondary" -> "#000000",
+      "brand-tertiary"  -> "#990000",
+      "gray-dark"       -> "#453E46",
+      "gray"            -> "#837F84",
+      "gray-light"      -> "#E3E2E3",
+      "gray-lighter"    -> "#F4F3F4",
+      "white-color"     -> "#FFFFFF"
+    ),
+    micrositePushSiteWith := GitHub4s,
+    micrositeGithubToken := Some(sys.env.getOrElse("GITHUB_TOKEN", "")),
+    micrositeCompilingDocsTool := WithMdoc
+  )
