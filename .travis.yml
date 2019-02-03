@@ -36,6 +36,10 @@ jobs:
     - <<: *test
       scala: 2.11.12
       name: "Test for 2.11"
+    - &scaladoc
+      stage: microsite
+      name: "Generate scaladoc"
+      script: sbt ++$TRAVIS_SCALA_VERSION doc
     - &microsite
       stage: microsite
       name: "Generate microsite"
