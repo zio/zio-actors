@@ -457,3 +457,4 @@ project/plugins/project/
 
 .metals/
 .bloop/
+project/secret
