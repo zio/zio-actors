@@ -5,7 +5,7 @@ name := "scalaz-actors"
 inThisBuild(
   List(
     organization := "org.scalaz",
-    homepage := Some(url("https://scalaz.github.io/scalaz-zio/")),
+    homepage := Some(url("https://scalaz.github.io/scalaz-actors/")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     developers := List(
       Developer(
