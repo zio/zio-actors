@@ -1,80 +1,64 @@
 language: scala
 sudo: false
-
-# main scala version
 scala:
-  - 2.12.8
-
+- 2.12.8
 jdk:
-  - openjdk8
-
+- openjdk8
 before_install:
-  - git fetch --tags
-  - export PATH=${PATH}:./vendor/bundle
-
+- git fetch --tags
+- export PATH=${PATH}:./vendor/bundle
 install:
-  - rvm use 2.4.4 --install --fuzzy
-  - gem update --system
-  - gem install sass
-  - gem install jekyll -v 3.8.3
-
+- rvm use 2.4.4 --install --fuzzy
+- gem update --system
+- gem install sass
+- gem install jekyll -v 3.8.3
 stages:
-  - name: test
-  - name: microsite
-  - name: release
-    if: (branch = master AND type = push) OR (tag IS present)
-  - name: publishMicrosite
-    if: tag IS present
-
+- name: test
+- name: microsite
+- name: release
+  if: "(branch = master AND type = push) OR (tag IS present)"
+- name: publishMicrosite
+  if: tag IS present
 jobs:
   include:
-    - &lint
-      stage: test
-      name: "Lint"
-      script: sbt ++TRAVIS_SCALA_VERSION scalafmtCheck test:scalafmtCheck scalafmtSbtCheck
-    - &test
-      stage: test
-      name: "Test for 2.12"
-      script: sbt ++TRAVIS_SCALA_VERSION test
-    - &scaladoc
-      stage: microsite
-      name: "Generate scaladoc"
-      script: sbt ++$TRAVIS_SCALA_VERSION doc
-    - &microsite
-      stage: microsite
-      name: "Generate microsite"
-      script: sbt ++$TRAVIS_SCALA_VERSION microsite/makeMicrosite
-    - &release
-      stage: release
-      name: "Release artifacts"
-      before_script: export PGP_SECRET="$(<./project/zecret)"
-      script: sbt ci-release || sbt sonatypeReleaseAll
-    - &publishSite
-      stage: publishMicrosite
-      name: "Publish Microsite"
-      before_script:
-      - cp ./project/travis-deploy-key ~/.ssh/id_ed25519
-      - chmod 600 ~/.ssh/id_ed25519
-      script:
-      - git config --global user.email "code@softinio.com"
-      - git config --global user.name "Salar Rahmanian"
-      - git config --global push.default simple
-      - sbt ++$TRAVIS_SCALA_VERSION microsite/publishMicrosite
-
+  - stage: test
+    name: Lint
+    script: sbt ++TRAVIS_SCALA_VERSION scalafmtCheck test:scalafmtCheck scalafmtSbtCheck
+  - stage: test
+    name: Test for 2.12
+    script: sbt ++TRAVIS_SCALA_VERSION test
+  - stage: microsite
+    name: Generate scaladoc
+    script: sbt ++$TRAVIS_SCALA_VERSION doc
+  - stage: microsite
+    name: Generate microsite
+    script: sbt ++$TRAVIS_SCALA_VERSION microsite/makeMicrosite
+  - stage: release
+    name: Release artifacts
+    before_script: export PGP_SECRET="$(<./project/zecret)"
+    script: sbt ci-release || sbt sonatypeReleaseAll
+  - stage: publishMicrosite
+    name: Publish Microsite
+    before_script:
+    - cp ./project/travis-deploy-key ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    script:
+    - git config --global user.email "code@softinio.com"
+    - git config --global user.name "Salar Rahmanian"
+    - git config --global push.default simple
+    - sbt ++$TRAVIS_SCALA_VERSION microsite/publishMicrosite
 cache:
   directories:
-  - $HOME/.sbt/1.0/dependency
-  - $HOME/.sbt/boot/scala*
-  - $HOME/.sbt/launchers
-  - $HOME/.rvm
-
+  - "$HOME/.sbt/1.0/dependency"
+  - "$HOME/.sbt/boot/scala*"
+  - "$HOME/.sbt/launchers"
+  - "$HOME/.rvm"
 before_cache:
 - find $HOME/.sbt -name "*.lock" -type f -delete
 - find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete
 - rm -rf $HOME/.ivy2/local
-
 env:
   global:
-  - secure: "ZvuaxdT/7sEAcG7+Jw2EmjL87xqxjFhS2IQ7rAcC1QVYtQt/cMBXbFjyxUxdm6yuKbWB/677e97wGgohX7LtvVfgNCBDeCc+0AHISjLSLY0dCcM9xtiQoXT8rQQtordYPjMsZZw9/LtF9XFwSQK4Lx+aeZl7H+VF5WE/fFmKl4W1c8oFHo2MvgHDKqWGuz1AfCdTLuLghBrEG1h21cfDi+tOrFXjk93CwmK63y3V3TXkbDLLJ6drmSwXIxZ9viNStYEDpTBOZ0yjevwuw/poKPMALwMjvIIogFnVNmvxY1KLfGufKlzG8sGdcLFTrKnin3t+It+6oW48GH+ZGnfJ33Ly/+Np8rMQpLxhIHZNZBZf4YOV0Gxp/54luhaL4Jm7RINelpWxjZImnyzhquEj4zxRIIlAGm/BJ/nf9G0vGdNxCIR6uwzUsl7E23UNItQ5bS2YSKYtCZy+HIru1zpP86ejw1zbE7fHTHIJyrGf+6sdfarJLVhJq/nU8F6TWKQHiGvvujqVqWyyRA4gBnv9SrTUDJsReZZELXJRfHl3RTUwKJR0GvxxNfgaR+P1ERvgffau/xsRzU3et2Dtl9eQEPGTP7jVBqKM13hS6uzQI0WoswxGfb49e2ztHNUXckxhaeVYCptUu/SGonJHryMTvxbWx60tzudVMpWFd0e3XVU="
-  - secure: "WsMMGY+ztMqt1z0MZ1dr2hB/Mh9RbHyVxhCpbXTaMKdhUoDcOhHUaj/RdPlmoca4FatinPV0xT3SFqNUJR0M4GVCu7hXvQSn86rX7CPV6uG/a+eXoZC78ePdseFkqvmcJHyEJf0+ggzgsp+/PNGcKoOjc40P5tohPM3Wn+gUw5jdMfGzFzmTxlxL74xRD2dultGkifbCu6mDCT3NvcGJSB3JIZFva+LLE9QaaWAH0n6HKkVM6N9DIGEtLp/1/aJpm4uy7PUNnYcMV0l5/cs3Z0B6c2/KE7lF1xwmhhn2eq4qMiIT2RGaY4HbMLY884x/XP3Lq6/mus737H58FtFt8TinrDwImyvD4wgqP38/syVoH0HNR6xGM7EixEDtqVuVjc4u1ZJb7z8D6Z6sv0Wj6kWby/nIasLyePdeAKjiGGmoJiL1qm3bP6XS6P53ICKkgHQ4egZo3xW0z4gNB1CFm0ljkt57aqi8ewiBvTtgIrbPiFeNiGwxxF6uyCbJxAdn0+bPwKQvKr9WsMJ3HBoqdTmQcCvZwaswu2pHrGj/ToDWwJwPYWYkhY8oPfO109AZLLGPkL8eCLuElOBl+dsHbAe0N9MHn2gVYwWMH/tMAZ+3z0FFSJCH4sh+NBy1J0rqFV59FH8asRePQ2vdLeTFOvn5jtErPshgDYfFnPqhONo="
-
+  - secure: ZvuaxdT/7sEAcG7+Jw2EmjL87xqxjFhS2IQ7rAcC1QVYtQt/cMBXbFjyxUxdm6yuKbWB/677e97wGgohX7LtvVfgNCBDeCc+0AHISjLSLY0dCcM9xtiQoXT8rQQtordYPjMsZZw9/LtF9XFwSQK4Lx+aeZl7H+VF5WE/fFmKl4W1c8oFHo2MvgHDKqWGuz1AfCdTLuLghBrEG1h21cfDi+tOrFXjk93CwmK63y3V3TXkbDLLJ6drmSwXIxZ9viNStYEDpTBOZ0yjevwuw/poKPMALwMjvIIogFnVNmvxY1KLfGufKlzG8sGdcLFTrKnin3t+It+6oW48GH+ZGnfJ33Ly/+Np8rMQpLxhIHZNZBZf4YOV0Gxp/54luhaL4Jm7RINelpWxjZImnyzhquEj4zxRIIlAGm/BJ/nf9G0vGdNxCIR6uwzUsl7E23UNItQ5bS2YSKYtCZy+HIru1zpP86ejw1zbE7fHTHIJyrGf+6sdfarJLVhJq/nU8F6TWKQHiGvvujqVqWyyRA4gBnv9SrTUDJsReZZELXJRfHl3RTUwKJR0GvxxNfgaR+P1ERvgffau/xsRzU3et2Dtl9eQEPGTP7jVBqKM13hS6uzQI0WoswxGfb49e2ztHNUXckxhaeVYCptUu/SGonJHryMTvxbWx60tzudVMpWFd0e3XVU=
+  - secure: WsMMGY+ztMqt1z0MZ1dr2hB/Mh9RbHyVxhCpbXTaMKdhUoDcOhHUaj/RdPlmoca4FatinPV0xT3SFqNUJR0M4GVCu7hXvQSn86rX7CPV6uG/a+eXoZC78ePdseFkqvmcJHyEJf0+ggzgsp+/PNGcKoOjc40P5tohPM3Wn+gUw5jdMfGzFzmTxlxL74xRD2dultGkifbCu6mDCT3NvcGJSB3JIZFva+LLE9QaaWAH0n6HKkVM6N9DIGEtLp/1/aJpm4uy7PUNnYcMV0l5/cs3Z0B6c2/KE7lF1xwmhhn2eq4qMiIT2RGaY4HbMLY884x/XP3Lq6/mus737H58FtFt8TinrDwImyvD4wgqP38/syVoH0HNR6xGM7EixEDtqVuVjc4u1ZJb7z8D6Z6sv0Wj6kWby/nIasLyePdeAKjiGGmoJiL1qm3bP6XS6P53ICKkgHQ4egZo3xW0z4gNB1CFm0ljkt57aqi8ewiBvTtgIrbPiFeNiGwxxF6uyCbJxAdn0+bPwKQvKr9WsMJ3HBoqdTmQcCvZwaswu2pHrGj/ToDWwJwPYWYkhY8oPfO109AZLLGPkL8eCLuElOBl+dsHbAe0N9MHn2gVYwWMH/tMAZ+3z0FFSJCH4sh+NBy1J0rqFV59FH8asRePQ2vdLeTFOvn5jtErPshgDYfFnPqhONo=
+  - secure: R2I7ki/RlkMu2PLTOG2k8c82TCnUgS9ggS4kKo4n5aaBubo8+pXLxNjPBgFd5S3VOAlDUBsE4nnhLn77EydlmBDp/1/prw+rH4m2kQMRsgkwTkieVQGUva3CiJDKxOdSIbL2qCcB4EP7f8Mj2pFM+t58okj9CDg+uKBwWXj7NzUY4aPN2buA/kDg19TW6ii9MBCrWcPn1JF2/+gCpMGK0217JROLfEWmSkMYrT8lQLcVTs0DuwXHVUxau2UnwR1GgMeYRbEzOXzmLYlKxXCiKxiCkf+dm8jkQtUoY3FTu+AnCuSb6/pozt1u/WbsWvxpB6t0f67y+sH1yHqWa7HZn3D509ptIy6DKC91/0yiAQkQefMdGTZns+c5+DC15lmTVMWTfH5SQiCx6l8FlTS/0WwW2IObh8giuILHXOQvT/Q/QO/qHvtD3uhpfx82+24tZ6xFmDo4M4r/CliDijNHdQbbbExTb4zct+2pD4hEsEsGLnYdydODT4Pg8Kqfxh2CEIvoRUw9szvPGIHq/5yZdY7w06ArHp0/QhRLxBrAUtoiFT6/OGCgPkLZlYKG1/tWF22fYJoluYAFr8Xe+Qfz/N25UnJcn0YzFlG72TwwH+EyD9Z4G8+lnANU14jnjMgOg9y8yyuJ6Rgxv2u33K+ZMV9myWsQoeAi9pp97TXedBs=
