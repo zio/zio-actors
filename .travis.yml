@@ -9,10 +9,22 @@ jdk:
   - openjdk8
 
 before_install:
+  - git fetch --tags
   - export PATH=${PATH}:./vendor/bundle
+
+install:
+  - rvm use 2.4.4 --install --fuzzy
+  - gem update --system
+  - gem install sass
+  - gem install jekyll -v 3.8.3
 
 stages:
   - name: test
+  - name: microsite
+  - name: release
+    if: (branch = master AND type = push) OR (tag IS present)
+  - name: publishMicrosite
+    if: tag IS present
 
 jobs:
   include:
@@ -27,3 +39,45 @@ jobs:
     - <<: *test
       scala: 2.11.12
       name: "Test for 2.11"
+    - &scaladoc
+      stage: microsite
+      name: "Generate scaladoc"
+      script: sbt ++$TRAVIS_SCALA_VERSION doc
+    - &microsite
+      stage: microsite
+      name: "Generate microsite"
+      script: sbt ++$TRAVIS_SCALA_VERSION microsite/makeMicrosite
+    - &release
+      stage: release
+      name: "Release artifacts"
+      before_script: export PGP_SECRET="$(<./project/zecret)"
+      script: sbt ci-release || sbt sonatypeReleaseAll
+    - &publishSite
+      stage: publishMicrosite
+      name: "Publish Microsite"
+      before_script:
+      - cp ./project/travis-deploy-key ~/.ssh/id_ed25519
+      - chmod 600 ~/.ssh/id_ed25519
+      script:
+      - git config --global user.email "code@softinio.com"
+      - git config --global user.name "Salar Rahmanian"
+      - git config --global push.default simple
+      - sbt ++$TRAVIS_SCALA_VERSION microsite/publishMicrosite
+
+cache:
+  directories:
+  - $HOME/.sbt/1.0/dependency
+  - $HOME/.sbt/boot/scala*
+  - $HOME/.sbt/launchers
+  - $HOME/.rvm
+
+before_cache:
+- find $HOME/.sbt -name "*.lock" -type f -delete
+- find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete
+- rm -rf $HOME/.ivy2/local
+
+env:
+  global:
+  - secure: "ZvuaxdT/7sEAcG7+Jw2EmjL87xqxjFhS2IQ7rAcC1QVYtQt/cMBXbFjyxUxdm6yuKbWB/677e97wGgohX7LtvVfgNCBDeCc+0AHISjLSLY0dCcM9xtiQoXT8rQQtordYPjMsZZw9/LtF9XFwSQK4Lx+aeZl7H+VF5WE/fFmKl4W1c8oFHo2MvgHDKqWGuz1AfCdTLuLghBrEG1h21cfDi+tOrFXjk93CwmK63y3V3TXkbDLLJ6drmSwXIxZ9viNStYEDpTBOZ0yjevwuw/poKPMALwMjvIIogFnVNmvxY1KLfGufKlzG8sGdcLFTrKnin3t+It+6oW48GH+ZGnfJ33Ly/+Np8rMQpLxhIHZNZBZf4YOV0Gxp/54luhaL4Jm7RINelpWxjZImnyzhquEj4zxRIIlAGm/BJ/nf9G0vGdNxCIR6uwzUsl7E23UNItQ5bS2YSKYtCZy+HIru1zpP86ejw1zbE7fHTHIJyrGf+6sdfarJLVhJq/nU8F6TWKQHiGvvujqVqWyyRA4gBnv9SrTUDJsReZZELXJRfHl3RTUwKJR0GvxxNfgaR+P1ERvgffau/xsRzU3et2Dtl9eQEPGTP7jVBqKM13hS6uzQI0WoswxGfb49e2ztHNUXckxhaeVYCptUu/SGonJHryMTvxbWx60tzudVMpWFd0e3XVU="
+  - secure: "WsMMGY+ztMqt1z0MZ1dr2hB/Mh9RbHyVxhCpbXTaMKdhUoDcOhHUaj/RdPlmoca4FatinPV0xT3SFqNUJR0M4GVCu7hXvQSn86rX7CPV6uG/a+eXoZC78ePdseFkqvmcJHyEJf0+ggzgsp+/PNGcKoOjc40P5tohPM3Wn+gUw5jdMfGzFzmTxlxL74xRD2dultGkifbCu6mDCT3NvcGJSB3JIZFva+LLE9QaaWAH0n6HKkVM6N9DIGEtLp/1/aJpm4uy7PUNnYcMV0l5/cs3Z0B6c2/KE7lF1xwmhhn2eq4qMiIT2RGaY4HbMLY884x/XP3Lq6/mus737H58FtFt8TinrDwImyvD4wgqP38/syVoH0HNR6xGM7EixEDtqVuVjc4u1ZJb7z8D6Z6sv0Wj6kWby/nIasLyePdeAKjiGGmoJiL1qm3bP6XS6P53ICKkgHQ4egZo3xW0z4gNB1CFm0ljkt57aqi8ewiBvTtgIrbPiFeNiGwxxF6uyCbJxAdn0+bPwKQvKr9WsMJ3HBoqdTmQcCvZwaswu2pHrGj/ToDWwJwPYWYkhY8oPfO109AZLLGPkL8eCLuElOBl+dsHbAe0N9MHn2gVYwWMH/tMAZ+3z0FFSJCH4sh+NBy1J0rqFV59FH8asRePQ2vdLeTFOvn5jtErPshgDYfFnPqhONo="
+
