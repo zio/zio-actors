@@ -2,7 +2,7 @@ package scalaz.actors
 
 import java.util.concurrent.atomic.AtomicInteger
 import scalaz.actors.Actor.Stateful
-import scalaz.zio.{ IO, DefaultRuntime, Schedule }
+import scalaz.zio.{ DefaultRuntime, IO, Schedule }
 import testz.{ Harness, assert }
 
 final class ActorsSuite extends DefaultRuntime {
