@@ -1,8 +1,7 @@
 package scalaz.actors
 
-import java.util.concurrent.atomic.AtomicInteger
 import scalaz.actors.Actor.Stateful
-import scalaz.zio.{ DefaultRuntime, IO, Schedule }
+import scalaz.zio.{ DefaultRuntime, IO, Ref, Schedule }
 import testz.{ Harness, assert }
 
 final class ActorsSuite extends DefaultRuntime {
@@ -42,25 +41,32 @@ final class ActorsSuite extends DefaultRuntime {
         sealed trait Message[+ _]
         case object Tick extends Message[Unit]
 
-        val failures = new AtomicInteger(0)
-
-        val handler = new Stateful[Unit, String, Message] {
-          override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
-            msg match {
-              case Tick => IO.succeedLazy(failures.incrementAndGet()) *> IO.fail("failure")
-            }
-        }
-
         val maxRetries = 10
 
-        val io = for {
-          actor <- Actor.stateful(Supervisor.retry(Schedule.recurs(maxRetries)))(())(handler)
-          _     <- actor ! Tick
-        } yield (())
+        def makeHandler(ref: Ref[Int]): Actor.Stateful[Unit, String, Message] =
+          new Stateful[Unit, String, Message] {
+            override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
+              msg match {
+                case Tick =>
+                  ref
+                    .update(_ + 1)
+                    .flatMap { v =>
+                      if (v < maxRetries) IO.fail("fail") else IO.succeed((state, state))
+                    }
+              }
+          }
 
-        val result = unsafeRunSync(io.foldM(_ => IO.unit, _ => IO.unit))
+        val counter = for {
+          ref      <- Ref.make(0)
+          handler  = makeHandler(ref)
+          schedule = Schedule.recurs(maxRetries)
+          policy   = Supervisor.retry(schedule)
+          actor    <- Actor.stateful(policy)(())(handler)
+          _        <- actor ! Tick
+          count    <- ref.get
+        } yield count
 
-        assert(result.succeeded == true && failures.get == maxRetries + 1)
+        assert(unsafeRun(counter) == maxRetries)
       }
     )
   }
