@@ -26,7 +26,7 @@ jobs:
     script: sbt ++TRAVIS_SCALA_VERSION scalafmtCheck test:scalafmtCheck scalafmtSbtCheck
   - stage: test
     name: Test for 2.12
-    script: sbt ++TRAVIS_SCALA_VERSION test
+    script: sbt ++TRAVIS_SCALA_VERSION test:run
   - stage: microsite
     name: Generate scaladoc
     script: sbt ++$TRAVIS_SCALA_VERSION doc
