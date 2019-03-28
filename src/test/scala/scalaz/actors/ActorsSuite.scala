@@ -2,10 +2,10 @@ package scalaz.actors
 
 import java.util.concurrent.atomic.AtomicInteger
 import scalaz.actors.Actor.Stateful
-import scalaz.zio.{ IO, RTS, Schedule }
+import scalaz.zio.{ IO, DefaultRuntime, Schedule }
 import testz.{ Harness, assert }
 
-final class ActorsSuite extends RTS {
+final class ActorsSuite extends DefaultRuntime {
 
   def tests[A](harness: Harness[A]): A = {
     import harness._
@@ -58,13 +58,10 @@ final class ActorsSuite extends RTS {
           _     <- actor ! Tick
         } yield (())
 
-        val result = unsafeRunSync(io.redeem(_ => IO.unit, _ => IO.unit))
+        val result = unsafeRunSync(io.foldM(_ => IO.unit, _ => IO.unit))
 
         assert(result.succeeded == true && failures.get == maxRetries + 1)
       }
-      // test("Stop Processing Messages") { () =>
-
-      // }
     )
   }
 }

@@ -3,6 +3,7 @@ package scalaz.actors
 import scala.collection.immutable.List
 
 import scalaz.zio.{ IO, Promise, Queue, Ref, Schedule }
+import scalaz.zio.clock.Clock
 
 trait Actor[+E, -F[+ _]] {
   def ![A](fa: F[A]): IO[E, A]
@@ -31,17 +32,17 @@ object Actor {
         (fa, promise) = msg
         receiver      = stateful.receive(s, fa)
         completer     = ((s: S, a: A) => state.set(s) *> promise.succeed(a)).tupled
-        _ <- receiver.redeem(
+        _ <- receiver.foldM(
               e =>
                 supervisor
                   .supervise(receiver, e)
-                  .redeem(_ => promise.fail(e), completer),
+                  .foldM(_ => promise.fail(e), completer),
               completer
             )
       } yield ()
 
     for {
-      state <- Ref(initial)
+      state <- Ref.make(initial)
       queue <- Queue.bounded[PendingMessage[E, F, _]](mailboxSize)
       _ <- (for {
             t <- queue.take
@@ -75,6 +76,6 @@ object Supervisor {
     new Supervisor[E] {
 
       def supervise[A](io: IO[E, A], error: E): IO[Unit, A] =
-        io.retry(policy).leftMap(_ => ())
+        io.retry(policy).mapError(_ => ()).provide(Clock.Live)
     }
 }
