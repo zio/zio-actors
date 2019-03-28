@@ -1,9 +1,6 @@
 package scalaz.actors
 
-import scala.collection.immutable.List
-
-import scalaz.zio.{ IO, Promise, Queue, Ref, Schedule }
-import scalaz.zio.clock.Clock
+import scalaz.zio.{ IO, Promise, Queue, Ref }
 
 trait Actor[+E, -F[+ _]] {
   def ![A](fa: F[A]): IO[E, A]
@@ -65,17 +62,3 @@ object Actor {
   }
 }
 
-trait Supervisor[-E] {
-  def supervise[A](io: IO[E, A], error: E): IO[Unit, A]
-}
-
-object Supervisor {
-  final def none: Supervisor[Any] = retry(Schedule.never)
-
-  final def retry[E](policy: Schedule[E, _]): Supervisor[E] =
-    new Supervisor[E] {
-
-      def supervise[A](io: IO[E, A], error: E): IO[Unit, A] =
-        io.retry(policy).mapError(_ => ()).provide(Clock.Live)
-    }
-}
