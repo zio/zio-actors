@@ -6,7 +6,7 @@
 High-performance, purely-functional library for building, composing, and supervising typed actors based on Scalaz ZIO.
 
 # Documentation
-[Scalaz Actors Microsite](https://zio.github.io/zio-actors/)
+[ZIO Actors Microsite](https://zio.github.io/zio-actors/)
 
 # Contributing
 [Documentation for contributors](CONTRIBUTING.md)

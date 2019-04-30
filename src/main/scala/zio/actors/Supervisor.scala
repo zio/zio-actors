@@ -1,4 +1,4 @@
-package scalaz.actors
+package zio.actors
 
 import scalaz.zio.{ IO, Schedule }
 import scalaz.zio.clock.Clock

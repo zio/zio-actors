@@ -1,8 +1,8 @@
-package scalaz.actors
+package zio.actors
 
-import scalaz.actors.Actor.Stateful
-import scalaz.zio.{ DefaultRuntime, IO, Ref, Schedule }
-import testz.{ Harness, assert }
+import scalaz.zio.{DefaultRuntime, IO, Ref, Schedule}
+import testz.{Harness, assert}
+import zio.actors.Actor.Stateful
 
 final class ActorsSuite extends DefaultRuntime {
 
