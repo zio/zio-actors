@@ -71,10 +71,10 @@ jobs:
     docker:
       - image: hseeberger/scala-sbt:8u181_2.12.8_1.2.8
     steps:
-      - checkout
       - add_ssh_keys:
-        fingerprints:
-          - "11:2c:fa:98:69:d8:a1:d5:76:2e:38:d0:91:39:85:ce"
+          fingerprints:
+            - "11:2c:fa:98:69:d8:a1:d5:76:2e:38:d0:91:39:85:ce"
+      - checkout
       - restore_cache:
           key: sbt-cache
       - run: sbt ++2.12.8! microsite/publishMicrosite
