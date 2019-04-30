@@ -98,6 +98,7 @@ workflows:
           requires:
             - lint212_jdk11
       - release:
+          context: Sonatype
           requires:
             - test212_jdk8
             - test212_jdk11
@@ -110,8 +111,6 @@ workflows:
           requires:
             - release
           filters:
-            branches:
-              only: master
             tags:
               only: /^v[0-9]+(\.[0-9]+)*$/
 
