@@ -1,11 +1,11 @@
 import Scalaz._
 
-name := "scalaz-actors"
+name := "zio-actors"
 
 inThisBuild(
   List(
-    organization := "org.scalaz",
-    homepage := Some(url("https://scalaz.github.io/scalaz-actors/")),
+    organization := "dev.zio",
+    homepage := Some(url("https://zio.github.io/zio-actors/")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     developers := List(
       Developer(
@@ -20,6 +20,13 @@ inThisBuild(
 
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
+
+pgpPublicRing := file("/tmp/public.asc")
+pgpSecretRing := file("/tmp/secret.asc")
+releaseEarlyWith := SonatypePublisher
+scmInfo := Some(
+  ScmInfo(url("https://github.com/zio/zio-actors/"), "scm:git:git@github.com:zio/zio-actors.git")
+)
 
 val scalazVersion = "7.2.26"
 val testzVersion  = "0.0.5"
@@ -54,20 +61,20 @@ lazy val microsite = project
     micrositeFooterText := Some(
       """
         |<p>&copy; 2019 <a
-        href="https://github.com/scalaz/scalaz-actors">Scalaz-actors Maintainers</a></p> |""".stripMargin
+        href="https://github.com/zio/zio-actors">zio-actors Maintainers</a></p> |""".stripMargin
     ),
-    micrositeName := "Scalaz Actors",
-    micrositeDescription := "A high-performance, purely-functional library for building, composing, and supervising typed actors based on Scalaz ZIO",
-    micrositeAuthor := "scalaz-actors contributors",
-    micrositeOrganizationHomepage := "https://github.com/scalaz/scalaz-actors",
-    micrositeGitterChannelUrl := "scalaz/scalaz-actors",
-    micrositeGitHostingUrl := "https://github.com/scalaz/scalaz-actors",
-    micrositeGithubOwner := "scalaz",
-    micrositeGithubRepo := "scalaz-actors",
+    micrositeName := "ZIO Actors",
+    micrositeDescription := "A high-performance, purely-functional library for building, composing, and supervising typed actors based on ZIO",
+    micrositeAuthor := "zio-actors contributors",
+    micrositeOrganizationHomepage := "https://github.com/zio/zio-actors",
+    micrositeGitterChannelUrl := "zio/zio-actors",
+    micrositeGitHostingUrl := "https://github.com/zio/zio-actors",
+    micrositeGithubOwner := "zio",
+    micrositeGithubRepo := "zio-actors",
     micrositeFavicons := Seq(microsites.MicrositeFavicon("favicon.png", "512x512")),
     micrositeDocumentationUrl := s"https://javadoc.io/doc/org.scalaz/scalaz-actors_2.12/${(version in Compile).value}",
     micrositeDocumentationLabelDescription := "Scaladoc",
-    micrositeBaseUrl := "/scalaz-actors",
+    micrositeBaseUrl := "/zio-actors",
     micrositePalette := Map(
       "brand-primary"   -> "#990000",
       "brand-secondary" -> "#000000",

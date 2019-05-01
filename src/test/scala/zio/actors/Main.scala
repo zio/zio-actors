@@ -1,4 +1,4 @@
-package scalaz.actors
+package zio.actors
 
 import testz.PureHarness
 
