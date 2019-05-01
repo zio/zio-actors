@@ -77,6 +77,8 @@ jobs:
       - checkout
       - restore_cache:
           key: sbt-cache
+      - run: sbt ++2.12.8! doc
+      - run: sbt ++2.12.8! microsite/makeMicrosite
       - run: sbt ++2.12.8! microsite/publishMicrosite
       - save_cache:
           key: sbt-cache
