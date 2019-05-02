@@ -43,9 +43,6 @@ lazy val root =
     .settings(
       stdSettings("actors")
     )
-    .aggregate(
-      microsite
-    )
 
 lazy val microsite = project
   .enablePlugins(MicrositesPlugin)
