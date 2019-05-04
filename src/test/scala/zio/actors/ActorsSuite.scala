@@ -4,13 +4,15 @@ import scalaz.zio.{ DefaultRuntime, IO, Ref, Schedule }
 import testz.{ Harness, assert }
 import zio.actors.Actor.Stateful
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 final class ActorsSuite extends DefaultRuntime {
 
   def tests[A](harness: Harness[A]): A = {
     import harness._
 
     section(
-      test("Process messages sequentially") { () =>
+      test("Sequential message processing") { () =>
         sealed trait Message[+ _]
         case object Reset    extends Message[Unit]
         case object Increase extends Message[Unit]
@@ -37,7 +39,7 @@ final class ActorsSuite extends DefaultRuntime {
         val (c1, c2) = unsafeRun(io)
         assert(c1 == 2 && c2 == 0)
       },
-      test("Propagate errors to supervisor") { () =>
+      test("Error recovery by retrying") { () =>
         sealed trait Message[+ _]
         case object Tick extends Message[Unit]
 
@@ -67,6 +69,29 @@ final class ActorsSuite extends DefaultRuntime {
         } yield count
 
         assert(unsafeRun(counter) == maxRetries)
+      },
+      test("Error recovery by fallback action") { () =>
+        sealed trait Message[+ _]
+        case object Tick extends Message[Unit]
+
+        val handler = new Stateful[Unit, String, Message] {
+          override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
+            msg match {
+              case Tick => IO.fail("fail")
+            }
+        }
+
+        val called   = new AtomicBoolean(false)
+        val schedule = Schedule.recurs(10)
+        val policy =
+          Supervisor.retryOrElse[String, Int](schedule, (_, _) => IO.succeedLazy(called.set(true)))
+
+        val program = for {
+          actor <- Actor.stateful(policy)(())(handler)
+          _     <- actor ! Tick
+        } yield ()
+
+        assert(unsafeRun(program.either).isLeft && called.get)
       }
     )
   }
