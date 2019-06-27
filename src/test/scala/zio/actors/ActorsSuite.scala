@@ -3,7 +3,7 @@ package zio.actors
 import java.util.concurrent.atomic.AtomicBoolean
 
 import org.specs2.Specification
-import scalaz.zio.{ DefaultRuntime, IO, Ref, Schedule }
+import zio.DefaultRuntime
 import zio.actors.Actor.Stateful
 
 final class ActorsSuite extends Specification with DefaultRuntime {
@@ -18,7 +18,7 @@ final class ActorsSuite extends Specification with DefaultRuntime {
 
   // Sequential message processing
   def e1 = {
-    sealed trait Message[+ _]
+    sealed trait Message[+_]
     case object Reset    extends Message[Unit]
     case object Increase extends Message[Unit]
     case object Get      extends Message[Int]
@@ -45,7 +45,7 @@ final class ActorsSuite extends Specification with DefaultRuntime {
 
   // Error recovery by retrying
   def e2 = {
-    sealed trait Message[+ _]
+    sealed trait Message[+_]
     case object Tick extends Message[Unit]
 
     val maxRetries = 10
@@ -77,7 +77,7 @@ final class ActorsSuite extends Specification with DefaultRuntime {
 
   // Error recovery by fallback action
   def e3 = {
-    sealed trait Message[+ _]
+    sealed trait Message[+_]
     case object Tick extends Message[Unit]
 
     val handler = new Stateful[Unit, String, Message] {
