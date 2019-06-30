@@ -1,8 +1,8 @@
 package zio.actors
 
-import scalaz.zio.{ IO, Promise, Queue, Ref }
+import zio.{ IO, Promise, Queue, Ref }
 
-trait Actor[+E, -F[+ _]] {
+trait Actor[+E, -F[+_]] {
   def ![A](fa: F[A]): IO[E, A]
 
   def stop: IO[Nothing, List[_]]
@@ -11,11 +11,11 @@ trait Actor[+E, -F[+ _]] {
 object Actor {
   val DefaultActorMailboxSize = 10000
 
-  trait Stateful[S, +E, -F[+ _]] {
+  trait Stateful[S, +E, -F[+_]] {
     def receive[A](state: S, msg: F[A]): IO[E, (S, A)]
   }
 
-  final def stateful[S, E, F[+ _]](
+  final def stateful[S, E, F[+_]](
     supervisor: Supervisor[E],
     mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S)(
@@ -45,19 +45,18 @@ object Actor {
             t <- queue.take
             _ <- process(t, state)
           } yield ()).forever.fork
-    } yield
-      new Actor[E, F] {
-        override def ![A](a: F[A]): IO[E, A] =
-          for {
-            promise <- Promise.make[E, A]
-            _       <- queue.offer((a, promise))
-            value   <- promise.await
-          } yield value
-        override def stop: IO[Nothing, List[_]] =
-          for {
-            tall <- queue.takeAll
-            _    <- queue.shutdown
-          } yield tall
-      }
+    } yield new Actor[E, F] {
+      override def ![A](a: F[A]): IO[E, A] =
+        for {
+          promise <- Promise.make[E, A]
+          _       <- queue.offer((a, promise))
+          value   <- promise.await
+        } yield value
+      override def stop: IO[Nothing, List[_]] =
+        for {
+          tall <- queue.takeAll
+          _    <- queue.shutdown
+        } yield tall
+    }
   }
 }

@@ -1,7 +1,7 @@
 package zio.actors
 
-import scalaz.zio.{ DefaultRuntime, IO, Ref, Schedule }
-import testz.{ Harness, assert }
+import zio.{ DefaultRuntime, IO, Ref, Schedule }
+import testz.{ assert, Harness }
 import zio.actors.Actor.Stateful
 
 import java.util.concurrent.atomic.AtomicBoolean
@@ -13,7 +13,7 @@ final class ActorsSuite extends DefaultRuntime {
 
     section(
       test("Sequential message processing") { () =>
-        sealed trait Message[+ _]
+        sealed trait Message[+_]
         case object Reset    extends Message[Unit]
         case object Increase extends Message[Unit]
         case object Get      extends Message[Int]
@@ -40,7 +40,7 @@ final class ActorsSuite extends DefaultRuntime {
         assert(c1 == 2 && c2 == 0)
       },
       test("Error recovery by retrying") { () =>
-        sealed trait Message[+ _]
+        sealed trait Message[+_]
         case object Tick extends Message[Unit]
 
         val maxRetries = 10
@@ -71,7 +71,7 @@ final class ActorsSuite extends DefaultRuntime {
         assert(unsafeRun(counter) == maxRetries)
       },
       test("Error recovery by fallback action") { () =>
-        sealed trait Message[+ _]
+        sealed trait Message[+_]
         case object Tick extends Message[Unit]
 
         val handler = new Stateful[Unit, String, Message] {

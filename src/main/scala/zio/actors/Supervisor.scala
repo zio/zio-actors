@@ -1,7 +1,7 @@
 package zio.actors
 
-import scalaz.zio.{ IO, Schedule, ZIO }
-import scalaz.zio.clock.Clock
+import zio.{ IO, Schedule, ZIO }
+import zio.clock.Clock
 
 trait Supervisor[-E] {
   def supervise[A](io: IO[E, A], error: E): IO[Unit, A]
