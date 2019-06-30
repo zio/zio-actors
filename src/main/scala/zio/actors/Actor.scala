@@ -1,6 +1,6 @@
 package zio.actors
 
-import scalaz.zio.{ IO, Promise, Queue, Ref }
+import zio.{ IO, Promise, Queue, Ref }
 
 trait Actor[+E, -F[+ _]] {
   def ![A](fa: F[A]): IO[E, A]

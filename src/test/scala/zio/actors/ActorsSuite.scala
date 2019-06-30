@@ -1,6 +1,6 @@
 package zio.actors
 
-import scalaz.zio.{ DefaultRuntime, IO, Ref, Schedule }
+import zio.{ DefaultRuntime, IO, Ref, Schedule }
 import testz.{ Harness, assert }
 import zio.actors.Actor.Stateful
 
