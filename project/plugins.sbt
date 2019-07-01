@@ -5,4 +5,3 @@ addSbtPlugin("com.47deg"                 % "sbt-microsites"    % "0.9.2")
 addSbtPlugin("ch.epfl.scala"             % "sbt-release-early" % "2.1.1")
 addSbtPlugin("org.scoverage"             % "sbt-scoverage"     % "1.6.0")
 addSbtPlugin("io.github.davidgregory084" % "sbt-tpolecat"      % "0.1.7")
-
