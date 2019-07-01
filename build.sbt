@@ -1,6 +1,4 @@
-import Scalaz._
-
-name := "zio-actors"
+import Build._
 
 inThisBuild(
   List(
@@ -41,7 +39,7 @@ libraryDependencies ++= Seq(
 lazy val root =
   (project in file("."))
     .settings(
-      stdSettings("actors")
+      stdSettings("zio-actors")
     )
 
 lazy val microsite = project
