@@ -3,8 +3,8 @@ package zio.actors
 import java.util.concurrent.atomic.AtomicBoolean
 
 import org.specs2.Specification
-import zio.DefaultRuntime
 import zio.actors.Actor.Stateful
+import zio.{ DefaultRuntime, IO, Ref, Schedule }
 
 final class ActorsSuite extends Specification with DefaultRuntime {
 
