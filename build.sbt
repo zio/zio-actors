@@ -27,7 +27,7 @@ scmInfo := Some(
 )
 
 val scalazVersion = "7.2.28"
-val testzVersion  = "0.0.5"
+val testzVersion  = "0.0.6"
 val zioVersion    = "1.0.0-RC9"
 
 libraryDependencies ++= Seq(
