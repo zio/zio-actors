@@ -4,6 +4,21 @@ import sbt.Keys._
 object Build {
   val compileOnlyDeps = Seq("com.github.ghik" %% "silencer-lib" % "1.4.1" % "provided")
 
+  private val std2xOptions = Seq(
+    "-Xfatal-warnings",
+    "-language:higherKinds",
+    "-language:existentials",
+    "-explaintypes",
+    "-Yrangepos",
+    "-Xfuture",
+    "-Xsource:2.13",
+    "-Xlint:_,-type-parameter-shadow",
+    "-Ywarn-numeric-widen",
+    "-Ywarn-value-discard",
+    "-Xmax-classfile-name",
+    "242"
+  )
+
   def extraOptions(scalaVersion: String) =
     CrossVersion.partialVersion(scalaVersion) match {
       case Some((2, 12)) =>
@@ -15,6 +30,17 @@ object Build {
           "-opt:l:inline",
           "-opt-inline-from:<source>"
         )
+      case Some((2, 11)) =>
+        Seq(
+          "-Ypartial-unification",
+          "-Yno-adapted-args",
+          "-Ywarn-inaccessible",
+          "-Ywarn-infer-any",
+          "-Ywarn-nullary-override",
+          "-Ywarn-nullary-unit",
+          "-Xexperimental",
+          "-Ywarn-unused-import"
+        ) ++ std2xOptions
       case _ =>
         Seq(
           "-Xexperimental",
