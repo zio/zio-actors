@@ -124,7 +124,7 @@ documentation: &documentation
       - <<: *install_yarn
       - run:
           name: Generating docs
-          run: sbt ++2.12.8! doc
+          command: sbt ++2.12.8! doc
       - <<: *save_cache
 
 microsite: &microsite
