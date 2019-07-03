@@ -309,8 +309,6 @@ workflows:
           requires:
             - test_211_jdk8_jvm
             - test_211_jdk11_jvm
-            - test_211_jdk8_js
-            - test_211_jdk11_js
           filters:
             branches:
               ignore: /.*/
