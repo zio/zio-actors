@@ -30,11 +30,11 @@ install_jdk: &install_jdk
 
 load_cache: &load_cache
   - restore_cache:
-      key: sbt-cache
+      key: sbt-actors-cache
 
 save_cache: &save_cache
   - save_cache:
-      key: sbt-cache
+      key: sbt-actors-cache
       paths:
           - "~/.ivy2/cache"
           - "~/.sbt"
