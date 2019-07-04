@@ -26,11 +26,13 @@ scmInfo := Some(
   ScmInfo(url("https://github.com/zio/zio-actors/"), "scm:git:git@github.com:zio/zio-actors.git")
 )
 
-val zioVersion   = "1.0.0-RC9"
-val specs2Verion = "4.6.0"
+val zioVersion    = "1.0.0-RC9"
+val specs2Version = "4.6.0"
 libraryDependencies ++= Seq(
-  "dev.zio"    %% "zio"         % zioVersion,
-  "org.specs2" %% "specs2-core" % specs2Verion % "test"
+  "dev.zio"    %% "zio"                  % zioVersion,
+  "org.specs2" %% "specs2-core"          % specs2Version % "test",
+  "org.specs2" %% "specs2-scalacheck"    % specs2Version % Test,
+  "org.specs2" %% "specs2-matcher-extra" % specs2Version % Test
 )
 
 lazy val root =
