@@ -138,26 +138,6 @@ microsite: &microsite
       - run: sbt ++2.12.8! microsite/publishMicrosite
       - <<: *save_cache
 
-# microsite: &microsite
-#   steps:
-#       - add_ssh_keys:
-#           fingerprints:
-#             - "b3:9b:af:d5:de:74:32:e7:7a:21:77:77:66:fe:2f:42"
-#       - checkout
-#       - <<: *load_cache
-#       - <<: *install_nodejs
-#       - <<: *install_yarn
-#       - run:
-#           name: Publishing website
-#           command: |
-#             export TRAVIS_BUILD_NUMBER="${CIRCLE_BUILD_NUM}"
-#             export TRAVIS_COMMIT="${CIRCLE_SHA1}"
-#             sudo chown -R $USER:$USER /tmp
-#             nvm use
-#             node -v
-#             ./sbt docs/docusaurusPublishGhpages
-#       - <<: *save_cache
-
 jobs:
   lint:
     <<: *lint
@@ -256,18 +236,6 @@ workflows:
           filters:
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
-      # - compile_dotty:
-      #     requires:
-      #       - lint
-      #     filters:
-      #       tags:
-      #         only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
-      # - mdoc:
-      #     requires:
-      #       - lint
-      #     filters:
-      #       tags:
-      #         only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
       - test_211_jdk8_jvm:
           requires:
             - lint
@@ -280,12 +248,6 @@ workflows:
           filters:
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
-#      - test_dotty_jdk8_jvm:
-#          requires:
-#            - lint
-#          filters:
-#            tags:
-#              only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
       - test_211_jdk11_jvm:
           requires:
             - lint
@@ -298,12 +260,6 @@ workflows:
           filters:
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
-#      - test_dotty_jdk11_jvm:
-#          requires:
-#            - lint
-#          filters:
-#            tags:
-#              only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
       - release_211:
           context: Sonatype
           requires:
