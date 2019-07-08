@@ -26,7 +26,7 @@ scmInfo := Some(
   ScmInfo(url("https://github.com/zio/zio-actors/"), "scm:git:git@github.com:zio/zio-actors.git")
 )
 
-val zioVersion    = "1.0.0-RC9"
+val zioVersion    = "1.0.0-RC9-4"
 val specs2Version = "4.6.0"
 libraryDependencies ++= Seq(
   "dev.zio"    %% "zio"                  % zioVersion,
