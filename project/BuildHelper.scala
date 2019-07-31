@@ -2,7 +2,7 @@ import sbt._
 import sbt.Keys._
 
 object Build {
-  val compileOnlyDeps = Seq("com.github.ghik" %% "silencer-lib" % "1.4.1" % "provided")
+  val compileOnlyDeps = Seq("com.github.ghik" %% "silencer-lib" % "1.4.2" % "provided")
 
   private val std2xOptions = Seq(
     "-Xfatal-warnings",
@@ -54,7 +54,7 @@ object Build {
     scalaVersion in ThisBuild := crossScalaVersions.value.head,
     scalacOptions := extraOptions(scalaVersion.value),
     libraryDependencies ++= compileOnlyDeps ++ Seq(
-      compilerPlugin("com.github.ghik" %% "silencer-plugin" % "1.4.1")
+      compilerPlugin("com.github.ghik" %% "silencer-plugin" % "1.4.2")
     ),
     incOptions ~= (_.withLogRecompileOnMacro(false))
   )
