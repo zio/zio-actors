@@ -18,48 +18,50 @@ final class ActorsSuite extends Specification with DefaultRuntime {
 
   // Sequential message processing
   def e1 = {
-    sealed trait Message[+_]
-    case object Reset    extends Message[Unit]
-    case object Increase extends Message[Unit]
-    case object Get      extends Message[Int]
+    sealed trait Message
+    case object Reset    extends Message
+    case object Increase extends Message
 
-    val handler = new Stateful[Int, Nothing, Message] {
-      override def receive[A](state: Int, msg: Message[A]): IO[Nothing, (Int, A)] =
+    val handler = new Stateful[Ref[Int], Nothing, Message] {
+      override def receive(
+        state: Ref[Int],
+        msg: Message
+      ): IO[Nothing, (Ref[Int], Stateful[Ref[Int], Nothing, Message])] =
         msg match {
-          case Reset    => IO.succeedLazy((0, ()))
-          case Increase => IO.succeedLazy((state + 1, ()))
-          case Get      => IO.succeedLazy((state, state))
+          case Reset    => state.set(0) *> IO.effectTotal((state, this))
+          case Increase => (state.get >>= (v => state.set(v + 1))) *> IO.effectTotal((state, this))
         }
     }
 
     unsafeRun(for {
-      actor <- Actor.stateful(Supervisor.none)(0)(handler)
+      ref   <- Ref.make(0)
+      actor <- Actor.stateful(Supervisor.none)(ref)(handler)
       _     <- actor ! Increase
       _     <- actor ! Increase
-      c1    <- actor ! Get
+      c1    <- ref.get
       _     <- actor ! Reset
-      c2    <- actor ! Get
+      c2    <- ref.get
     } yield (c1 must_== 2).and(c2 must_== 0))
 
   }
 
   // Error recovery by retrying
   def e2 = {
-    sealed trait Message[+_]
-    case object Tick extends Message[Unit]
+    sealed trait Message
+    case object Tick extends Message
 
     val maxRetries = 10
 
     def makeHandler(ref: Ref[Int]): Actor.Stateful[Unit, String, Message] =
       new Stateful[Unit, String, Message] {
-        override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
+        override def receive(state: Unit, msg: Message): IO[String, (Unit, Stateful[Unit, String, Message])] =
           msg match {
             case Tick =>
               ref
                 .update(_ + 1)
                 .flatMap { v =>
                   if (v < maxRetries) IO.fail("fail")
-                  else IO.succeed((state, state))
+                  else IO.succeed(((), this))
                 }
           }
       }
@@ -77,11 +79,11 @@ final class ActorsSuite extends Specification with DefaultRuntime {
 
   // Error recovery by fallback action
   def e3 = {
-    sealed trait Message[+_]
-    case object Tick extends Message[Unit]
+    sealed trait Message
+    case object Tick extends Message
 
     val handler = new Stateful[Unit, String, Message] {
-      override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
+      override def receive(state: Unit, msg: Message): IO[String, (Unit, Stateful[Unit, String, Message])] =
         msg match {
           case Tick => IO.fail("fail")
         }
