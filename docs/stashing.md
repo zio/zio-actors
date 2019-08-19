@@ -1,7 +1,5 @@
 ---
-layout: home
-position: 7
-section: home
+id: stashing
 title: "Stashing"
 ---
 

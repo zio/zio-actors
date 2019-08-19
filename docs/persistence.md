@@ -1,7 +1,5 @@
 ---
-layout: home
-position: 6
-section: home
+id: persistence
 title: "Persistence"
 ---
 

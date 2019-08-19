@@ -1,7 +1,5 @@
 ---
-layout: home
-position: 8
-section: home
+id: registry
 title: "Registry"
 ---
 

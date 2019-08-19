@@ -1,7 +1,5 @@
 ---
-layout: home
-position: 3
-section: home
+id: overview
 title: "Overview"
 ---
 

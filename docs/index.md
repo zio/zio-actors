@@ -1,7 +1,5 @@
 ---
-layout: home
-position: 1
-section: home
+id: index
 title: "Home"
 ---
 
@@ -13,7 +11,7 @@ The [Actor Model](https://en.wikipedia.org/wiki/Actor_model) is used to build di
 
 In its simplest form the goal of this project is to provide the ability to write actors in Functional Way that are typed leveraging [scalaz-zio](https://github.com/scalaz/scalaz-zio).
 
-To learn more about how Scalaz Actors can help you accomplish the impossible, see [Getting Started](getting_started.html) and [Overview](overview.html).
+To learn more about how Scalaz Actors can help you accomplish the impossible, see [Getting Started](getting_started.md) and [Overview](overview.md).
 
 # Scalaz Actors current alternatives
 - [Akka](https://akka.io) (Scala & Java)

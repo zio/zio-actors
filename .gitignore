@@ -458,3 +458,8 @@ project/plugins/project/
 .metals/
 .bloop/
 project/secret
+
+# mdoc
+website/node_modules
+website/build
+website/i18n/en.json

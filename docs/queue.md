@@ -1,7 +1,5 @@
 ---
-layout: home
-position: 4
-section: home
+id: queue
 title: "Queue"
 ---
 

@@ -1,7 +1,5 @@
 ---
-layout: home
-position: 5
-section: home
+id: supervision
 title: "Supervision"
 ---
 
