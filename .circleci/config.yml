@@ -36,10 +36,10 @@ save_cache: &save_cache
   - save_cache:
       key: sbt-actors-cache
       paths:
-        - "~/.ivy2/cache"
-        - "~/.sbt"
-        - "~/.m2"
-        - "~/website/node_modules"
+          - "~/.ivy2/cache"
+          - "~/.sbt"
+          - "~/.m2"
+          - "~/website/node_modules"
 
 install_yarn: &install_yarn
   - run:
@@ -103,42 +103,42 @@ test: &test
 
 release: &release
   steps:
-    - checkout
-    - run:
-        name: Fetch git tags
-        command: git fetch --tags
-    - <<: *load_cache
-    - run:
-        name: Write PGP public key
-        command: echo -n "${PGP_PUBLIC}" | base64 -d > /tmp/public.asc
-    - run:
-        name: Write PGP secret key
-        command: echo -n "${PGP_SECRET}" | base64 -d > /tmp/secret.asc
-    - run:
-        name: Release artifacts
-        command: ./sbt ++${SCALA_VERSION}! releaseEarly
+      - checkout
+      - run:
+          name: Fetch git tags
+          command: git fetch --tags
+      - <<: *load_cache
+      - run:
+          name: Write PGP public key
+          command: echo -n "${PGP_PUBLIC}" | base64 -d > /tmp/public.asc
+      - run:
+          name: Write PGP secret key
+          command: echo -n "${PGP_SECRET}" | base64 -d > /tmp/secret.asc
+      - run:
+          name: Release artifacts
+          command: ./sbt ++${SCALA_VERSION}! releaseEarly
 
 documentation: &documentation
   steps:
-    - checkout
-    - <<: *load_cache
-    - <<: *install_nodejs
-    - <<: *install_yarn
-    - run:
-        name: Generating docs
-        command: sbt ++2.12.8! doc
-    - <<: *save_cache
+      - checkout
+      - <<: *load_cache
+      - <<: *install_nodejs
+      - <<: *install_yarn
+      - run:
+          name: Generating docs
+          command: sbt ++2.12.8! doc
+      - <<: *save_cache
 
 microsite: &microsite
   steps:
-    - add_ssh_keys:
-        fingerprints:
-          - "11:2c:fa:98:69:d8:a1:d5:76:2e:38:d0:91:39:85:ce"
-    - checkout
-    - <<: *load_cache
-    - run: sbt ++2.12.8! microsite/makeMicrosite
-    - run: sbt ++2.12.8! microsite/publishMicrosite
-    - <<: *save_cache
+      - add_ssh_keys:
+          fingerprints:
+            - "11:2c:fa:98:69:d8:a1:d5:76:2e:38:d0:91:39:85:ce"
+      - checkout
+      - <<: *load_cache
+      - run: sbt ++2.12.8! microsite/makeMicrosite
+      - run: sbt ++2.12.8! microsite/publishMicrosite
+      - <<: *save_cache
 
 jobs:
   lint:
@@ -282,6 +282,16 @@ workflows:
           context: Sonatype
           requires:
             - release_211
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
+      - documentation:
+          context: Sonatype
+          requires:
+            - release_211
+            - release_212
           filters:
             branches:
               ignore: /.*/
