@@ -1,11 +1,7 @@
 ---
-layout: home
-position: 6
-section: home
+id: persistence
 title: "Persistence"
 ---
-
-# Persistence
 
 - Persisting of actors state and messages in a preferred datastore
 - Will be used to provide greator actor resilience by providing greator ability to recover from system restarts, crashes and infrastructure migrations
@@ -14,5 +10,3 @@ title: "Persistence"
     - Kafka
     - Postgresql
     - Pulsar
-
-
