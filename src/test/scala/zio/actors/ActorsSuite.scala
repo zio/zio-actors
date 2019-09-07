@@ -26,9 +26,9 @@ final class ActorsSuite extends Specification with DefaultRuntime {
     val handler = new Stateful[Int, Nothing, Message] {
       override def receive[A](state: Int, msg: Message[A]): IO[Nothing, (Int, A)] =
         msg match {
-          case Reset    => IO.succeedLazy((0, ()))
-          case Increase => IO.succeedLazy((state + 1, ()))
-          case Get      => IO.succeedLazy((state, state))
+          case Reset    => IO.effectTotal((0, ()))
+          case Increase => IO.effectTotal((state + 1, ()))
+          case Get      => IO.effectTotal((state, state))
         }
     }
 
@@ -92,7 +92,7 @@ final class ActorsSuite extends Specification with DefaultRuntime {
     val policy =
       Supervisor.retryOrElse[String, Int](
         schedule,
-        (_, _) => IO.succeedLazy(called.set(true))
+        (_, _) => IO.effectTotal(called.set(true))
       )
 
     val program = for {
