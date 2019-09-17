@@ -27,7 +27,7 @@ scmInfo := Some(
 )
 
 val zioVersion    = "1.0.0-RC12-1"
-val specs2Version = "4.7.0"
+val specs2Version = "4.7.1"
 libraryDependencies ++= Seq(
   "dev.zio"    %% "zio"                  % zioVersion,
   "org.specs2" %% "specs2-core"          % specs2Version % "test",
