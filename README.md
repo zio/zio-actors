@@ -1,6 +1,6 @@
 # zio-actors
 
-[![Gitter](https://badges.gitter.im/zio/zio-actors.svg)](https://gitter.im/zio/zio-actors?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) | [![CircleCI](https://circleci.com/gh/zio/zio-actors/tree/master.svg?style=svg)](https://circleci.com/gh/zio/zio-actors/tree/master)
+[![Badge-Discord]][Link-Discord] | [![CircleCI](https://circleci.com/gh/zio/zio-actors/tree/master.svg?style=svg)](https://circleci.com/gh/zio/zio-actors/tree/master)
 
 # Summary
 High-performance, purely-functional library for building, composing, and supervising typed actors based on ZIO.
@@ -11,5 +11,17 @@ Coming soon when its ready it will be here: [ZIO Actors Microsite](https://zio.g
 # Contributing
 [Documentation for contributors](CONTRIBUTING.md)
 
+## Code of Conduct
+
+See the [Code of Conduct](./code_of_conduct.md)
+
+## Support
+
+Come chat with us on [![Badge-Discord]][Link-Discord].
+
+
 # License
 [License](LICENSE)
+
+[Link-Discord]: https://discord.gg/2ccFBr4 "Discord"
+[Badge-Discord]: https://img.shields.io/discord/629491597070827530?logo=discord "chat on discord"
