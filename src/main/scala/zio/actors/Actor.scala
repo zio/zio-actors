@@ -5,6 +5,9 @@ import zio.{ IO, Promise, Queue, Ref }
 trait Actor[+E, -F[+_]] {
   def ![A](fa: F[A]): IO[E, A]
 
+  def unsafeOp(a: Any): IO[E, Any] =
+    this.!(a.asInstanceOf[F[_]])
+
   def stop: IO[Nothing, List[_]]
 }
 
