@@ -17,8 +17,35 @@ object Main extends App {
       }
   }
 
+  sealed trait PingPongProto[+A]
+  case class Ping(sender: ActorRef[Exception, PingPongProto]) extends PingPongProto[Unit]
+  case object Pong extends PingPongProto[Unit]
+  case class GameInit(sender: ActorRef[Exception, PingPongProto],
+                      recipient: ActorRef[Exception, PingPongProto]) extends PingPongProto[Unit]
+
+  val protoHandler = new Stateful[Unit, Exception, PingPongProto] {
+    override def receive[A](state: Unit, msg: PingPongProto[A], system: ActorSystem): IO[Exception, (Unit, A)] =
+      msg match {
+        case Ping(sender) => (for {
+          path <- sender.path
+          _ <- putStrLn(s"Ping from: $path, sending pong")
+          _ <- (sender ! Pong).fork
+        } yield ((), ())).asInstanceOf[IO[Exception, (Unit, A)]]
+
+        case Pong => (for {
+          _ <- putStrLn("Received pong")
+          _ <- IO.succeed(1)
+        } yield ((), ())).asInstanceOf[IO[Exception, (Unit, A)]]
+
+        case GameInit(from, to) => (for {
+          _ <- putStrLn("The game starts...")
+          _ <- (to ! Ping(from)).fork
+        } yield ((), ())).asInstanceOf[IO[Exception, (Unit, A)]]
+      }
+  }
+
   def run(args: List[String]) =
-    myAppLogic2.fold(_ => 1, _ => 0)
+    myAppLogic3.fold(_ => 1, _ => 0)
 
   val myAppLogic =
     for {
@@ -40,5 +67,18 @@ object Main extends App {
       _ <- zio.console.putStrLn(result)
     } yield ()
 
-}
+  val myAppLogic3 =
+    for {
+      actorSystemRoot <- ActorSystem("testSystemOne", Some("127.0.0.1", 9165))
+      one <- actorSystemRoot.createActor("actorOne", Supervisor.none, (), protoHandler)
 
+      actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", 9166))
+      two <- actorSystem.createActor("actorTwo", Supervisor.none, (), protoHandler)
+
+      remotee <- actorSystemRoot.selectActor[Exception, PingPongProto]("zio://testSystemTwo@127.0.0.1:9166/actorTwo")
+
+      _ <- one ! GameInit(one, remotee)
+      _ <- IO.unit.forever
+    } yield ()
+
+}

@@ -3,10 +3,9 @@ package zio.actors
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
 import java.nio.ByteBuffer
 
-import zio.{Chunk, IO, Promise, Ref, UIO, ZIO}
+import zio.{Chunk, IO, Promise, Ref, UIO}
 import zio.actors.Actor.Stateful
 import zio.actors.ActorSystem.{Addr, Port}
-import zio.actors.Main.Str
 import zio.nio.{Buffer, InetAddress, SocketAddress}
 import zio.nio.channels.AsynchronousServerSocketChannel
 
@@ -29,6 +28,23 @@ object ActorSystem {
     }
 
   } yield actorSystem
+
+  private[actors] def solvePath(path: String): IO[Exception, (String, Addr, Port, String)] = {
+
+    val regex = "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w|\\/]+)$".r
+
+    regex.findFirstMatchIn(path) match {
+      case Some(value) if value.groupCount == 4 =>
+        val actorSystemName = value.group(1)
+        val address = value.group(2)
+        val port = value.group(3).toInt
+        val actorName = "/" + value.group(4)
+        IO.succeed((actorSystemName, address, port, actorName))
+      case None =>
+        IO.fail(new Exception("Invalid qualified path"))
+    }
+
+  }
 
 }
 
@@ -74,13 +90,10 @@ case class ActorSystemImpl(name: String,
 
             map <- refActorMap.get
 
-         //   _ <- zio.console.putStrLn(obj.msg.asInstanceOf[Str].value)
-
-            _ <- map.get(obj.recipient) match {
+            _ <- map.get("/" + obj.recipient.split("/").last) match {
               case Some(value) =>
 
                 for {
-                 // _ <- zio.console.putStrLn("Ahhh sweeet")
                   resp <- value.asInstanceOf[Actor[Any, Any]].unsafeOp(obj.msg)
                   stream: ByteArrayOutputStream = new ByteArrayOutputStream()
                   oos <- UIO.effectTotal(new ObjectOutputStream(stream))
@@ -94,7 +107,6 @@ case class ActorSystemImpl(name: String,
                 } yield ()
 
               case None =>
-               // zio.console.putStrLn("Not really")
                 IO.unit
             }
 
@@ -111,21 +123,19 @@ case class ActorSystemImpl(name: String,
 
   } yield ()
 
-  def createActor[S, E >: Exception, F[+_]](name: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]] = for {
+  def createActor[S, E >: Exception, F[+_]](actname: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]] = for {
 
     map <- refActorMap.get
-    finalName = parentActor.getOrElse("") + "/" + name
+    finalName = parentActor.getOrElse("") + "/" + actname
     actor <- Actor.stateful[S, E, F](sup, this.copy(parentActor = Some(finalName)))(init)(stateful)
     _ <- refActorMap.set(map + (finalName -> actor))
 
-  } yield ActorRefLocal[E, F](finalName, actor)
+  } yield ActorRefLocal[E, F]("zio://" + name + "@" + remoteConfig.map({case (a, b) => a + ":" + b}).getOrElse("local") + finalName, actor)
 
   override def selectActor[E >: Exception, F[+_]](path: String): IO[E, ActorRef[E, F]] = for {
 
-    solvedPath <- solvePath(path)
+    solvedPath <- ActorSystem.solvePath(path)
     (ac, add, port, act) = solvedPath
-
-    _ <- zio.console.putStrLn(ac + add + port + act).asInstanceOf[IO[Exception, Unit]]
 
     d <- refActorMap.get
 
@@ -148,27 +158,10 @@ case class ActorSystemImpl(name: String,
       for {
         e <- InetAddress.byName(add)
           .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port))
-      } yield ActorRefRemote[E, F](act, e)
+      } yield ActorRefRemote[E, F](path, e)
 
     }
 
   } yield actorRef
-
-  private def solvePath(path: String) = {
-
-    val regex = "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w|\\/]+)$".r
-
-    regex.findFirstMatchIn(path) match {
-      case Some(value) if value.groupCount == 4 =>
-        val actorSystemName = value.group(1)
-        val address = value.group(2)
-        val port = value.group(3).toInt
-        val actorName = "/" + value.group(4)
-        IO.succeed((actorSystemName, address, port, actorName))
-      case None =>
-        IO.fail(new Exception("Invalid qualified path"))
-    }
-
-  }
 
 }
