@@ -3,22 +3,30 @@ package zio.actors
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
 import java.nio.ByteBuffer
 
-import zio.{Chunk, IO, Ref, UIO, ZIO}
+import zio.{Chunk, IO, Promise, Ref, UIO, ZIO}
 import zio.actors.Actor.Stateful
+import zio.actors.ActorSystem.{Addr, Port}
 import zio.actors.Main.Str
-import zio.console.Console
 import zio.nio.{Buffer, InetAddress, SocketAddress}
 import zio.nio.channels.AsynchronousServerSocketChannel
 
 object ActorSystem {
 
-  def apply(name: String, config: Int): ZIO[Console, Any, ActorSystem] = for {
+  type Addr = String
+  type Port = Int
 
-    ref <- Ref.make(Map.empty[String, Any])
+  def apply(name: String, remoteConfig: Option[(Addr, Port)]): IO[Any, ActorSystem] = for {
 
-    actorSystem <- IO.effect(ActorSystemImpl(name, config, ref, None))
+    initActorRefMap <- Ref.make(Map.empty[String, Any])
 
-    _ <- actorSystem.receiveLoop().fork
+    actorSystem <- IO.effect(ActorSystemImpl(name, remoteConfig, initActorRefMap, parentActor = None))
+
+    _ <- remoteConfig match {
+      case Some((addr, port)) =>
+        actorSystem.receiveLoop(addr, port)
+      case None =>
+        IO.unit
+    }
 
   } yield actorSystem
 
@@ -33,20 +41,21 @@ trait ActorSystem {
 }
 
 case class ActorSystemImpl(name: String,
-                           config: Int,
+                           remoteConfig: Option[(Addr, Port)],
                            refActorMap: Ref[Map[String, Any]],
-                           remoteSupportOpt: Option[AsynchronousServerSocketChannel]) extends ActorSystem {
+                           parentActor: Option[String]) extends ActorSystem {
 
-  val path: String = name
-
-  def receiveLoop() = for {
-    addr <- InetAddress.localHost
-    addres <- SocketAddress.inetSocketAddress(addr, config)
-    _ <- AsynchronousServerSocketChannel().use { channel =>
+  def receiveLoop(address: Addr, port: Port): IO[Any, Unit] = for {
+    addr <- InetAddress.byName(address)
+    address <- SocketAddress.inetSocketAddress(addr, port)
+    p <- Promise.make[Nothing, Unit]
+    _ <- (AsynchronousServerSocketChannel().use { channel =>
       for {
-        _ <- channel.bind(addres)
+        _ <- channel.bind(address)
 
-        rrr = channel.accept.use { worker =>
+        _ <- p.succeed(())
+
+        loop = channel.accept.use { worker =>
 
           for {
             size <- worker.read(4)
@@ -54,7 +63,7 @@ case class ActorSystemImpl(name: String,
             d <- buff.asIntBuffer
             toRead <- d.get(0)
 
-            _ <- zio.console.putStrLn("WORKED! " + toRead.toString)
+          //  _ <- zio.console.putStrLn("WORKED! " + toRead.toString)
 
             envelope <- worker.read(toRead)
 
@@ -65,13 +74,13 @@ case class ActorSystemImpl(name: String,
 
             map <- refActorMap.get
 
-            _ <- zio.console.putStrLn(obj.msg.asInstanceOf[Str].value)
+         //   _ <- zio.console.putStrLn(obj.msg.asInstanceOf[Str].value)
 
             _ <- map.get(obj.recipient) match {
               case Some(value) =>
 
                 for {
-                  _ <- zio.console.putStrLn("Ahhh sweeet")
+                 // _ <- zio.console.putStrLn("Ahhh sweeet")
                   resp <- value.asInstanceOf[Actor[Any, Any]].unsafeOp(obj.msg)
                   stream: ByteArrayOutputStream = new ByteArrayOutputStream()
                   oos <- UIO.effectTotal(new ObjectOutputStream(stream))
@@ -85,7 +94,8 @@ case class ActorSystemImpl(name: String,
                 } yield ()
 
               case None =>
-                zio.console.putStrLn("Not really")
+               // zio.console.putStrLn("Not really")
+                IO.unit
             }
 
 
@@ -93,40 +103,72 @@ case class ActorSystemImpl(name: String,
 
         }
 
-        _ <- rrr.forever
+        _ <- loop.forever
 
-      } yield channel
-    }
+      } yield ()
+    }).fork
+    _ <- p.await
 
   } yield ()
 
   def createActor[S, E >: Exception, F[+_]](name: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]] = for {
 
-    actor <- Actor.stateful[S, E, F](sup)(init)(stateful)
     map <- refActorMap.get
-    _ <- refActorMap.set(map + (name -> actor))
+    finalName = parentActor.getOrElse("") + "/" + name
+    actor <- Actor.stateful[S, E, F](sup, this.copy(parentActor = Some(finalName)))(init)(stateful)
+    _ <- refActorMap.set(map + (finalName -> actor))
 
-  } yield ActorRefLocal[E, F](actor)
+  } yield ActorRefLocal[E, F](finalName, actor)
 
   override def selectActor[E >: Exception, F[+_]](path: String): IO[E, ActorRef[E, F]] = for {
 
+    solvedPath <- solvePath(path)
+    (ac, add, port, act) = solvedPath
+
+    _ <- zio.console.putStrLn(ac + add + port + act).asInstanceOf[IO[Exception, Unit]]
+
     d <- refActorMap.get
 
-    actorRef <- d.get(path) match {
-      case Some(value) if value.isInstanceOf[Actor[E, F]] =>
-        for {
-          t <- IO.effectTotal(value.asInstanceOf[Actor[E, F]])
-        } yield ActorRefLocal(t)
+    actorRef <- if (ac == name) {
 
-      case None => //IO.fail(new Exception("No such actor"))
-        for {
+      for {
+        actorRef <- d.get(act) match {
+          case Some(value) =>
+            for {
+              t <- IO.effectTotal(value.asInstanceOf[Actor[E, F]])
+            } yield ActorRefLocal(path, t)
+          case None =>
+            IO.fail(new Exception("No such actor"))
+        }
+      } yield actorRef
 
-          e <- InetAddress.localHost
-            .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, 9099))
 
-        } yield ActorRefRemote[E, F](e, path)
+    } else {
+
+      for {
+        e <- InetAddress.byName(add)
+          .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port))
+      } yield ActorRefRemote[E, F](act, e)
+
     }
 
   } yield actorRef
+
+  private def solvePath(path: String) = {
+
+    val regex = "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w|\\/]+)$".r
+
+    regex.findFirstMatchIn(path) match {
+      case Some(value) if value.groupCount == 4 =>
+        val actorSystemName = value.group(1)
+        val address = value.group(2)
+        val port = value.group(3).toInt
+        val actorName = "/" + value.group(4)
+        IO.succeed((actorSystemName, address, port, actorName))
+      case None =>
+        IO.fail(new Exception("Invalid qualified path"))
+    }
+
+  }
 
 }

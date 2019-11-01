@@ -15,11 +15,12 @@ object Actor {
   val DefaultActorMailboxSize = 10000
 
   trait Stateful[S, +E, -F[+_]] {
-    def receive[A](state: S, msg: F[A]): IO[E, (S, A)]
+    def receive[A](state: S, msg: F[A], system: ActorSystem): IO[E, (S, A)]
   }
 
   final def stateful[S, E, F[+_]](
     supervisor: Supervisor[E],
+    system: ActorSystem,
     mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S)(
     stateful: Actor.Stateful[S, E, F]
@@ -30,7 +31,7 @@ object Actor {
       for {
         s             <- state.get
         (fa, promise) = msg
-        receiver      = stateful.receive(s, fa)
+        receiver      = stateful.receive(s, fa, system)
         completer     = ((s: S, a: A) => state.set(s) *> promise.succeed(a)).tupled
         _ <- receiver.foldM(
               e =>

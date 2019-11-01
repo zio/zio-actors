@@ -27,7 +27,7 @@ object ActorsSpec
           import CounterUtils._
 
           val handler = new Stateful[Int, Nothing, Message] {
-            override def receive[A](state: Int, msg: Message[A]): IO[Nothing, (Int, A)] =
+            override def receive[A](state: Int, msg: Message[A], system: ActorSystem): IO[Nothing, (Int, A)] =
               msg match {
                 case Reset    => IO.effectTotal((0, ()))
                 case Increase => IO.effectTotal((state + 1, ()))
@@ -36,7 +36,8 @@ object ActorsSpec
           }
 
           for {
-            actor <- Actor.stateful(Supervisor.none)(0)(handler)
+            system <- ActorSystem("test1", None)
+            actor <- Actor.stateful(Supervisor.none, system)(0)(handler)
             _     <- actor ! Increase
             _     <- actor ! Increase
             c1    <- actor ! Get
@@ -52,7 +53,7 @@ object ActorsSpec
 
           def makeHandler(ref: Ref[Int]): Actor.Stateful[Unit, String, Message] =
             new Stateful[Unit, String, Message] {
-              override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
+              override def receive[A](state: Unit, msg: Message[A], system: ActorSystem): IO[String, (Unit, A)] =
                 msg match {
                   case Tick =>
                     ref
@@ -69,7 +70,8 @@ object ActorsSpec
             handler  = makeHandler(ref)
             schedule = Schedule.recurs(maxRetries)
             policy   = Supervisor.retry(schedule)
-            actor    <- Actor.stateful(policy)(())(handler)
+            system   <- ActorSystem("test2", None)
+            actor    <- Actor.stateful(policy, system)(())(handler)
             _        <- actor ! Tick
             count    <- ref.get
           } yield assert(count, equalTo(maxRetries))
@@ -79,7 +81,7 @@ object ActorsSpec
           import TickUtils._
 
           val handler = new Stateful[Unit, String, Message] {
-            override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
+            override def receive[A](state: Unit, msg: Message[A], system: ActorSystem): IO[String, (Unit, A)] =
               msg match {
                 case Tick => IO.fail("fail")
               }
@@ -94,7 +96,8 @@ object ActorsSpec
             )
 
           val program = for {
-            actor <- Actor.stateful(policy)(())(handler)
+            system <- ActorSystem("test3", None)
+            actor <- Actor.stateful(policy, system)(())(handler)
             _     <- actor ! Tick
           } yield ()
 
