@@ -26,8 +26,8 @@ object ActorsSpec
 
           import CounterUtils._
 
-          val handler = new Stateful[Int, Nothing, Message] {
-            override def receive[A](state: Int, msg: Message[A], system: ActorSystem): IO[Nothing, (Int, A)] =
+          val handler = new Stateful[Int, Exception, Message] {
+            override def receive[A](state: Int, msg: Message[A], context: Context[Exception, Message]): IO[Exception, (Int, A)] =
               msg match {
                 case Reset    => IO.effectTotal((0, ()))
                 case Increase => IO.effectTotal((state + 1, ()))
@@ -37,7 +37,7 @@ object ActorsSpec
 
           for {
             system <- ActorSystem("test1", None)
-            actor <- Actor.stateful(Supervisor.none, system)(0)(handler)
+            actor <- Actor.stateful(Supervisor.none, ContextImpl[Exception, Message]("xd", system))(0)(handler)
             _     <- actor ! Increase
             _     <- actor ! Increase
             c1    <- actor ! Get
@@ -51,15 +51,15 @@ object ActorsSpec
 
           val maxRetries = 10
 
-          def makeHandler(ref: Ref[Int]): Actor.Stateful[Unit, String, Message] =
-            new Stateful[Unit, String, Message] {
-              override def receive[A](state: Unit, msg: Message[A], system: ActorSystem): IO[String, (Unit, A)] =
+          def makeHandler(ref: Ref[Int]): Actor.Stateful[Unit, Exception, Message] =
+            new Stateful[Unit, Exception, Message] {
+              override def receive[A](state: Unit, msg: Message[A], context: Context[Exception, Message]): IO[Exception, (Unit, A)] =
                 msg match {
                   case Tick =>
                     ref
                       .update(_ + 1)
                       .flatMap { v =>
-                        if (v < maxRetries) IO.fail("fail")
+                        if (v < maxRetries) IO.fail(new Exception("fail"))
                         else IO.succeed((state, state))
                       }
                 }
@@ -71,7 +71,7 @@ object ActorsSpec
             schedule = Schedule.recurs(maxRetries)
             policy   = Supervisor.retry(schedule)
             system   <- ActorSystem("test2", None)
-            actor    <- Actor.stateful(policy, system)(())(handler)
+            actor    <- Actor.stateful(policy, ContextImpl[Exception, Message]("xd", system))(())(handler)
             _        <- actor ! Tick
             count    <- ref.get
           } yield assert(count, equalTo(maxRetries))
@@ -80,24 +80,24 @@ object ActorsSpec
 
           import TickUtils._
 
-          val handler = new Stateful[Unit, String, Message] {
-            override def receive[A](state: Unit, msg: Message[A], system: ActorSystem): IO[String, (Unit, A)] =
+          val handler = new Stateful[Unit, Exception, Message] {
+            override def receive[A](state: Unit, msg: Message[A], context: Context[Exception, Message]): IO[Exception, (Unit, A)] =
               msg match {
-                case Tick => IO.fail("fail")
+                case Tick => IO.fail(new Exception("fail"))
               }
           }
 
           val called   = new AtomicBoolean(false)
           val schedule = Schedule.recurs(10)
           val policy =
-            Supervisor.retryOrElse[String, Int](
+            Supervisor.retryOrElse[Exception, Int](
               schedule,
               (_, _) => IO.effectTotal(called.set(true))
             )
 
           val program = for {
             system <- ActorSystem("test3", None)
-            actor <- Actor.stateful(policy, system)(())(handler)
+            actor <- Actor.stateful(policy, ContextImpl[Exception, Message]("xd", system))(())(handler)
             _     <- actor ! Tick
           } yield ()
 

@@ -7,13 +7,36 @@ import zio.nio.channels.AsynchronousSocketChannel
 import zio.{Chunk, IO, UIO}
 import zio.DefaultRuntime
 
+
+/**
+ *
+ * Reference to actor that might reside on local JVM instance or be available via remote communication
+ *
+ * @tparam E error type
+ * @tparam F wrapper type constructing DSL
+ */
 sealed trait ActorRef[+E >: Exception, -F[+_]] extends Serializable {
 
+  /**
+   *
+   * Send a message to actor - it can perform `fire-and-forget` interaction pattern or `ask` pattern
+   *
+   * @param fa message
+   * @tparam A return type
+   * @return effectful response
+   */
   def ![A](fa: F[A]): IO[E, A]
 
+  /**
+   * Get referential absolute actor path
+   * @return
+   */
   def path: UIO[String]
 
 }
+
+// INERNALS
+
 
 object ActorRefSerial {
 
@@ -37,11 +60,11 @@ sealed abstract class ActorRefSerial[+E >: Exception, -F[+_]](protected var acto
   @throws[ObjectStreamException]
   protected def readResolve1(): Object = {
 
-    val (a, b, c, d) = ActorRefSerial.runtimeForResolve.unsafeRun(ActorSystem.solvePath(actorPath))
-
     val remoteRef = for {
-      e <- InetAddress.byName(b)
-        .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, c))
+      resolved <- ActorSystem.solvePath(actorPath)
+      (_, addr, port, _) = resolved
+      e <- InetAddress.byName(addr)
+        .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port))
     } yield ActorRefRemote[E, F](actorPath, e)
 
     ActorRefSerial.runtimeForResolve.unsafeRun(remoteRef)

@@ -48,6 +48,64 @@ object ActorSystem {
 
 }
 
+/**
+ *
+ * context for actor used inside Stateful
+ *
+ * @tparam E
+ * @tparam F
+ */
+trait Context[E >: Exception, F[+_]] {
+
+  /**
+   *
+   * @return
+   */
+  def self: IO[E, ActorRef[E, F]]
+
+  /**
+   *
+   * @param name
+   * @param sup
+   * @param init
+   * @param stateful
+   * @tparam S
+   * @tparam E
+   * @tparam F
+   * @return
+   */
+  def createActor[S, E >: Exception, F[+_]](name: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]]
+
+  /**
+   *
+   * @param path
+   * @tparam E
+   * @tparam F
+   * @return
+   */
+  def selectActor[E >: Exception, F[+_]](path: String): IO[E, ActorRef[E, F]]
+
+
+}
+
+case class ContextImpl[E >: Exception, F[+_]](path: String, actorSystem: ActorSystem) extends Context[E, F] {
+
+  override def self: IO[E, ActorRef[E, F]] = actorSystem.selectActor(path)
+
+  override def createActor[S, E >: Exception, F[+ _]](name: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]] =
+    actorSystem.createActor(name, sup, init, stateful)
+
+  override def selectActor[E >: Exception, F[+ _]](path: String): IO[E, ActorRef[E, F]] =
+    actorSystem.selectActor(path)
+}
+
+
+/**
+ *
+ *  Type representing running instance of actor system provisioning actor herding,
+ *  remoting and actor creation and selection.
+ *
+ */
 trait ActorSystem {
 
   def createActor[S, E >: Exception, F[+_]](name: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]]
@@ -55,6 +113,8 @@ trait ActorSystem {
   def selectActor[E >: Exception, F[+_]](path: String): IO[E, ActorRef[E, F]]
 
 }
+
+
 
 case class ActorSystemImpl(name: String,
                            remoteConfig: Option[(Addr, Port)],
@@ -78,8 +138,6 @@ case class ActorSystemImpl(name: String,
             buff <- Buffer.byte(size)
             d <- buff.asIntBuffer
             toRead <- d.get(0)
-
-          //  _ <- zio.console.putStrLn("WORKED! " + toRead.toString)
 
             envelope <- worker.read(toRead)
 
@@ -127,10 +185,11 @@ case class ActorSystemImpl(name: String,
 
     map <- refActorMap.get
     finalName = parentActor.getOrElse("") + "/" + actname
-    actor <- Actor.stateful[S, E, F](sup, this.copy(parentActor = Some(finalName)))(init)(stateful)
+    path = "zio://" + name + "@" + remoteConfig.map({case (a, b) => a + ":" + b}).getOrElse("local") + finalName
+    actor <- Actor.stateful[S, E, F](sup, ContextImpl(path, this.copy(parentActor = Some(finalName))))(init)(stateful)
     _ <- refActorMap.set(map + (finalName -> actor))
 
-  } yield ActorRefLocal[E, F]("zio://" + name + "@" + remoteConfig.map({case (a, b) => a + ":" + b}).getOrElse("local") + finalName, actor)
+  } yield ActorRefLocal[E, F](path, actor)
 
   override def selectActor[E >: Exception, F[+_]](path: String): IO[E, ActorRef[E, F]] = for {
 

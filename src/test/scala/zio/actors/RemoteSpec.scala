@@ -1,19 +1,18 @@
 package zio.actors
 
 import zio.actors.Actor.Stateful
-import zio.{IO, UIO, ZIO}
+import zio.IO
 import zio.test.DefaultRunnableSpec
 import zio.test._
 import zio.test.Assertion._
 import SpecUtils._
-import zio.duration.Duration
 
 object SpecUtils {
   sealed trait Message[+A]
   case class Str(value: String) extends Message[String]
 
   val handler = new Stateful[Int, Any, Message] {
-    override def receive[A](state: Int, msg: Message[A], system: ActorSystem): IO[Any, (Int, A)] =
+    override def receive[A](state: Int, msg: Message[A], context: Context[Any, Message]): IO[Any, (Int, A)] =
       msg match {
         case Str(value) =>
           IO((state + 1, value + "received plus " + state))

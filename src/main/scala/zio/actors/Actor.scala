@@ -14,14 +14,34 @@ trait Actor[+E, -F[+_]] {
 object Actor {
   val DefaultActorMailboxSize = 10000
 
-  trait Stateful[S, +E, -F[+_]] {
-    def receive[A](state: S, msg: F[A], system: ActorSystem): IO[E, (S, A)]
+  /**
+   *
+   * Description of actor behavior (can act as FSM)
+   *
+   * @tparam S state type that is updated every message digested
+   * @tparam E error type
+   * @tparam F message DSL
+   */
+  trait Stateful[S, E >: Exception, F[+_]] {
+
+    /**
+     *
+     * Override method triggered on message received
+     *
+     * @param state available for this method
+     * @param msg - message received
+     * @param context - provisions actor's self (as ActorRef) and actors' creation and selection
+     * @tparam A - domain of return entities
+     * @return effectful result
+     */
+    def receive[A](state: S, msg: F[A], context: Context[E, F]): IO[E, (S, A)]
   }
 
-  final def stateful[S, E, F[+_]](
-    supervisor: Supervisor[E],
-    system: ActorSystem,
-    mailboxSize: Int = DefaultActorMailboxSize
+  // INTERNALS
+
+  final def stateful[S, E >: Exception, F[+_]](supervisor: Supervisor[E],
+                                                context: Context[E, F],
+                                                mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S)(
     stateful: Actor.Stateful[S, E, F]
   ): IO[Nothing, Actor[E, F]] = {
@@ -31,7 +51,7 @@ object Actor {
       for {
         s             <- state.get
         (fa, promise) = msg
-        receiver      = stateful.receive(s, fa, system)
+        receiver      = stateful.receive(s, fa, context)
         completer     = ((s: S, a: A) => state.set(s) *> promise.succeed(a)).tupled
         _ <- receiver.foldM(
               e =>
