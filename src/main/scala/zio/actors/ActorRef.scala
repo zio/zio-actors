@@ -35,7 +35,8 @@ sealed trait ActorRef[+E >: Exception, -F[+_]] extends Serializable {
 
 }
 
-// INERNALS
+
+/* INTERNAL API */
 
 
 object ActorRefSerial {
@@ -44,7 +45,7 @@ object ActorRefSerial {
 
 }
 
-sealed abstract class ActorRefSerial[+E >: Exception, -F[+_]](protected var actorPath: String) extends ActorRef[E, F] with Serializable {
+sealed abstract class ActorRefSerial[+E >: Exception, -F[+_]](private var actorPath: String) extends ActorRef[E, F] with Serializable {
 
   @throws[IOException]
   protected def writeObject1(out: ObjectOutputStream): Unit = {
@@ -61,7 +62,7 @@ sealed abstract class ActorRefSerial[+E >: Exception, -F[+_]](protected var acto
   protected def readResolve1(): Object = {
 
     val remoteRef = for {
-      resolved <- ActorSystem.solvePath(actorPath)
+      resolved <- ActorSystem.resolvePath(actorPath)
       (_, addr, port, _) = resolved
       e <- InetAddress.byName(addr)
         .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port))
@@ -72,8 +73,6 @@ sealed abstract class ActorRefSerial[+E >: Exception, -F[+_]](protected var acto
   }
 
   override def path: UIO[String] = UIO.effectTotal(actorPath)
-
-  private[actors] def getPath: String = actorPath
 
 }
 
@@ -100,10 +99,11 @@ case class ActorRefLocal[+E >: Exception, -F[+_]](private val actorName: String,
 
 case class ActorRefRemote[+E >: Exception, -F[+_]](private val actorName: String, address: InetSocketAddress) extends ActorRefSerial[E, F](actorName) {
 
-  override def ![A](fa: F[A]): IO[E, A] = (for {
+  override def ![A](fa: F[A]): IO[E, A] = for {
 
     stream <- IO.effectTotal(new ByteArrayOutputStream())
     oos <- UIO.effectTotal(new ObjectOutputStream(stream))
+    actorPath <- path
     _ = oos.writeObject(Envelope(fa, actorPath))
     _ = oos.close()
     envelopeBytes = stream.toByteArray
@@ -121,9 +121,9 @@ case class ActorRefRemote[+E >: Exception, -F[+_]](private val actorName: String
 
         responseBuffer <- Buffer.byte(responseChunk)
 
-        y <- responseBuffer.asIntBuffer
+        intBuffer <- responseBuffer.asIntBuffer
 
-        toRead <- y.get(0)
+        toRead <- intBuffer.get(0)
 
         result <- client.read(toRead)
 
@@ -131,11 +131,13 @@ case class ActorRefRemote[+E >: Exception, -F[+_]](private val actorName: String
 
         ois = new ObjectInputStream(new ByteArrayInputStream(arr)).readObject()
 
-      } yield ois.asInstanceOf[A]
+      } yield ois.asInstanceOf[Either[E,A]]
 
     }
 
-  } yield response).asInstanceOf[IO[E, A]]
+    result <- IO.fromEither(response)
+
+  } yield result
 
   @throws[IOException]
   private def writeObject(out: ObjectOutputStream): Unit = {
