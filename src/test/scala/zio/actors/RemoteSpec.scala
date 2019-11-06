@@ -16,11 +16,14 @@ object SpecUtils {
   sealed trait Message[+A]
   case class Str(value: String) extends Message[String]
 
-  val handlerMessageTrait = new Stateful[Int, Throwable, Message] {
-    override def receive[A](state: Int, msg: Message[A], context: Context[Throwable, Message]): IO[Throwable, (Int, A)] =
+  sealed trait MyErrorDomain extends Throwable
+  case object DomainError extends MyErrorDomain
+
+  val handlerMessageTrait = new Stateful[Int, MyErrorDomain, Message] {
+    override def receive[A](state: Int, msg: Message[A], context: Context[MyErrorDomain, Message]): IO[MyErrorDomain, (Int, A)] =
       msg match {
         case Str(value) =>
-          IO.effect((state + 1, value + "received plus " + state + 1))
+          IO.effectTotal((state + 1, value + "received plus " + state + 1))
       }
   }
 
@@ -74,7 +77,7 @@ object RemoteSpec extends DefaultRunnableSpec(
           actorSystemOne <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
           _ <- actorSystemOne.createActor("actorOne", Supervisor.none, 0, handlerMessageTrait)
           actorSystemTwo <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
-          actorRef <- actorSystemTwo.selectActor[Throwable, Message](s"zio://testSystemOne@127.0.0.1:$port1/actorOne")
+          actorRef <- actorSystemTwo.selectActor[MyErrorDomain, Message](s"zio://testSystemOne@127.0.0.1:$port1/actorOne")
           result <- actorRef ! Str("ZIO-Actor response... ")
         } yield assert(result, equalTo("ZIO-Actor response... received plus 01"))
       },

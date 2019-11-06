@@ -7,7 +7,7 @@ import zio.{Chunk, IO, Promise, Ref, Task, UIO}
 import zio.actors.Actor.Stateful
 import zio.actors.ActorSystem.{Addr, Port}
 import zio.nio.{Buffer, InetAddress, SocketAddress}
-import zio.nio.channels.AsynchronousServerSocketChannel
+import zio.nio.channels.{AsynchronousServerSocketChannel, AsynchronousSocketChannel}
 
 
 /**
@@ -152,6 +152,26 @@ private[actors] object ActorSystemUtils {
   def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[(Addr, Port)]): String =
     s"zio://$actorSystemName@${remoteConfig.map({case (addr, port) => addr + ":" + port}).getOrElse("local")}$actorPath"
 
+  def readFromWire(socket: AsynchronousSocketChannel): Task[Any] = for {
+    size <- socket.read(4)
+    buffer <- Buffer.byte(size)
+    intBuffer <- buffer.asIntBuffer
+    toRead <- intBuffer.get(0)
+    content <- socket.read(toRead)
+    arr = content.toArray
+    obj = new ObjectInputStream(new ByteArrayInputStream(arr)).readObject()
+  } yield obj
+
+  def writeToWire(socket: AsynchronousSocketChannel, obj: Any): Task[Unit] = for {
+    stream <- IO.effect(new ByteArrayOutputStream())
+    oos <- UIO.effectTotal(new ObjectOutputStream(stream))
+    _ = oos.writeObject(obj)
+    _ = oos.close()
+    bytes = stream.toByteArray
+    _ <- socket.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(bytes.size).array()))
+    _ <- socket.write(Chunk.fromArray(bytes))
+  } yield ()
+
 }
 
 private[actors] case class ContextImpl[E <: Throwable, F[+_]](path: String, actorSystem: ActorSystem) extends Context[E, F] {
@@ -184,54 +204,26 @@ private[actors] case class ActorSystemImpl(actorSystemName: String,
         loop = channel.accept.flatMap(_.use { worker =>
 
           for {
-            size <- worker.read(4)
-            buff <- Buffer.byte(size)
-            intBuffer <- buff.asIntBuffer
-            toRead <- intBuffer.get(0)
-
-            envelope <- worker.read(toRead)
-            arr = envelope.toArray
-            ois = new ObjectInputStream(new ByteArrayInputStream(arr)).readObject()
-            obj = ois.asInstanceOf[Envelope]
-
+            obj <- readFromWire(worker)
+            envelope = obj.asInstanceOf[Envelope]
             actorMap <- refActorMap.get
 
-            _ <- actorMap.get("/" + obj.recipient.split("/").last) match {
+            _ <- actorMap.get("/" + envelope.recipient.split("/").last) match {
               case Some(value) =>
-
                 for {
                   actor <- IO.effect(value.asInstanceOf[Actor[Throwable, Any]])
                     .mapError(throwable => new Exception(s"System internal exception - ${throwable.getMessage}"))
-                  resp <- actor.unsafeOp(obj.msg).either
-                  stream: ByteArrayOutputStream = new ByteArrayOutputStream()
-                  oos <- UIO.effectTotal(new ObjectOutputStream(stream))
-                  _ = oos.writeObject(resp)
-                  _ = oos.close()
-                  responseBytes = stream.toByteArray
-
-                  _ <- worker.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(responseBytes.size).array()))
-                  _ <- worker.write(Chunk.fromArray(responseBytes))
-
+                  response <- actor.unsafeOp(envelope.msg).either
+                  _ <- writeToWire(worker, response)
                 } yield ()
-
               case None =>
-
                 for {
                   responseError <- IO.fail(new Exception("No such remote actor")).either
-                  stream: ByteArrayOutputStream = new ByteArrayOutputStream()
-                  oos <- UIO.effectTotal(new ObjectOutputStream(stream))
-                  _ = oos.writeObject(responseError)
-                  _ = oos.close()
-                  responseBytes = stream.toByteArray
-
-                  _ <- worker.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(responseBytes.size).array()))
-                  _ <- worker.write(Chunk.fromArray(responseBytes))
+                  _ <- writeToWire(worker, responseError)
                 } yield ()
-
             }
 
           } yield ()
-
         })
 
         _ <- loop.forever

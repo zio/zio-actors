@@ -1,11 +1,10 @@
 package zio.actors
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException}
-import java.nio.ByteBuffer
+import java.io.{IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException}
 
-import zio.nio.{Buffer, InetAddress, InetSocketAddress, SocketAddress}
+import zio.nio.{InetAddress, InetSocketAddress, SocketAddress}
 import zio.nio.channels.AsynchronousSocketChannel
-import zio.{Chunk, DefaultRuntime, IO, Task, UIO}
+import zio.{DefaultRuntime, IO, Task, UIO}
 
 
 /**
@@ -102,36 +101,17 @@ private[actors] case class ActorRefLocal[E <: Throwable, -F[+_]](private val act
 
 private[actors] case class ActorRefRemote[E <: Throwable, -F[+_]](private val actorName: String, address: InetSocketAddress) extends ActorRefSerial[E, F](actorName) {
 
+  import ActorSystemUtils._
+
   override def ![A](fa: F[A]): Task[A] = for {
 
-    stream <- IO.effect(new ByteArrayOutputStream())
-    oos <- IO.effect(new ObjectOutputStream(stream))
-    actorPath <- path
-    _ = oos.writeObject(Envelope(fa, actorPath))
-    _ = oos.close()
-    envelopeBytes = stream.toByteArray
-    envelopeSize = envelopeBytes.size
-
     response <- AsynchronousSocketChannel().use { client =>
-
       for {
         _ <- client.connect(address)
-
-        _ <- client.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(envelopeSize).array()))
-        _ <- client.write(Chunk.fromArray(envelopeBytes))
-
-        responseChunk <- client.read(4)
-        responseBuffer <- Buffer.byte(responseChunk)
-        intBuffer <- responseBuffer.asIntBuffer
-        toRead <- intBuffer.get(0)
-
-        result <- client.read(toRead)
-        arr = result.toArray
-
-        ois = new ObjectInputStream(new ByteArrayInputStream(arr)).readObject()
-
-      } yield ois.asInstanceOf[Either[E,A]]
-
+        actorPath <- path
+        _ <- writeToWire(client, Envelope(fa, actorPath))
+        response <- readFromWire(client)
+      } yield response.asInstanceOf[Either[E,A]]
     }
 
     result <- IO.fromEither(response)
