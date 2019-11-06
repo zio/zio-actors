@@ -1,7 +1,7 @@
 package zio.actors
 
 import zio.actors.Actor.Stateful
-import zio.{App, IO}
+import zio.{App, IO, UIO, ZIO}
 import zio.console._
 import SpecUtilsMain._
 
@@ -47,8 +47,17 @@ object Main extends App {
       }
   }
 
-  def run(args: List[String]) =
-    myAppLogic3.fold(_ => 1, _ => 0)
+  def run(args: List[String]): ZIO[Console, Nothing, Int] =
+    myAppLogic4.foldM(
+      fail =>
+        for {
+          _ <- putStrLn(fail.getMessage)
+          ret <- UIO.effectTotal(1)
+        } yield ret
+      ,
+      _ =>
+        UIO.effectTotal(0)
+    ).fold(_ => 1, _ => 0)
 
   val myAppLogic =
     for {
@@ -81,6 +90,12 @@ object Main extends App {
 
       _ <- one ! GameInit(remotee)
       _ <- IO.unit.forever
+    } yield ()
+
+  val myAppLogic4 =
+    for {
+      actorSystem <- ActorSystem("systemOne", None)
+      one <- actorSystem.selectActor[Exception, Option]("zio://systemOne@127.0.0.1:9278/actorTwo")
     } yield ()
 
 }

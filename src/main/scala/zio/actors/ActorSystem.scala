@@ -30,7 +30,7 @@ object ActorSystem {
    *                     When provided - remote messaging and remote actor selection is possible
    * @return instantiated actor system
    */
-  def apply(name: String, remoteConfig: Option[(Addr, Port)]): IO[Any, ActorSystem] = for {
+  def apply(name: String, remoteConfig: Option[(Addr, Port)]): IO[Throwable, ActorSystem] = for {
 
     initActorRefMap <- Ref.make(Map.empty[String, Any])
 
@@ -168,7 +168,7 @@ case class ActorSystemImpl(name: String,
                            refActorMap: Ref[Map[String, Any]],
                            parentActor: Option[String]) extends ActorSystem {
 
-  def receiveLoop(address: Addr, port: Port): IO[Any, Unit] = for {
+  def receiveLoop(address: Addr, port: Port): IO[Exception, Unit] = for {
     addr <- InetAddress.byName(address)
     address <- SocketAddress.inetSocketAddress(addr, port)
     p <- Promise.make[Nothing, Unit]

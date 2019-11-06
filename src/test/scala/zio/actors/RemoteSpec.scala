@@ -1,16 +1,14 @@
 package zio.actors
 
-import java.util.concurrent.TimeUnit
-
 import zio.actors.Actor.Stateful
-import zio.{IO, Promise, ZIO, console, random}
+import zio.{IO, console, random}
 import zio.test.DefaultRunnableSpec
 import zio.test._
 import zio.test.Assertion._
 import SpecUtils._
 import zio.clock.Clock
 import zio.duration._
-import zio.test.environment.{TestClock, TestConsole}
+import zio.test.environment.TestConsole
 
 object SpecUtils {
 
