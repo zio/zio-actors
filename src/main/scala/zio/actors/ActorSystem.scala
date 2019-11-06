@@ -8,7 +8,7 @@ import zio.actors.Actor.Stateful
 import zio.actors.ActorSystem.{Addr, Port}
 import zio.nio.{Buffer, InetAddress, SocketAddress}
 import zio.nio.channels.AsynchronousServerSocketChannel
-import ActorSystem._
+
 
 /**
  *
@@ -33,7 +33,6 @@ object ActorSystem {
   def apply(name: String, remoteConfig: Option[(Addr, Port)]): Task[ActorSystem] = for {
 
     initActorRefMap <- Ref.make(Map.empty[String, Any])
-
     actorSystem <- IO.effect(ActorSystemImpl(name, remoteConfig, initActorRefMap, parentActor = None))
 
     _ <- remoteConfig match {
@@ -45,9 +44,95 @@ object ActorSystem {
 
   } yield actorSystem
 
-  /* INTERNAL API */
+}
 
-  private[actors] def resolvePath(path: String): Task[(String, Addr, Port, String)] = {
+/**
+ *
+ * Context for actor used inside Stateful which provides self actor reference and actor creation/selection API
+ *
+ * @tparam E error type
+ * @tparam F message DSL
+ */
+trait Context[E <: Throwable, F[+_]] {
+
+  /**
+   *
+   * Accessor for self actor reference
+   *
+   * @return actor reference
+   */
+  def self: Task[ActorRef[E, F]]
+
+  /**
+   *
+   * Creates actor and registers it to dependent actor system
+   *
+   * @param name ...
+   * @param sup ...
+   * @param init ...
+   * @param stateful ...
+   * @tparam S ...
+   * @tparam E1 ...
+   * @tparam F1 ...
+   * @return ActorRef to crafted actor
+   */
+  def createActor[S, E1 <: Throwable, F1[+_]](name: String, sup: Supervisor[E1], init: S, stateful: Stateful[S, E1, F1]): UIO[ActorRef[E1, F1]]
+
+  /**
+   *
+   * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module.
+   * If remote configuration was not provided for ActorSystem (so the remoting is disabled) the search will
+   * fail with ActorNotFoundException.
+   * Otherwise it will always create remote actor stub internally and return ActorRef as if it was found.
+   *
+   * @param path - full qualified path to the actor
+   * @tparam E1 - actor's error type
+   * @tparam F1 - actor's message DSL type
+   * @return ActorRef to created actor
+   */
+  def selectActor[E1 <: Throwable, F1[+_]](path: String): Task[ActorRef[E1, F1]]
+
+}
+
+/**
+ *
+ *  Type representing running instance of actor system provisioning actor herding,
+ *  remoting and actor creation and selection.
+ *
+ */
+trait ActorSystem {
+
+  /**
+   *
+   * @param name ...
+   * @param sup ...
+   * @param init ...
+   * @param stateful ...
+   * @tparam S ...
+   * @tparam E ...
+   * @tparam F ...
+   * @return
+   */
+  def createActor[S, E <: Throwable, F[+_]](name: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]]
+
+  /**
+   *
+   * @param path ...
+   * @tparam E ...
+   * @tparam F ...
+   * @return
+   */
+  def selectActor[E <: Throwable, F[+_]](path: String): Task[ActorRef[E, F]]
+
+}
+
+
+
+/* INTERNAL API */
+
+private[actors] object ActorSystemUtils {
+
+  def resolvePath(path: String): Task[(String, Addr, Port, String)] = {
 
     val regex = "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w|\\/]+)$".r
 
@@ -64,115 +149,33 @@ object ActorSystem {
 
   }
 
-  private[actors] def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[(Addr, Port)]): String =
+  def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[(Addr, Port)]): String =
     s"zio://$actorSystemName@${remoteConfig.map({case (addr, port) => addr + ":" + port}).getOrElse("local")}$actorPath"
 
 }
 
-/**
- *
- * context for actor used inside Stateful which provides self actor reference and actor creation/selection API
- *
- * @tparam E error type
- * @tparam F message DSL
- */
-trait Context[E >: Throwable, F[+_]] {
-
-  /**
-   *
-   * Accessor for self actor reference
-   *
-   * @return actor reference
-   */
-  def self: Task[ActorRef[E, F]]
-
-  /**
-   *
-   * Creates actor and registers it to dependent actor system
-   *
-   * @param name
-   * @param sup
-   * @param init
-   * @param stateful
-   * @tparam S
-   * @tparam E
-   * @tparam F
-   * @return ActorRef to crafted actor
-   */
-  def createActor[S, E >: Throwable, F[+_]](name: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]]
-
-  /**
-   *
-   * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module.
-   * If remote configuration was not provided for ActorSystem (so the remoting is disabled) the search will
-   * fail with ActorNotFoundException.
-   * Otherwise it will always create remote actor stub internally and return ActorRef as if it was found.
-   *
-   * @param path - full qualified path to the actor
-   * @tparam E - actor's error type
-   * @tparam F - actor's message DSL type
-   * @return ActorRef to created actor
-   */
-  def selectActor[E >: Throwable, F[+_]](path: String): Task[ActorRef[E, F]]
-
-
-}
-
-/**
- *
- *  Type representing running instance of actor system provisioning actor herding,
- *  remoting and actor creation and selection.
- *
- */
-trait ActorSystem {
-
-  /**
-   *
-   * @param name
-   * @param sup
-   * @param init
-   * @param stateful
-   * @tparam S
-   * @tparam E
-   * @tparam F
-   * @return
-   */
-  def createActor[S, E >: Throwable, F[+_]](name: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]]
-
-  /**
-   *
-   * @param path
-   * @tparam E
-   * @tparam F
-   * @return
-   */
-  def selectActor[E >: Throwable, F[+_]](path: String): Task[ActorRef[E, F]]
-
-}
-
-/* INTERNAL API */
-
-case class ContextImpl[E >: Throwable, F[+_]](path: String, actorSystem: ActorSystem) extends Context[E, F] {
+private[actors] case class ContextImpl[E <: Throwable, F[+_]](path: String, actorSystem: ActorSystem) extends Context[E, F] {
 
   override def self: Task[ActorRef[E, F]] = actorSystem.selectActor(path)
 
-  override def createActor[S, E >: Throwable, F[+_]](name: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]] =
+  override def createActor[S, E1 <: Throwable, F1[+_]](name: String, sup: Supervisor[E1], init: S, stateful: Stateful[S, E1, F1]): UIO[ActorRef[E1, F1]] =
     actorSystem.createActor(name, sup, init, stateful)
 
-  override def selectActor[E >: Throwable, F[+_]](path: String): Task[ActorRef[E, F]] =
+  override def selectActor[E1 <: Throwable, F1[+_]](path: String): Task[ActorRef[E1, F1]] =
     actorSystem.selectActor(path)
 }
 
-case class ActorSystemImpl(name: String,
-                           remoteConfig: Option[(Addr, Port)],
-                           refActorMap: Ref[Map[String, Any]],
-                           parentActor: Option[String]) extends ActorSystem {
+private[actors] case class ActorSystemImpl(actorSystemName: String,
+                                           remoteConfig: Option[(Addr, Port)],
+                                           refActorMap: Ref[Map[String, Any]],
+                                           parentActor: Option[String]) extends ActorSystem {
+  import ActorSystemUtils._
 
   def receiveLoop(address: Addr, port: Port): Task[Unit] = for {
     addr <- InetAddress.byName(address)
     address <- SocketAddress.inetSocketAddress(addr, port)
     p <- Promise.make[Nothing, Unit]
-    _ <- (AsynchronousServerSocketChannel().use { channel =>
+    _ <- AsynchronousServerSocketChannel().use { channel =>
       for {
         _ <- channel.bind(address)
 
@@ -183,33 +186,31 @@ case class ActorSystemImpl(name: String,
           for {
             size <- worker.read(4)
             buff <- Buffer.byte(size)
-            d <- buff.asIntBuffer
-            toRead <- d.get(0)
+            intBuffer <- buff.asIntBuffer
+            toRead <- intBuffer.get(0)
 
             envelope <- worker.read(toRead)
-
             arr = envelope.toArray
             ois = new ObjectInputStream(new ByteArrayInputStream(arr)).readObject()
-
             obj = ois.asInstanceOf[Envelope]
 
-            map <- refActorMap.get
+            actorMap <- refActorMap.get
 
-            _ <- map.get("/" + obj.recipient.split("/").last) match {
+            _ <- actorMap.get("/" + obj.recipient.split("/").last) match {
               case Some(value) =>
 
                 for {
-                  tried <- IO.effect(value.asInstanceOf[Actor[Any, Any]])
+                  actor <- IO.effect(value.asInstanceOf[Actor[Throwable, Any]])
                     .mapError(throwable => new Exception(s"System internal exception - ${throwable.getMessage}"))
-                  resp <- tried.unsafeOp(obj.msg).either
+                  resp <- actor.unsafeOp(obj.msg).either
                   stream: ByteArrayOutputStream = new ByteArrayOutputStream()
                   oos <- UIO.effectTotal(new ObjectOutputStream(stream))
                   _ = oos.writeObject(resp)
                   _ = oos.close()
-                  e = stream.toByteArray
+                  responseBytes = stream.toByteArray
 
-                  _ <- worker.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(e.size).array()))
-                  _ <- worker.write(Chunk.fromArray(e))
+                  _ <- worker.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(responseBytes.size).array()))
+                  _ <- worker.write(Chunk.fromArray(responseBytes))
 
                 } yield ()
 
@@ -221,10 +222,10 @@ case class ActorSystemImpl(name: String,
                   oos <- UIO.effectTotal(new ObjectOutputStream(stream))
                   _ = oos.writeObject(responseError)
                   _ = oos.close()
-                  e = stream.toByteArray
+                  responseBytes = stream.toByteArray
 
-                  _ <- worker.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(e.size).array()))
-                  _ <- worker.write(Chunk.fromArray(e))
+                  _ <- worker.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(responseBytes.size).array()))
+                  _ <- worker.write(Chunk.fromArray(responseBytes))
                 } yield ()
 
             }
@@ -236,36 +237,36 @@ case class ActorSystemImpl(name: String,
         _ <- loop.forever
 
       } yield ()
-    }).fork
+    }.fork
     _ <- p.await
 
   } yield ()
 
-  def createActor[S, E >: Throwable, F[+_]](actname: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]] = for {
+  def createActor[S, E <: Throwable, F[+_]](actname: String, sup: Supervisor[E], init: S, stateful: Stateful[S, E, F]): UIO[ActorRef[E, F]] = for {
 
     map <- refActorMap.get
     finalName = parentActor.getOrElse("") + "/" + actname
-    path = buildPath(name, finalName, remoteConfig)
+    path = buildPath(actorSystemName, finalName, remoteConfig)
     actor <- Actor.stateful[S, E, F](sup, ContextImpl(path, this.copy(parentActor = Some(finalName))))(init)(stateful)
     _ <- refActorMap.set(map + (finalName -> actor))
 
   } yield ActorRefLocal[E, F](path, actor)
 
-  override def selectActor[E >: Throwable, F[+_]](path: String): Task[ActorRef[E, F]] = for {
+  override def selectActor[E <: Throwable, F[+_]](path: String): Task[ActorRef[E, F]] = for {
 
-    solvedPath <- ActorSystem.resolvePath(path)
-    (ac, add, port, act) = solvedPath
+    solvedPath <- resolvePath(path)
+    (pathActSysName, addr, port, actorName) = solvedPath
 
-    d <- refActorMap.get
+    actorMap <- refActorMap.get
 
-    actorRef <- if (ac == name) {
+    actorRef <- if (pathActSysName == actorSystemName) {
 
       for {
-        actorRef <- d.get(act) match {
+        actorRef <- actorMap.get(actorName) match {
           case Some(value) =>
             for {
-              t <- IO.effectTotal(value.asInstanceOf[Actor[E, F]])
-            } yield ActorRefLocal(path, t)
+              actor <- IO.effectTotal(value.asInstanceOf[Actor[E, F]])
+            } yield ActorRefLocal(path, actor)
           case None =>
             IO.fail(new Exception("No such actor in local ActorSystem."))
         }
@@ -274,9 +275,9 @@ case class ActorSystemImpl(name: String,
     } else {
 
       for {
-        e <- InetAddress.byName(add)
+        address <- InetAddress.byName(addr)
           .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port))
-      } yield ActorRefRemote[E, F](path, e)
+      } yield ActorRefRemote[E, F](path, address)
 
     }
 

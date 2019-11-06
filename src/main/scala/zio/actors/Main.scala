@@ -9,11 +9,14 @@ object SpecUtilsMain {
   sealed trait Message[+A]
   case class Str(value: String) extends Message[String]
 
-  val handler = new Stateful[Int, Any, Message] {
-    override def receive[A](state: Int, msg: Message[A], context: Context[Any, Message]): IO[Any, (Int, A)] =
+  sealed trait MyErrors extends Throwable
+  case object WeirdException extends MyErrors
+
+  val handler = new Stateful[Int, MyErrors, Message] {
+    override def receive[A](state: Int, msg: Message[A], context: Context[MyErrors, Message]): IO[MyErrors, (Int, A)] =
       msg match {
         case Str(value) =>
-          IO((state + 1, value + "received plus " + state))
+          IO.effectTotal((state + 1, value + "received plus " + state))
       }
   }
 }
@@ -48,7 +51,7 @@ object Main extends App {
   }
 
   def run(args: List[String]): ZIO[Console, Nothing, Int] =
-    myAppLogic4.foldM(
+    myAppLogic.foldM(
       fail =>
         for {
           _ <- putStrLn(fail.getMessage)
@@ -64,7 +67,7 @@ object Main extends App {
       actorSystemRoot <- ActorSystem("testSystemOne", Some("127.0.0.1", 9382))
       _ <- actorSystemRoot.createActor("actorOne", Supervisor.none, 0, handler)
       actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", 9383))
-      actorRef <- actorSystem.selectActor[Any, Message]("zio://testSystemOne@127.0.0.1:9382/actorOne")
+      actorRef <- actorSystem.selectActor[MyErrors, Message]("zio://testSystemOne@127.0.0.1:9382/actorOne")
       result <- actorRef ! Str("ZIO-Actor response... ")
       _ <- putStrLn(result)
     } yield ()

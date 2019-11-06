@@ -1,5 +1,6 @@
 package zio.actors
 
+import java.net.ConnectException
 import zio.actors.Actor.Stateful
 import zio.{IO, console, random}
 import zio.test.DefaultRunnableSpec
@@ -15,11 +16,11 @@ object SpecUtils {
   sealed trait Message[+A]
   case class Str(value: String) extends Message[String]
 
-  val handlerMessageTrait = new Stateful[Int, Any, Message] {
-    override def receive[A](state: Int, msg: Message[A], context: Context[Any, Message]): IO[Any, (Int, A)] =
+  val handlerMessageTrait = new Stateful[Int, Throwable, Message] {
+    override def receive[A](state: Int, msg: Message[A], context: Context[Throwable, Message]): IO[Throwable, (Int, A)] =
       msg match {
         case Str(value) =>
-          IO((state + 1, value + "received plus " + state + 1))
+          IO.effect((state + 1, value + "received plus " + state + 1))
       }
   }
 
@@ -70,10 +71,10 @@ object RemoteSpec extends DefaultRunnableSpec(
           portRand <- random.nextInt
           port1 = (portRand % 1000) + 8000
           port2 = port1 + 1
-          actorSystemRoot <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
-          _ <- actorSystemRoot.createActor("actorOne", Supervisor.none, 0, handlerMessageTrait)
-          actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
-          actorRef <- actorSystem.selectActor[Any, Message](s"zio://testSystemOne@127.0.0.1:$port1/actorOne")
+          actorSystemOne <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
+          _ <- actorSystemOne.createActor("actorOne", Supervisor.none, 0, handlerMessageTrait)
+          actorSystemTwo <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
+          actorRef <- actorSystemTwo.selectActor[Throwable, Message](s"zio://testSystemOne@127.0.0.1:$port1/actorOne")
           result <- actorRef ! Str("ZIO-Actor response... ")
         } yield assert(result, equalTo("ZIO-Actor response... received plus 01"))
       },
@@ -122,21 +123,22 @@ object RemoteSpec extends DefaultRunnableSpec(
           port1 = (portRand % 1000) + 8000
           port2 = port1 + 2
           actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", port1))
-          remotee <- actorSystem.selectActor[Throwable, PingPongProto](s"zio://testSystemOne@127.0.0.1:$port2/actorTwo")
-          _ <- remotee ! GameInit(remotee)
+          actorRef <- actorSystem.selectActor[Throwable, PingPongProto](s"zio://testSystemOne@127.0.0.1:$port2/actorTwo")
+          _ <- actorRef ! GameInit(actorRef)
         } yield ()
 
-        assertM(program.run, fails(anything))
+        assertM(program.run, fails(isSubtype[ConnectException](anything)) &&
+          fails(hasField[Throwable, String]("message", _.getMessage, equalTo("Connection refused"))))
       },
       testM("Remote actor does not exist") {
         val program = for {
           portRand <- random.nextInt
           port1 = (portRand % 1000) + 8000
           port2 = port1 + 1
-          actorSystemRoot <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
+          actorSystemOne <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
           _ <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
-          remotee <- actorSystemRoot.selectActor[Throwable, PingPongProto](s"zio://testSystemTwo@127.0.0.1:$port2/actorTwo")
-          _ <- remotee ! GameInit(remotee)
+          actorRef <- actorSystemOne.selectActor[Throwable, PingPongProto](s"zio://testSystemTwo@127.0.0.1:$port2/actorTwo")
+          _ <- actorRef ! GameInit(actorRef)
         } yield ()
 
         assertM(program.run, fails(isSubtype[Throwable](anything)) &&
@@ -147,10 +149,10 @@ object RemoteSpec extends DefaultRunnableSpec(
           portRand <- random.nextInt
           port1 = (portRand % 1000) + 8000
           port2 = port1 + 1
-          actorSystemRoot <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
-          _ <- actorSystemRoot.createActor("actorOne", Supervisor.none, (), errorHandler)
-          actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
-          actorRef <- actorSystem.selectActor[Throwable, ErrorProto](s"zio://testSystemOne@127.0.0.1:$port1/actorOne")
+          actorSystemOne <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
+          _ <- actorSystemOne.createActor("actorOne", Supervisor.none, (), errorHandler)
+          actorSystemTwo <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
+          actorRef <- actorSystemTwo.selectActor[Throwable, ErrorProto](s"zio://testSystemOne@127.0.0.1:$port1/actorOne")
           _ <- actorRef ! UnsafeMessage
         } yield ()
 

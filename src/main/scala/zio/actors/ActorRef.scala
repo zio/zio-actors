@@ -2,10 +2,10 @@ package zio.actors
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException}
 import java.nio.ByteBuffer
+
 import zio.nio.{Buffer, InetAddress, InetSocketAddress, SocketAddress}
 import zio.nio.channels.AsynchronousSocketChannel
-import zio.{Chunk, IO, UIO}
-import zio.DefaultRuntime
+import zio.{Chunk, DefaultRuntime, IO, Task, UIO}
 
 
 /**
@@ -15,7 +15,7 @@ import zio.DefaultRuntime
  * @tparam E error type
  * @tparam F wrapper type constructing DSL
  */
-sealed trait ActorRef[+E >: Throwable, -F[+_]] extends Serializable {
+sealed trait ActorRef[E <: Throwable, -F[+_]] extends Serializable {
 
   /**
    *
@@ -25,7 +25,7 @@ sealed trait ActorRef[+E >: Throwable, -F[+_]] extends Serializable {
    * @tparam A return type
    * @return effectful response
    */
-  def ![A](fa: F[A]): IO[E, A]
+  def ![A](fa: F[A]): Task[A]
 
   /**
    * Get referential absolute actor path
@@ -36,16 +36,19 @@ sealed trait ActorRef[+E >: Throwable, -F[+_]] extends Serializable {
 }
 
 
+
 /* INTERNAL API */
 
 
-object ActorRefSerial {
+private[actors] object ActorRefSerial {
 
   private[actors] val runtimeForResolve = new DefaultRuntime {}
 
 }
 
-sealed abstract class ActorRefSerial[+E >: Throwable, -F[+_]](private var actorPath: String) extends ActorRef[E, F] with Serializable {
+private[actors] sealed abstract class ActorRefSerial[E <: Throwable, -F[+_]](private var actorPath: String) extends ActorRef[E, F] with Serializable {
+
+  import ActorSystemUtils._
 
   @throws[IOException]
   protected def writeObject1(out: ObjectOutputStream): Unit = {
@@ -62,11 +65,11 @@ sealed abstract class ActorRefSerial[+E >: Throwable, -F[+_]](private var actorP
   protected def readResolve1(): Object = {
 
     val remoteRef = for {
-      resolved <- ActorSystem.resolvePath(actorPath)
+      resolved <- resolvePath(actorPath)
       (_, addr, port, _) = resolved
-      e <- InetAddress.byName(addr)
+      address <- InetAddress.byName(addr)
         .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port))
-    } yield ActorRefRemote[E, F](actorPath, e)
+    } yield ActorRefRemote[E, F](actorPath, address)
 
     ActorRefSerial.runtimeForResolve.unsafeRun(remoteRef)
 
@@ -76,9 +79,9 @@ sealed abstract class ActorRefSerial[+E >: Throwable, -F[+_]](private var actorP
 
 }
 
-case class ActorRefLocal[+E >: Throwable, -F[+_]](private val actorName: String, actor: Actor[E, F]) extends ActorRefSerial[E, F](actorName) {
+private[actors] case class ActorRefLocal[E <: Throwable, -F[+_]](private val actorName: String, actor: Actor[E, F]) extends ActorRefSerial[E, F](actorName) {
 
-  override def ![A](fa: F[A]): IO[E, A] = actor ! fa
+  override def ![A](fa: F[A]): Task[A] = actor ! fa
 
   @throws[IOException]
   private def writeObject(out: ObjectOutputStream): Unit = {
@@ -97,9 +100,9 @@ case class ActorRefLocal[+E >: Throwable, -F[+_]](private val actorName: String,
 
 }
 
-case class ActorRefRemote[+E >: Throwable, -F[+_]](private val actorName: String, address: InetSocketAddress) extends ActorRefSerial[E, F](actorName) {
+private[actors] case class ActorRefRemote[E <: Throwable, -F[+_]](private val actorName: String, address: InetSocketAddress) extends ActorRefSerial[E, F](actorName) {
 
-  override def ![A](fa: F[A]): IO[E, A] = for {
+  override def ![A](fa: F[A]): Task[A] = for {
 
     stream <- IO.effect(new ByteArrayOutputStream())
     oos <- IO.effect(new ObjectOutputStream(stream))
@@ -118,15 +121,11 @@ case class ActorRefRemote[+E >: Throwable, -F[+_]](private val actorName: String
         _ <- client.write(Chunk.fromArray(envelopeBytes))
 
         responseChunk <- client.read(4)
-
         responseBuffer <- Buffer.byte(responseChunk)
-
         intBuffer <- responseBuffer.asIntBuffer
-
         toRead <- intBuffer.get(0)
 
         result <- client.read(toRead)
-
         arr = result.toArray
 
         ois = new ObjectInputStream(new ByteArrayInputStream(arr)).readObject()

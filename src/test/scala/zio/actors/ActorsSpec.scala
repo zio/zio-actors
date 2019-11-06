@@ -37,7 +37,7 @@ object ActorsSpec
 
           for {
             system <- ActorSystem("test1", None)
-            actor <- Actor.stateful(Supervisor.none, ContextImpl[Throwable, Message]("xd", system))(0)(handler)
+            actor <- system.createActor("actor1", Supervisor.none, 0, handler)
             _     <- actor ! Increase
             _     <- actor ! Increase
             c1    <- actor ! Get
@@ -71,7 +71,7 @@ object ActorsSpec
             schedule = Schedule.recurs(maxRetries)
             policy   = Supervisor.retry(schedule)
             system   <- ActorSystem("test2", None)
-            actor    <- Actor.stateful(policy, ContextImpl[Throwable, Message]("xd", system))(())(handler)
+            actor    <- system.createActor("actor1", policy, (), handler)
             _        <- actor ! Tick
             count    <- ref.get
           } yield assert(count, equalTo(maxRetries))
@@ -97,7 +97,7 @@ object ActorsSpec
 
           val program = for {
             system <- ActorSystem("test3", None)
-            actor <- Actor.stateful(policy, ContextImpl[Throwable, Message]("xd", system))(())(handler)
+            actor  <- system.createActor("actor1", policy, (), handler)
             _     <- actor ! Tick
           } yield ()
 

@@ -1,18 +1,8 @@
 package zio.actors
 
-import zio.{IO, Promise, Queue, Ref, UIO}
-
-trait Actor[+E >: Throwable, -F[+_]] {
-  def ![A](fa: F[A]): IO[E, A]
-
-  def unsafeOp(a: Any): IO[E, Any] =
-    this.!(a.asInstanceOf[F[_]])
-
-  def stop: IO[Nothing, List[_]]
-}
+import zio.{IO, Promise, Queue, Ref, Task}
 
 object Actor {
-  val DefaultActorMailboxSize = 10000
 
   /**
    *
@@ -22,7 +12,7 @@ object Actor {
    * @tparam E error type
    * @tparam F message DSL
    */
-  trait Stateful[S, E >: Throwable, F[+_]] {
+  trait Stateful[S, E <: Throwable, F[+_]] {
 
     /**
      *
@@ -37,9 +27,13 @@ object Actor {
     def receive[A](state: S, msg: F[A], context: Context[E, F]): IO[E, (S, A)]
   }
 
-  // INTERNALS
 
-  final def stateful[S, E >: Throwable, F[+_]](supervisor: Supervisor[E],
+
+  /* INTERNAL API */
+
+  private val DefaultActorMailboxSize = 10000
+
+  private[actors] final def stateful[S, E <: Throwable, F[+_]](supervisor: Supervisor[E],
                                                 context: Context[E, F],
                                                 mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S)(
@@ -83,4 +77,13 @@ object Actor {
         } yield tall
     }
   }
+}
+
+private[actors] trait Actor[E <: Throwable, -F[+_]] {
+  def ![A](fa: F[A]): Task[A]
+
+  def unsafeOp(a: Any): Task[Any] =
+    this.!(a.asInstanceOf[F[_]])
+
+  def stop: IO[Nothing, List[_]]
 }
