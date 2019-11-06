@@ -27,7 +27,11 @@ object ActorsSpec
           import CounterUtils._
 
           val handler = new Stateful[Int, Throwable, Message] {
-            override def receive[A](state: Int, msg: Message[A], context: Context[Throwable, Message]): IO[Throwable, (Int, A)] =
+            override def receive[A](
+              state: Int,
+              msg: Message[A],
+              context: Context[Throwable, Message]
+            ): IO[Throwable, (Int, A)] =
               msg match {
                 case Reset    => IO.effectTotal((0, ()))
                 case Increase => IO.effectTotal((state + 1, ()))
@@ -37,12 +41,12 @@ object ActorsSpec
 
           for {
             system <- ActorSystem("test1", None)
-            actor <- system.createActor("actor1", Supervisor.none, 0, handler)
-            _     <- actor ! Increase
-            _     <- actor ! Increase
-            c1    <- actor ! Get
-            _     <- actor ! Reset
-            c2    <- actor ! Get
+            actor  <- system.createActor("actor1", Supervisor.none, 0, handler)
+            _      <- actor ! Increase
+            _      <- actor ! Increase
+            c1     <- actor ! Get
+            _      <- actor ! Reset
+            c2     <- actor ! Get
           } yield assert(c1, equalTo(2)) && assert(c2, equalTo(0))
         },
         testM("error recovery by retrying") {
@@ -53,7 +57,11 @@ object ActorsSpec
 
           def makeHandler(ref: Ref[Int]): Actor.Stateful[Unit, Throwable, Message] =
             new Stateful[Unit, Throwable, Message] {
-              override def receive[A](state: Unit, msg: Message[A], context: Context[Throwable, Message]): IO[Throwable, (Unit, A)] =
+              override def receive[A](
+                state: Unit,
+                msg: Message[A],
+                context: Context[Throwable, Message]
+              ): IO[Throwable, (Unit, A)] =
                 msg match {
                   case Tick =>
                     ref
@@ -81,7 +89,11 @@ object ActorsSpec
           import TickUtils._
 
           val handler = new Stateful[Unit, Throwable, Message] {
-            override def receive[A](state: Unit, msg: Message[A], context: Context[Throwable, Message]): IO[Throwable, (Unit, A)] =
+            override def receive[A](
+              state: Unit,
+              msg: Message[A],
+              context: Context[Throwable, Message]
+            ): IO[Throwable, (Unit, A)] =
               msg match {
                 case Tick => IO.fail(new Exception("fail"))
               }
@@ -98,7 +110,7 @@ object ActorsSpec
           val program = for {
             system <- ActorSystem("test3", None)
             actor  <- system.createActor("actor1", policy, (), handler)
-            _     <- actor ! Tick
+            _      <- actor ! Tick
           } yield ()
 
           assertM(program.run, fails(anything)).andThen(assertM(IO.effectTotal(called.get), isTrue))

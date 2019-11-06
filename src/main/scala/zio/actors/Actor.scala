@@ -1,6 +1,6 @@
 package zio.actors
 
-import zio.{IO, Promise, Queue, Ref, Task}
+import zio.{ IO, Promise, Queue, Ref, Task }
 
 object Actor {
 
@@ -27,15 +27,14 @@ object Actor {
     def receive[A](state: S, msg: F[A], context: Context[E, F]): IO[E, (S, A)]
   }
 
-
-
   /* INTERNAL API */
 
   private val DefaultActorMailboxSize = 10000
 
-  private[actors] final def stateful[S, E <: Throwable, F[+_]](supervisor: Supervisor[E],
-                                                context: Context[E, F],
-                                                mailboxSize: Int = DefaultActorMailboxSize
+  private[actors] final def stateful[S, E <: Throwable, F[+_]](
+    supervisor: Supervisor[E],
+    context: Context[E, F],
+    mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S)(
     stateful: Actor.Stateful[S, E, F]
   ): IO[Nothing, Actor[E, F]] = {
