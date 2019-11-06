@@ -178,7 +178,7 @@ case class ActorSystemImpl(name: String,
 
         _ <- p.succeed(())
 
-        loop = channel.accept.use { worker =>
+        loop = channel.accept.flatMap(_.use { worker =>
 
           for {
             size <- worker.read(4)
@@ -219,7 +219,7 @@ case class ActorSystemImpl(name: String,
 
           } yield ()
 
-        }
+        })
 
         _ <- loop.forever
 
