@@ -8,7 +8,7 @@ trait Supervisor[-E] {
 }
 
 object Supervisor {
-  final def none: Supervisor[Any] = retry(Schedule.never)
+  final def none: Supervisor[Any] = retry(Schedule.once)
 
   final def retry[E, A](policy: Schedule[E, A]): Supervisor[E] =
     retryOrElse(policy, (_: E, _: A) => IO.unit)

@@ -1,8 +1,8 @@
 package zio.actors
 
-import zio.{ IO, Promise, Queue, Ref }
+import zio.{IO, Promise, Queue, Ref, UIO}
 
-trait Actor[+E, -F[+_]] {
+trait Actor[+E >: Throwable, -F[+_]] {
   def ![A](fa: F[A]): IO[E, A]
 
   def unsafeOp(a: Any): IO[E, Any] =
@@ -22,7 +22,7 @@ object Actor {
    * @tparam E error type
    * @tparam F message DSL
    */
-  trait Stateful[S, E >: Exception, F[+_]] {
+  trait Stateful[S, E >: Throwable, F[+_]] {
 
     /**
      *
@@ -39,7 +39,7 @@ object Actor {
 
   // INTERNALS
 
-  final def stateful[S, E >: Exception, F[+_]](supervisor: Supervisor[E],
+  final def stateful[S, E >: Throwable, F[+_]](supervisor: Supervisor[E],
                                                 context: Context[E, F],
                                                 mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S)(

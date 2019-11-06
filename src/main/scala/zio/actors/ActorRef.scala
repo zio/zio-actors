@@ -15,7 +15,7 @@ import zio.DefaultRuntime
  * @tparam E error type
  * @tparam F wrapper type constructing DSL
  */
-sealed trait ActorRef[+E >: Exception, -F[+_]] extends Serializable {
+sealed trait ActorRef[+E >: Throwable, -F[+_]] extends Serializable {
 
   /**
    *
@@ -45,7 +45,7 @@ object ActorRefSerial {
 
 }
 
-sealed abstract class ActorRefSerial[+E >: Exception, -F[+_]](private var actorPath: String) extends ActorRef[E, F] with Serializable {
+sealed abstract class ActorRefSerial[+E >: Throwable, -F[+_]](private var actorPath: String) extends ActorRef[E, F] with Serializable {
 
   @throws[IOException]
   protected def writeObject1(out: ObjectOutputStream): Unit = {
@@ -76,7 +76,7 @@ sealed abstract class ActorRefSerial[+E >: Exception, -F[+_]](private var actorP
 
 }
 
-case class ActorRefLocal[+E >: Exception, -F[+_]](private val actorName: String, actor: Actor[E, F]) extends ActorRefSerial[E, F](actorName) {
+case class ActorRefLocal[+E >: Throwable, -F[+_]](private val actorName: String, actor: Actor[E, F]) extends ActorRefSerial[E, F](actorName) {
 
   override def ![A](fa: F[A]): IO[E, A] = actor ! fa
 
@@ -97,12 +97,12 @@ case class ActorRefLocal[+E >: Exception, -F[+_]](private val actorName: String,
 
 }
 
-case class ActorRefRemote[+E >: Exception, -F[+_]](private val actorName: String, address: InetSocketAddress) extends ActorRefSerial[E, F](actorName) {
+case class ActorRefRemote[+E >: Throwable, -F[+_]](private val actorName: String, address: InetSocketAddress) extends ActorRefSerial[E, F](actorName) {
 
   override def ![A](fa: F[A]): IO[E, A] = for {
 
-    stream <- IO.effectTotal(new ByteArrayOutputStream())
-    oos <- UIO.effectTotal(new ObjectOutputStream(stream))
+    stream <- IO.effect(new ByteArrayOutputStream())
+    oos <- IO.effect(new ObjectOutputStream(stream))
     actorPath <- path
     _ = oos.writeObject(Envelope(fa, actorPath))
     _ = oos.close()

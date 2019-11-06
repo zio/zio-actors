@@ -24,29 +24,39 @@ object SpecUtils {
   }
 
   sealed trait PingPongProto[+A]
-  case class Ping(sender: ActorRef[Exception, PingPongProto]) extends PingPongProto[Unit]
+  case class Ping(sender: ActorRef[Throwable, PingPongProto]) extends PingPongProto[Unit]
   case object Pong extends PingPongProto[Unit]
-  case class GameInit(recipient: ActorRef[Exception, PingPongProto]) extends PingPongProto[Unit]
+  case class GameInit(recipient: ActorRef[Throwable, PingPongProto]) extends PingPongProto[Unit]
 
-  val protoHandler = new Stateful[Unit, Exception, PingPongProto] {
-    override def receive[A](state: Unit, msg: PingPongProto[A], context: Context[Exception, PingPongProto]): IO[Exception, (Unit, A)] =
+  val protoHandler = new Stateful[Unit, Throwable, PingPongProto] {
+    override def receive[A](state: Unit, msg: PingPongProto[A], context: Context[Throwable, PingPongProto]): IO[Throwable, (Unit, A)] =
       msg match {
         case Ping(sender) => (for {
           path <- sender.path
           _ <- console.putStrLn(s"Ping from: $path, sending pong")
           _ <- (sender ! Pong).fork
-        } yield ((), ())).asInstanceOf[IO[Exception, (Unit, A)]]
+        } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
 
         case Pong => (for {
           _ <- console.putStrLn("Received pong")
           _ <- IO.succeed(1)
-        } yield ((), ())).asInstanceOf[IO[Exception, (Unit, A)]]
+        } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
 
         case GameInit(to) => (for {
           _ <- console.putStrLn("The game starts...")
           self <- context.self
           _ <- (to ! Ping(self)).fork
-        } yield ((), ())).asInstanceOf[IO[Exception, (Unit, A)]]
+        } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
+      }
+  }
+
+  sealed trait ErrorProto[+A]
+  case object UnsafeMessage extends ErrorProto[String]
+
+  val errorHandler = new Stateful[Unit, Throwable, ErrorProto] {
+    override def receive[A](state: Unit, msg: ErrorProto[A], context: Context[Throwable, ErrorProto]): IO[Throwable, (Unit, A)] =
+      msg match {
+        case UnsafeMessage => IO.fail(new Exception("Error on remote side"))
       }
   }
 
@@ -76,11 +86,11 @@ object RemoteSpec extends DefaultRunnableSpec(
           one <- actorSystemRoot.createActor("actorOne", Supervisor.none, (), protoHandler)
 
           actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
-          two <- actorSystem.createActor("actorTwo", Supervisor.none, (), protoHandler)
+          _ <- actorSystem.createActor("actorTwo", Supervisor.none, (), protoHandler)
 
-          remotee <- actorSystemRoot.selectActor[Exception, PingPongProto](s"zio://testSystemTwo@127.0.0.1:$port2/actorTwo")
+          remoteActor <- actorSystemRoot.selectActor[Throwable, PingPongProto](s"zio://testSystemTwo@127.0.0.1:$port2/actorTwo")
 
-          _ <- one ! GameInit(remotee)
+          _ <- one ! GameInit(remoteActor)
 
           _ <- Clock.Live.clock.sleep(2.seconds)
 
@@ -95,35 +105,57 @@ object RemoteSpec extends DefaultRunnableSpec(
       }
     ),
     suite("Error handling suite")(
-      testM("ActorRef not found case (with remote disabled)") {
-        for {
-          _ <- IO.unit
-        } yield assert(1, equalTo(1))
-      },
-      testM("Port not available") {
-        for {
-          _ <- IO.unit
-        } yield assert(1, equalTo(1))
-      },
-      testM("Remote actor does not exist") {
-        for {
-          _ <- IO.unit
-        } yield assert(1, equalTo(1))
+      testM("ActorRef not found case (in local actor system)") {
+        val program = for {
+          portRand <- random.nextInt
+          port1 = (portRand % 1000) + 8000
+          actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", port1))
+          _ <- actorSystem.selectActor[Throwable, PingPongProto](s"zio://testSystemTwo@127.0.0.1:$port1/actorTwo")
+        } yield ()
+
+        assertM(program.run, fails(isSubtype[Throwable](anything)) &&
+          fails(hasField[Throwable, String]("message", _.getMessage, equalTo("No such actor in local ActorSystem."))))
       },
       testM("Remote system does not exist") {
-        for {
-          _ <- IO.unit
-        } yield assert(1, equalTo(1))
+        val program = for {
+          portRand <- random.nextInt
+          port1 = (portRand % 1000) + 8000
+          port2 = port1 + 2
+          actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", port1))
+          remotee <- actorSystem.selectActor[Throwable, PingPongProto](s"zio://testSystemOne@127.0.0.1:$port2/actorTwo")
+          _ <- remotee ! GameInit(remotee)
+        } yield ()
+
+        assertM(program.run, fails(anything))
+      },
+      testM("Remote actor does not exist") {
+        val program = for {
+          portRand <- random.nextInt
+          port1 = (portRand % 1000) + 8000
+          port2 = port1 + 1
+          actorSystemRoot <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
+          _ <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
+          remotee <- actorSystemRoot.selectActor[Throwable, PingPongProto](s"zio://testSystemTwo@127.0.0.1:$port2/actorTwo")
+          _ <- remotee ! GameInit(remotee)
+        } yield ()
+
+        assertM(program.run, fails(isSubtype[Throwable](anything)) &&
+          fails(hasField[Throwable, String]("message", _.getMessage, equalTo("No such remote actor"))))
       },
       testM("On remote side error message processing error") {
-        for {
-          _ <- IO.unit
-        } yield assert(1, equalTo(1))
-      },
-      testM("while communication error case ") {
-        for {
-          _ <- IO.unit
-        } yield assert(1, equalTo(1))
+        val program = for {
+          portRand <- random.nextInt
+          port1 = (portRand % 1000) + 8000
+          port2 = port1 + 1
+          actorSystemRoot <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
+          _ <- actorSystemRoot.createActor("actorOne", Supervisor.none, (), errorHandler)
+          actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
+          actorRef <- actorSystem.selectActor[Throwable, ErrorProto](s"zio://testSystemOne@127.0.0.1:$port1/actorOne")
+          _ <- actorRef ! UnsafeMessage
+        } yield ()
+
+        assertM(program.run, fails(isSubtype[Throwable](anything)) &&
+          fails(hasField[Throwable, String]("message", _.getMessage, equalTo("Error on remote side"))))
       }
     )
   )
