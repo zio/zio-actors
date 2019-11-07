@@ -1,3 +1,3 @@
 package zio.actors
 
-private[actors] case class Envelope(msg: Any, recipient: String)
+private[actors] final case class Envelope(msg: Any, recipient: String)

@@ -69,7 +69,7 @@ object Actor {
           _       <- queue.offer((a, promise))
           value   <- promise.await
         } yield value
-      override def stop: IO[Nothing, List[_]] =
+      override val stop: IO[Nothing, List[_]] =
         for {
           tall <- queue.takeAll
           _    <- queue.shutdown
@@ -78,11 +78,11 @@ object Actor {
   }
 }
 
-private[actors] trait Actor[E <: Throwable, -F[+_]] {
+private[actors] sealed trait Actor[E <: Throwable, -F[+_]] {
   def ![A](fa: F[A]): Task[A]
 
-  def unsafeOp(a: Any): Task[Any] =
+  final def unsafeOp(a: Any): Task[Any] =
     this.!(a.asInstanceOf[F[_]])
 
-  def stop: IO[Nothing, List[_]]
+  val stop: IO[Nothing, List[_]]
 }

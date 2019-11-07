@@ -35,11 +35,9 @@ object ActorSystem {
       initActorRefMap <- Ref.make(Map.empty[String, Any])
       actorSystem     <- IO.effect(ActorSystemImpl(name, remoteConfig, initActorRefMap, parentActor = None))
 
-      _ <- remoteConfig match {
-            case Some((addr, port)) =>
+      _ <- remoteConfig.fold[Task[Unit]](IO.unit) {
+            case (addr, port) =>
               actorSystem.receiveLoop(addr, port)
-            case None =>
-              IO.unit
           }
 
     } yield actorSystem
@@ -53,7 +51,7 @@ object ActorSystem {
  * @tparam E error type
  * @tparam F message DSL
  */
-trait Context[E <: Throwable, F[+_]] {
+sealed trait Context[E <: Throwable, F[+_]] {
 
   /**
    *
@@ -61,7 +59,7 @@ trait Context[E <: Throwable, F[+_]] {
    *
    * @return actor reference
    */
-  def self: Task[ActorRef[E, F]]
+  val self: Task[ActorRef[E, F]]
 
   /**
    *
@@ -105,7 +103,7 @@ trait Context[E <: Throwable, F[+_]] {
  *  remoting and actor creation and selection.
  *
  */
-trait ActorSystem {
+sealed trait ActorSystem {
 
   /**
    *
@@ -140,10 +138,9 @@ trait ActorSystem {
 
 private[actors] object ActorSystemUtils {
 
-  def resolvePath(path: String): Task[(String, Addr, Port, String)] = {
+  private val regex = "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w|\\/]+)$".r
 
-    val regex = "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w|\\/]+)$".r
-
+  def resolvePath(path: String): Task[(String, Addr, Port, String)] =
     regex.findFirstMatchIn(path) match {
       case Some(value) if value.groupCount == 4 =>
         val actorSystemName = value.group(1)
@@ -158,8 +155,6 @@ private[actors] object ActorSystemUtils {
           )
         )
     }
-
-  }
 
   def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[(Addr, Port)]): String =
     s"zio://$actorSystemName@${remoteConfig.map({ case (addr, port) => addr + ":" + port }).getOrElse("local")}$actorPath"
@@ -188,10 +183,10 @@ private[actors] object ActorSystemUtils {
 
 }
 
-private[actors] case class ContextImpl[E <: Throwable, F[+_]](path: String, actorSystem: ActorSystem)
+private[actors] final case class ContextImpl[E <: Throwable, F[+_]](path: String, actorSystem: ActorSystem)
     extends Context[E, F] {
 
-  override def self: Task[ActorRef[E, F]] = actorSystem.selectActor(path)
+  override val self: Task[ActorRef[E, F]] = actorSystem.selectActor(path)
 
   override def createActor[S, E1 <: Throwable, F1[+_]](
     name: String,
@@ -205,7 +200,7 @@ private[actors] case class ContextImpl[E <: Throwable, F[+_]](path: String, acto
     actorSystem.selectActor(path)
 }
 
-private[actors] case class ActorSystemImpl(
+private[actors] final case class ActorSystemImpl(
   actorSystemName: String,
   remoteConfig: Option[(Addr, Port)],
   refActorMap: Ref[Map[String, Any]],

@@ -29,7 +29,7 @@ sealed trait ActorRef[E <: Throwable, -F[+_]] extends Serializable {
    * Get referential absolute actor path
    * @return
    */
-  def path: UIO[String]
+  val path: UIO[String]
 
 }
 
@@ -72,12 +72,14 @@ private[actors] sealed abstract class ActorRefSerial[E <: Throwable, -F[+_]](pri
 
   }
 
-  override def path: UIO[String] = UIO.effectTotal(actorPath)
+  override val path: UIO[String] = UIO.effectTotal(actorPath)
 
 }
 
-private[actors] case class ActorRefLocal[E <: Throwable, -F[+_]](private val actorName: String, actor: Actor[E, F])
-    extends ActorRefSerial[E, F](actorName) {
+private[actors] final case class ActorRefLocal[E <: Throwable, -F[+_]](
+  private val actorName: String,
+  actor: Actor[E, F]
+) extends ActorRefSerial[E, F](actorName) {
 
   override def ![A](fa: F[A]): Task[A] = actor ! fa
 
@@ -95,7 +97,7 @@ private[actors] case class ActorRefLocal[E <: Throwable, -F[+_]](private val act
 
 }
 
-private[actors] case class ActorRefRemote[E <: Throwable, -F[+_]](
+private[actors] final case class ActorRefRemote[E <: Throwable, -F[+_]](
   private val actorName: String,
   address: InetSocketAddress
 ) extends ActorRefSerial[E, F](actorName) {
