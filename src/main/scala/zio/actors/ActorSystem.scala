@@ -52,7 +52,7 @@ object ActorSystem {
  * @tparam E error type
  * @tparam F message DSL
  */
-private[actors] final case class Context[E <: Throwable, F[+_]](
+final case class Context[E <: Throwable, F[+_]](
   private val path: String,
   private val actorSystem: ActorSystem
 ) {
@@ -109,7 +109,7 @@ private[actors] final case class Context[E <: Throwable, F[+_]](
  *  remoting and actor creation and selection.
  *
  */
-private[actors] final case class ActorSystem(
+final case class ActorSystem(
   private val actorSystemName: String,
   private val remoteConfig: Option[(Addr, Port)],
   private val refActorMap: Ref[Map[String, Any]],

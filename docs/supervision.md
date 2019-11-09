@@ -27,12 +27,12 @@ To provide no supervision use `none`. Remember that this provide no error recove
 Supervisor.none
 ```
 
-Retrying is provided via `retry` with specified `Schedule` like `linear` or `exponential.`:
+Retrying is provided via `retry` with specified `Schedule` like `recurs`:
 
 ```scala mdoc:silent
 val duration  = Duration(5, TimeUnit.SECONDS)
 
-Supervisor.retry(Schedule.exponential(duration, factor = 4))
+Supervisor.retry(Schedule.recurs(10))
 ```
 
 The general method also requires effect that will be executed on `Schedule` end:

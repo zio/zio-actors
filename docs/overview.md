@@ -24,10 +24,10 @@ case class DoubleCommand(value: Int) extends Command[Int]
 Our actor's assigment will be to double received values. Here's the `Stateful` implementation:
 
 ```scala mdoc:silent
-val stateful = new Stateful[Unit, Nothing, Command] {
-  override def receive[A](state: Unit, msg: Command[A]): IO[Nothing, (Unit, A)] =
+val stateful = new Stateful[Unit, Throwable, Command] {
+  override def receive[A](state: Unit, msg: Command[A], context: Context[Throwable, Command]): IO[Throwable, (Unit, A)] =
     msg match {
-      case DoubleCommand(value) => IO.effectTotal(((), value*2))
+      case DoubleCommand(value) => IO.effectTotal(((), value * 2))
     }
 }
 ```
@@ -36,7 +36,8 @@ Then we are ready to instantiate the actor and fire off messages:
 
 ```scala mdoc:silent
 for {
-  actor <- Actor.stateful(Supervisor.none)(())(stateful)
+  system <- ActorSystem("mySystem", remoteConfig = None)
+  actor <- system.createActor("actor1", Supervisor.none, (), stateful)
   doubled <- actor ! DoubleCommand(42)
 } yield doubled
 ```
