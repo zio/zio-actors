@@ -13,7 +13,7 @@ import zio.{ DefaultRuntime, IO, Task, UIO }
  * @tparam E error type
  * @tparam F wrapper type constructing DSL
  */
-sealed trait ActorRef[E <: Throwable, -F[+_]] extends Serializable {
+sealed trait ActorRef[+E <: Throwable, -F[+_]] extends Serializable {
 
   /**
    *

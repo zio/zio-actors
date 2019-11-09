@@ -49,10 +49,8 @@ object ActorSystem {
  *
  * Context for actor used inside Stateful which provides self actor reference and actor creation/selection API
  *
- * @tparam E error type
- * @tparam F message DSL
  */
-final case class Context[E <: Throwable, F[+_]](
+final case class Context(
   private val path: String,
   private val actorSystem: ActorSystem
 ) {
@@ -63,7 +61,7 @@ final case class Context[E <: Throwable, F[+_]](
    *
    * @return actor reference in a task
    */
-  val self: Task[ActorRef[E, F]] = actorSystem.selectActor(path)
+  def self[E <: Throwable, F[+_]]: Task[ActorRef[E, F]] = actorSystem.selectActor(path)
 
   /**
    *

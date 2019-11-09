@@ -23,7 +23,7 @@ object SpecUtils {
     override def receive[A](
       state: Int,
       msg: Message[A],
-      context: Context[MyErrorDomain, Message]
+      context: Context
     ): IO[MyErrorDomain, (Int, A)] =
       msg match {
         case Str(value) =>
@@ -40,7 +40,7 @@ object SpecUtils {
     override def receive[A](
       state: Unit,
       msg: PingPongProto[A],
-      context: Context[Throwable, PingPongProto]
+      context: Context
     ): IO[Throwable, (Unit, A)] =
       msg match {
         case Ping(sender) =>
@@ -59,7 +59,7 @@ object SpecUtils {
         case GameInit(to) =>
           (for {
             _    <- console.putStrLn("The game starts...")
-            self <- context.self
+            self <- context.self[Throwable, PingPongProto]
             _    <- (to ! Ping(self)).fork
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
       }
@@ -72,7 +72,7 @@ object SpecUtils {
     override def receive[A](
       state: Unit,
       msg: ErrorProto[A],
-      context: Context[Throwable, ErrorProto]
+      context: Context
     ): IO[Throwable, (Unit, A)] =
       msg match {
         case UnsafeMessage => IO.fail(new Exception("Error on remote side"))

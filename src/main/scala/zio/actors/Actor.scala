@@ -12,7 +12,7 @@ object Actor {
    * @tparam E error type
    * @tparam F message DSL
    */
-  trait Stateful[S, E <: Throwable, F[+_]] {
+  trait Stateful[S, +E <: Throwable, -F[+_]] {
 
     /**
      *
@@ -24,7 +24,7 @@ object Actor {
      * @tparam A - domain of return entities
      * @return effectful result
      */
-    def receive[A](state: S, msg: F[A], context: Context[E, F]): IO[E, (S, A)]
+    def receive[A](state: S, msg: F[A], context: Context): IO[E, (S, A)]
   }
 
   /* INTERNAL API */
@@ -33,7 +33,7 @@ object Actor {
 
   private[actors] final def stateful[S, E <: Throwable, F[+_]](
     supervisor: Supervisor[E],
-    context: Context[E, F],
+    context: Context,
     mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S)(
     stateful: Actor.Stateful[S, E, F]
@@ -78,7 +78,7 @@ object Actor {
   }
 }
 
-private[actors] sealed trait Actor[E <: Throwable, -F[+_]] {
+private[actors] sealed trait Actor[+E <: Throwable, -F[+_]] {
   def ![A](fa: F[A]): Task[A]
 
   final def unsafeOp(a: Any): Task[Any] =

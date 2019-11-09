@@ -26,12 +26,12 @@ object ActorsSpec
 
           import CounterUtils._
 
-          val handler = new Stateful[Int, Throwable, Message] {
+          val handler = new Stateful[Int, Nothing, Message] {
             override def receive[A](
               state: Int,
               msg: Message[A],
-              context: Context[Throwable, Message]
-            ): IO[Throwable, (Int, A)] =
+              context: Context
+            ): IO[Nothing, (Int, A)] =
               msg match {
                 case Reset    => IO.effectTotal((0, ()))
                 case Increase => IO.effectTotal((state + 1, ()))
@@ -60,7 +60,7 @@ object ActorsSpec
               override def receive[A](
                 state: Unit,
                 msg: Message[A],
-                context: Context[Throwable, Message]
+                context: Context
               ): IO[Throwable, (Unit, A)] =
                 msg match {
                   case Tick =>
@@ -92,7 +92,7 @@ object ActorsSpec
             override def receive[A](
               state: Unit,
               msg: Message[A],
-              context: Context[Throwable, Message]
+              context: Context
             ): IO[Throwable, (Unit, A)] =
               msg match {
                 case Tick => IO.fail(new Exception("fail"))
