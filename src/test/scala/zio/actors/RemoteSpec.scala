@@ -90,9 +90,9 @@ object RemoteSpec
               portRand       <- random.nextInt
               port1          = (portRand % 1000) + 8000
               port2          = port1 + 1
-              actorSystemOne <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
+              actorSystemOne <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
               _              <- actorSystemOne.createActor("actorOne", Supervisor.none, 0, handlerMessageTrait)
-              actorSystemTwo <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
+              actorSystemTwo <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
               actorRef <- actorSystemTwo.selectActor[MyErrorDomain, Message](
                            s"zio://testSystemOne@127.0.0.1:$port1/actorOne"
                          )
@@ -104,10 +104,10 @@ object RemoteSpec
               portRand        <- random.nextInt
               port1           = (portRand % 1000) + 8000
               port2           = port1 + 1
-              actorSystemRoot <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
+              actorSystemRoot <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
               one             <- actorSystemRoot.createActor("actorOne", Supervisor.none, (), protoHandler)
 
-              actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
+              actorSystem <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
               _           <- actorSystem.createActor("actorTwo", Supervisor.none, (), protoHandler)
 
               remoteActor <- actorSystemRoot.selectActor[Throwable, PingPongProto](
@@ -136,7 +136,7 @@ object RemoteSpec
             val program = for {
               portRand    <- random.nextInt
               port1       = (portRand % 1000) + 8000
-              actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", port1))
+              actorSystem <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port1)))
               _           <- actorSystem.selectActor[Throwable, PingPongProto](s"zio://testSystemTwo@127.0.0.1:$port1/actorTwo")
             } yield ()
 
@@ -153,7 +153,7 @@ object RemoteSpec
               portRand    <- random.nextInt
               port1       = (portRand % 1000) + 8000
               port2       = port1 + 2
-              actorSystem <- ActorSystem("testSystemTwo", Some("127.0.0.1", port1))
+              actorSystem <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port1)))
               actorRef <- actorSystem.selectActor[Throwable, PingPongProto](
                            s"zio://testSystemOne@127.0.0.1:$port2/actorTwo"
                          )
@@ -171,8 +171,8 @@ object RemoteSpec
               portRand       <- random.nextInt
               port1          = (portRand % 1000) + 8000
               port2          = port1 + 1
-              actorSystemOne <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
-              _              <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
+              actorSystemOne <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
+              _              <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
               actorRef <- actorSystemOne.selectActor[Throwable, PingPongProto](
                            s"zio://testSystemTwo@127.0.0.1:$port2/actorTwo"
                          )
@@ -190,9 +190,9 @@ object RemoteSpec
               portRand       <- random.nextInt
               port1          = (portRand % 1000) + 8000
               port2          = port1 + 1
-              actorSystemOne <- ActorSystem("testSystemOne", Some("127.0.0.1", port1))
+              actorSystemOne <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
               _              <- actorSystemOne.createActor("actorOne", Supervisor.none, (), errorHandler)
-              actorSystemTwo <- ActorSystem("testSystemTwo", Some("127.0.0.1", port2))
+              actorSystemTwo <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
               actorRef <- actorSystemTwo.selectActor[Throwable, ErrorProto](
                            s"zio://testSystemOne@127.0.0.1:$port1/actorOne"
                          )

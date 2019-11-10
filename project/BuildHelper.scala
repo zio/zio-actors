@@ -1,26 +1,53 @@
 import sbt._
 import sbt.Keys._
 
-object Build {
-  val compileOnlyDeps = Seq("com.github.ghik" %% "silencer-lib" % "1.4.2" % "provided")
+object BuildHelper {
 
-  private val std2xOptions = Seq(
-    "-Xfatal-warnings",
-    "-language:higherKinds",
-    "-language:existentials",
+  private val Scala212        = "2.12.10"
+  private val Scala213        = "2.13.1"
+  private val SilencerVersion = "1.4.4"
+
+  private val stdOptions = Seq(
+    "-encoding",
+    "UTF-8",
     "-explaintypes",
     "-Yrangepos",
-    "-Xfuture",
-    "-Xsource:2.13",
+    "-feature",
+    "-language:higherKinds",
+    "-language:existentials",
     "-Xlint:_,-type-parameter-shadow",
+    "-Xsource:2.13",
     "-Ywarn-numeric-widen",
     "-Ywarn-value-discard",
-    "-Xmax-classfile-name",
-    "242"
+    "-unchecked",
+    "-deprecation",
+    "-Xfatal-warnings"
   )
 
-  def extraOptions(scalaVersion: String) =
+  private val stdOpts213 = Seq(
+    "-Wunused:imports",
+    "-Wvalue-discard",
+    "-Wunused:patvars",
+    "-Wunused:privates",
+    "-Wunused:params",
+    "-Wvalue-discard"
+  )
+
+  private val stdOptsUpto212 = Seq(
+    "-Xfuture",
+    "-Ypartial-unification",
+    "-Ywarn-nullary-override",
+    "-Yno-adapted-args",
+    "-Ywarn-infer-any",
+    "-Ywarn-inaccessible",
+    "-Ywarn-nullary-unit",
+    "-Ywarn-unused-import"
+  )
+
+  private def extraOptions(scalaVersion: String) =
     CrossVersion.partialVersion(scalaVersion) match {
+      case Some((2, 13)) =>
+        stdOpts213
       case Some((2, 12)) =>
         Seq(
           "-opt-warnings",
@@ -29,33 +56,23 @@ object Build {
           "-Ywarn-unused:imports",
           "-opt:l:inline",
           "-opt-inline-from:<source>"
-        )
-      case Some((2, 11)) =>
-        Seq(
-          "-Ypartial-unification",
-          "-Yno-adapted-args",
-          "-Ywarn-inaccessible",
-          "-Ywarn-infer-any",
-          "-Ywarn-nullary-override",
-          "-Ywarn-nullary-unit",
-          "-Xexperimental",
-          "-Ywarn-unused-import"
-        ) ++ std2xOptions
+        ) ++ stdOptsUpto212
       case _ =>
-        Seq(
-          "-Xexperimental",
-          "-Ywarn-unused-import"
-        )
+        Seq("-Xexperimental") ++ stdOptsUpto212
     }
 
   def stdSettings(prjName: String) = Seq(
     name := s"$prjName",
-    crossScalaVersions := Seq("2.12.8"),
-    scalaVersion in ThisBuild := crossScalaVersions.value.head,
-    scalacOptions := extraOptions(scalaVersion.value),
-    libraryDependencies ++= compileOnlyDeps ++ Seq(
-      compilerPlugin("com.github.ghik" %% "silencer-plugin" % "1.4.2")
-    ),
+    crossScalaVersions := Seq(Scala212, Scala213),
+    scalaVersion in ThisBuild := Scala212,
+    scalacOptions := stdOptions ++ extraOptions(scalaVersion.value),
+    libraryDependencies ++=
+      Seq(
+        ("com.github.ghik" % "silencer-lib" % SilencerVersion % Provided)
+          .cross(CrossVersion.full),
+        compilerPlugin(("com.github.ghik" % "silencer-plugin" % SilencerVersion).cross(CrossVersion.full)),
+        compilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
+      ),
     incOptions ~= (_.withLogRecompileOnMacro(false))
   )
 }

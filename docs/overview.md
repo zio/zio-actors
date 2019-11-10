@@ -25,7 +25,7 @@ Our actor's assigment will be to double received values. Here's the `Stateful` i
 
 ```scala mdoc:silent
 val stateful = new Stateful[Unit, Throwable, Command] {
-  override def receive[A](state: Unit, msg: Command[A], context: Context[Throwable, Command]): IO[Throwable, (Unit, A)] =
+  override def receive[A](state: Unit, msg: Command[A], context: Context): IO[Throwable, (Unit, A)] =
     msg match {
       case DoubleCommand(value) => IO.effectTotal(((), value * 2))
     }

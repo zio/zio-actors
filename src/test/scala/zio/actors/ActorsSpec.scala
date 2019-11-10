@@ -40,7 +40,7 @@ object ActorsSpec
           }
 
           for {
-            system <- ActorSystem("test1", None)
+            system <- ActorSystem("test1", remoteConfig = None)
             actor  <- system.createActor("actor1", Supervisor.none, 0, handler)
             _      <- actor ! Increase
             _      <- actor ! Increase

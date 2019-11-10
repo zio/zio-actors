@@ -1,4 +1,4 @@
-import Build._
+import BuildHelper._
 
 inThisBuild(
   List(

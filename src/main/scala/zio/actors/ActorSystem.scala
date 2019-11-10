@@ -34,7 +34,7 @@ object ActorSystem {
     for {
 
       initActorRefMap <- Ref.make(Map.empty[String, Any])
-      actorSystem     <- IO.effect(ActorSystem(name, remoteConfig, initActorRefMap, parentActor = None))
+      actorSystem     <- IO.effect(new ActorSystem(name, remoteConfig, initActorRefMap, parentActor = None))
 
       _ <- remoteConfig.fold[Task[Unit]](IO.unit) {
             case (addr, port) =>
@@ -50,7 +50,7 @@ object ActorSystem {
  * Context for actor used inside Stateful which provides self actor reference and actor creation/selection API
  *
  */
-final case class Context(
+final class Context private[actors] (
   private val path: String,
   private val actorSystem: ActorSystem
 ) {
@@ -107,7 +107,7 @@ final case class Context(
  *  remoting and actor creation and selection.
  *
  */
-final case class ActorSystem(
+final class ActorSystem private[actors] (
   private val actorSystemName: String,
   private val remoteConfig: Option[(Addr, Port)],
   private val refActorMap: Ref[Map[String, Any]],
@@ -135,11 +135,12 @@ final case class ActorSystem(
   ): UIO[ActorRef[E, F]] =
     for {
 
-      map       <- refActorMap.get
-      finalName = parentActor.getOrElse("") + "/" + actorName
-      path      = buildPath(actorSystemName, finalName, remoteConfig)
-      actor     <- Actor.stateful[S, E, F](sup, Context(path, this.copy(parentActor = Some(finalName))))(init)(stateful)
-      _         <- refActorMap.set(map + (finalName -> actor))
+      map           <- refActorMap.get
+      finalName     = parentActor.getOrElse("") + "/" + actorName
+      path          = buildPath(actorSystemName, finalName, remoteConfig)
+      derivedSystem = new ActorSystem(actorSystemName, remoteConfig, refActorMap, Some(finalName))
+      actor         <- Actor.stateful[S, E, F](sup, new Context(path, derivedSystem))(init)(stateful)
+      _             <- refActorMap.set(map + (finalName -> actor))
 
     } yield ActorRefLocal[E, F](path, actor)
 
