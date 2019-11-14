@@ -1,22 +1,39 @@
 package zio.actors
 
-import zio.{ IO, Promise, Queue, Ref }
-
-trait Actor[+E, -F[+_]] {
-  def ![A](fa: F[A]): IO[E, A]
-
-  def stop: IO[Nothing, List[_]]
-}
+import zio.{ IO, Promise, Queue, Ref, Task }
 
 object Actor {
-  val DefaultActorMailboxSize = 10000
 
-  trait Stateful[S, +E, -F[+_]] {
-    def receive[A](state: S, msg: F[A]): IO[E, (S, A)]
+  /**
+   *
+   * Description of actor behavior (can act as FSM)
+   *
+   * @tparam S state type that is updated every message digested
+   * @tparam E error type
+   * @tparam F message DSL
+   */
+  trait Stateful[S, +E <: Throwable, -F[+_]] {
+
+    /**
+     *
+     * Override method triggered on message received
+     *
+     * @param state available for this method
+     * @param msg - message received
+     * @param context - provisions actor's self (as ActorRef) and actors' creation and selection
+     * @tparam A - domain of return entities
+     * @return effectful result
+     */
+    def receive[A](state: S, msg: F[A], context: Context): IO[E, (S, A)]
   }
 
-  final def stateful[S, E, F[+_]](
+  /* INTERNAL API */
+
+  private val DefaultActorMailboxSize = 10000
+
+  private[actors] final def stateful[S, E <: Throwable, F[+_]](
     supervisor: Supervisor[E],
+    context: Context,
     mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S)(
     stateful: Actor.Stateful[S, E, F]
@@ -27,7 +44,7 @@ object Actor {
       for {
         s             <- state.get
         (fa, promise) = msg
-        receiver      = stateful.receive(s, fa)
+        receiver      = stateful.receive(s, fa, context)
         completer     = ((s: S, a: A) => state.set(s) *> promise.succeed(a)).tupled
         _ <- receiver.foldM(
               e =>
@@ -52,11 +69,20 @@ object Actor {
           _       <- queue.offer((a, promise))
           value   <- promise.await
         } yield value
-      override def stop: IO[Nothing, List[_]] =
+      override val stop: IO[Nothing, List[_]] =
         for {
           tall <- queue.takeAll
           _    <- queue.shutdown
         } yield tall
     }
   }
+}
+
+private[actors] sealed trait Actor[+E <: Throwable, -F[+_]] {
+  def ![A](fa: F[A]): Task[A]
+
+  final def unsafeOp(a: Any): Task[Any] =
+    this.!(a.asInstanceOf[F[_]])
+
+  val stop: IO[Nothing, List[_]]
 }

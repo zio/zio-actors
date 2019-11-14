@@ -3,12 +3,15 @@ package zio.actors
 import zio.{ IO, Schedule, ZIO }
 import zio.clock.Clock
 
-trait Supervisor[-E] {
+private[actors] trait Supervisor[-E] {
   def supervise[A](io: IO[E, A], error: E): IO[Unit, A]
 }
 
+/**
+ *  Supervising policies
+ */
 object Supervisor {
-  final def none: Supervisor[Any] = retry(Schedule.never)
+  final def none: Supervisor[Any] = retry(Schedule.once)
 
   final def retry[E, A](policy: Schedule[E, A]): Supervisor[E] =
     retryOrElse(policy, (_: E, _: A) => IO.unit)

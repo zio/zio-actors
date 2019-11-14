@@ -27,7 +27,11 @@ object ActorsSpec
           import CounterUtils._
 
           val handler = new Stateful[Int, Nothing, Message] {
-            override def receive[A](state: Int, msg: Message[A]): IO[Nothing, (Int, A)] =
+            override def receive[A](
+              state: Int,
+              msg: Message[A],
+              context: Context
+            ): IO[Nothing, (Int, A)] =
               msg match {
                 case Reset    => IO.effectTotal((0, ()))
                 case Increase => IO.effectTotal((state + 1, ()))
@@ -36,12 +40,13 @@ object ActorsSpec
           }
 
           for {
-            actor <- Actor.stateful(Supervisor.none)(0)(handler)
-            _     <- actor ! Increase
-            _     <- actor ! Increase
-            c1    <- actor ! Get
-            _     <- actor ! Reset
-            c2    <- actor ! Get
+            system <- ActorSystem("test1", remoteConfig = None)
+            actor  <- system.createActor("actor1", Supervisor.none, 0, handler)
+            _      <- actor ! Increase
+            _      <- actor ! Increase
+            c1     <- actor ! Get
+            _      <- actor ! Reset
+            c2     <- actor ! Get
           } yield assert(c1, equalTo(2)) && assert(c2, equalTo(0))
         },
         testM("error recovery by retrying") {
@@ -50,15 +55,19 @@ object ActorsSpec
 
           val maxRetries = 10
 
-          def makeHandler(ref: Ref[Int]): Actor.Stateful[Unit, String, Message] =
-            new Stateful[Unit, String, Message] {
-              override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
+          def makeHandler(ref: Ref[Int]): Actor.Stateful[Unit, Throwable, Message] =
+            new Stateful[Unit, Throwable, Message] {
+              override def receive[A](
+                state: Unit,
+                msg: Message[A],
+                context: Context
+              ): IO[Throwable, (Unit, A)] =
                 msg match {
                   case Tick =>
                     ref
                       .update(_ + 1)
                       .flatMap { v =>
-                        if (v < maxRetries) IO.fail("fail")
+                        if (v < maxRetries) IO.fail(new Exception("fail"))
                         else IO.succeed((state, state))
                       }
                 }
@@ -69,7 +78,8 @@ object ActorsSpec
             handler  = makeHandler(ref)
             schedule = Schedule.recurs(maxRetries)
             policy   = Supervisor.retry(schedule)
-            actor    <- Actor.stateful(policy)(())(handler)
+            system   <- ActorSystem("test2", None)
+            actor    <- system.createActor("actor1", policy, (), handler)
             _        <- actor ! Tick
             count    <- ref.get
           } yield assert(count, equalTo(maxRetries))
@@ -78,24 +88,29 @@ object ActorsSpec
 
           import TickUtils._
 
-          val handler = new Stateful[Unit, String, Message] {
-            override def receive[A](state: Unit, msg: Message[A]): IO[String, (Unit, A)] =
+          val handler = new Stateful[Unit, Throwable, Message] {
+            override def receive[A](
+              state: Unit,
+              msg: Message[A],
+              context: Context
+            ): IO[Throwable, (Unit, A)] =
               msg match {
-                case Tick => IO.fail("fail")
+                case Tick => IO.fail(new Exception("fail"))
               }
           }
 
           val called   = new AtomicBoolean(false)
           val schedule = Schedule.recurs(10)
           val policy =
-            Supervisor.retryOrElse[String, Int](
+            Supervisor.retryOrElse[Throwable, Int](
               schedule,
               (_, _) => IO.effectTotal(called.set(true))
             )
 
           val program = for {
-            actor <- Actor.stateful(policy)(())(handler)
-            _     <- actor ! Tick
+            system <- ActorSystem("test3", None)
+            actor  <- system.createActor("actor1", policy, (), handler)
+            _      <- actor ! Tick
           } yield ()
 
           assertM(program.run, fails(anything)).andThen(assertM(IO.effectTotal(called.get), isTrue))

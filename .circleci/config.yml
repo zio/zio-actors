@@ -1,13 +1,13 @@
 version: 2.1
 
-scala_211: &scala_211
-  SCALA_VERSION: 2.11.12
-
 scala_212: &scala_212
-  SCALA_VERSION: 2.12.8
+  SCALA_VERSION: 2.12.10
+
+scala_213: &scala_213
+  SCALA_VERSION: 2.13.1
 
 scala_dotty: &scala_dotty
-  SCALA_VERSION: 0.16.0-RC3
+  SCALA_VERSION: 0.20.0-RC1
 
 jdk_8: &jdk_8
   JDK_VERSION: 8
@@ -162,18 +162,18 @@ jobs:
       - <<: *scala_212
       - <<: *jdk_8
 
-  test_211_jdk8_jvm:
-    <<: *test
-    <<: *machine_ubuntu
-    environment:
-      - <<: *scala_211
-      - <<: *jdk_8
-
   test_212_jdk8_jvm:
     <<: *test
     <<: *machine_ubuntu
     environment:
       - <<: *scala_212
+      - <<: *jdk_8
+
+  test_213_jdk8_jvm:
+    <<: *test
+    <<: *machine_ubuntu
+    environment:
+      - <<: *scala_213
       - <<: *jdk_8
 
   test_dotty_jdk8_jvm:
@@ -183,18 +183,18 @@ jobs:
       - <<: *scala_dotty
       - <<: *jdk_8
 
-  test_211_jdk11_jvm:
-    <<: *test
-    <<: *machine_ubuntu
-    environment:
-      - <<: *scala_211
-      - <<: *jdk_11
-
   test_212_jdk11_jvm:
     <<: *test
     <<: *machine_ubuntu
     environment:
       - <<: *scala_212
+      - <<: *jdk_11
+
+  test_213_jdk11_jvm:
+    <<: *test
+    <<: *machine_ubuntu
+    environment:
+      - <<: *scala_213
       - <<: *jdk_11
 
   test_dotty_jdk11_jvm:
@@ -204,18 +204,11 @@ jobs:
       - <<: *scala_dotty
       - <<: *jdk_11
 
-  release_211:
+  release:
     <<: *release
     <<: *machine_ubuntu
     environment:
-      - <<: *scala_211
-      - <<: *jdk_8
-
-  release_212:
-    <<: *release
-    <<: *machine_ubuntu
-    environment:
-      - <<: *scala_212
+      - <<: *scala_213
       - <<: *jdk_8
 
   documentation:
@@ -244,19 +237,13 @@ workflows:
           filters:
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
-      - test_211_jdk8_jvm:
-          requires:
-            - lint
-          filters:
-            tags:
-              only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
       - test_212_jdk8_jvm:
           requires:
             - lint
           filters:
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
-      - test_211_jdk11_jvm:
+      - test_213_jdk8_jvm:
           requires:
             - lint
           filters:
@@ -268,20 +255,19 @@ workflows:
           filters:
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
-      - release_211:
-          context: Sonatype
+      - test_213_jdk11_jvm:
           requires:
-            - test_211_jdk8_jvm
-            - test_211_jdk11_jvm
+            - lint
           filters:
-            branches:
-              ignore: /.*/
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
-      - release_212:
+      - release:
           context: Sonatype
           requires:
-            - release_211
+            - test_212_jdk8_jvm
+            - test_212_jdk11_jvm
+            - test_213_jdk8_jvm
+            - test_213_jdk11_jvm
           filters:
             branches:
               ignore: /.*/
@@ -290,8 +276,7 @@ workflows:
       - documentation:
           context: Sonatype
           requires:
-            - release_211
-            - release_212
+            - release
           filters:
             branches:
               ignore: /.*/
@@ -300,8 +285,7 @@ workflows:
       - microsite:
           context: Website
           requires:
-            - release_211
-            - release_212
+            - release
           filters:
             branches:
               ignore: /.*/
