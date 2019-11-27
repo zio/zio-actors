@@ -3,7 +3,6 @@ package zio.actors
 import zio.{ IO, Promise, Queue, Ref, Task }
 
 object Actor {
-
   /**
    *
    * Description of actor behavior (can act as FSM)
@@ -13,7 +12,6 @@ object Actor {
    * @tparam F message DSL
    */
   trait Stateful[S, +E <: Throwable, -F[+_]] {
-
     /**
      *
      * Override method triggered on message received
@@ -63,12 +61,19 @@ object Actor {
             _ <- process(t, state)
           } yield ()).forever.fork
     } yield new Actor[E, F] {
-      override def ![A](a: F[A]): IO[E, A] =
+      override def ?[A](a: F[A]): IO[E, A] =
         for {
           promise <- Promise.make[E, A]
           _       <- queue.offer((a, promise))
           value   <- promise.await
         } yield value
+
+      override def !(a: F[_]): IO[E, Unit] =
+        for {
+          promise <- Promise.make[E, Any]
+          _       <- queue.offer((a, promise))
+        } yield ()
+
       override val stop: IO[Nothing, List[_]] =
         for {
           tall <- queue.takeAll
@@ -79,10 +84,19 @@ object Actor {
 }
 
 private[actors] sealed trait Actor[+E <: Throwable, -F[+_]] {
-  def ![A](fa: F[A]): Task[A]
+  def ?[A](fa: F[A]): Task[A]
 
-  final def unsafeOp(a: Any): Task[Any] =
-    this.!(a.asInstanceOf[F[_]])
+  def !(fa: F[_]): Task[Unit]
+
+  final def unsafeOp(command: Command): Task[Any] =
+    command match {
+      case Command.Ask(msg) =>
+        this.?(msg.asInstanceOf[F[_]])
+      case Command.Tell(msg) =>
+        this.!(msg.asInstanceOf[F[_]])
+      case Command.Stop =>
+        this.stop
+    }
 
   val stop: IO[Nothing, List[_]]
 }

@@ -3,7 +3,7 @@ package zio.actors
 import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream }
 import java.nio.ByteBuffer
 
-import zio.{ Chunk, IO, Promise, Ref, Task, UIO }
+import zio.{ Chunk, IO, Promise, Ref, Task, UIO, ZIO }
 import zio.actors.Actor.Stateful
 import zio.actors.ActorSystem.{ Addr, Port }
 import zio.actors.ActorSystemUtils._
@@ -16,7 +16,6 @@ import zio.nio.channels.{ AsynchronousServerSocketChannel, AsynchronousSocketCha
  *
  */
 object ActorSystem {
-
   type Addr = String
   type Port = Int
 
@@ -32,7 +31,6 @@ object ActorSystem {
    */
   def apply(name: String, remoteConfig: Option[(Addr, Port)]): Task[ActorSystem] =
     for {
-
       initActorRefMap <- Ref.make(Map.empty[String, Any])
       actorSystem     <- IO.effect(new ActorSystem(name, remoteConfig, initActorRefMap, parentActor = None))
 
@@ -40,9 +38,7 @@ object ActorSystem {
             case (addr, port) =>
               actorSystem.receiveLoop(addr, port)
           }
-
     } yield actorSystem
-
 }
 
 /**
@@ -52,16 +48,16 @@ object ActorSystem {
  */
 final class Context private[actors] (
   private val path: String,
-  private val actorSystem: ActorSystem
+  private val actorSystem: ActorSystem,
+  private val childrenRef: Ref[Set[ActorRef[Throwable, Any]]]
 ) {
-
   /**
    *
    * Accessor for self actor reference
    *
    * @return actor reference in a task
    */
-  def self[E <: Throwable, F[+_]]: Task[ActorRef[E, F]] = actorSystem.selectActor(path)
+  def self[E <: Throwable, F[+_]]: Task[ActorRef[E, F]] = actorSystem.select(path)
 
   /**
    *
@@ -76,13 +72,17 @@ final class Context private[actors] (
    * @tparam F1 - DSL type
    * @return reference to the created actor in effect that can't fail
    */
-  def createActor[S, E1 <: Throwable, F1[+_]](
+  def make[S, E1 <: Throwable, F1[+_]](
     actorName: String,
     sup: Supervisor[E1],
     init: S,
     stateful: Stateful[S, E1, F1]
-  ): UIO[ActorRef[E1, F1]] =
-    actorSystem.createActor(actorName, sup, init, stateful)
+  ): Task[ActorRef[E1, F1]] =
+    for {
+      actorRef <- actorSystem.make(actorName, sup, init, stateful)
+      children <- childrenRef.get
+      _        <- childrenRef.set(children + actorRef.asInstanceOf[ActorRef[Throwable, Any]])
+    } yield actorRef
 
   /**
    *
@@ -96,9 +96,22 @@ final class Context private[actors] (
    * @tparam F1 - actor's DSL type
    * @return task if actor reference. Selection process might fail with "Actor not found error"
    */
-  def selectActor[E1 <: Throwable, F1[+_]](path: String): Task[ActorRef[E1, F1]] =
-    actorSystem.selectActor(path)
+  def select[E1 <: Throwable, F1[+_]](path: String): Task[ActorRef[E1, F1]] =
+    actorSystem.select(path)
 
+  /**
+   *
+   * Stops this actors and all its children.
+   *
+   * @return list of actor's unprocessed messages
+   */
+  def stop: Task[List[_]] =
+    for {
+      children <- childrenRef.get
+      _        <- ZIO.traverse(children)(_.stop)
+      self     <- self[Throwable, Any]
+      dump     <- self.stop
+    } yield dump
 }
 
 /**
@@ -113,7 +126,6 @@ final class ActorSystem private[actors] (
   private val refActorMap: Ref[Map[String, Any]],
   private val parentActor: Option[String]
 ) {
-
   /**
    *
    * Creates actor and registers it to dependent actor system
@@ -127,22 +139,22 @@ final class ActorSystem private[actors] (
    * @tparam F - DSL type
    * @return reference to the created actor in effect that can't fail
    */
-  def createActor[S, E <: Throwable, F[+_]](
+  def make[S, E <: Throwable, F[+_]](
     actorName: String,
     sup: Supervisor[E],
     init: S,
     stateful: Stateful[S, E, F]
-  ): UIO[ActorRef[E, F]] =
+  ): Task[ActorRef[E, F]] =
     for {
-
       map           <- refActorMap.get
       finalName     = parentActor.getOrElse("") + "/" + actorName
+      _             <- if (map.contains(finalName)) IO.fail(new Exception(s"Actor $finalName already exists")) else IO.unit
       path          = buildPath(actorSystemName, finalName, remoteConfig)
       derivedSystem = new ActorSystem(actorSystemName, remoteConfig, refActorMap, Some(finalName))
-      actor         <- Actor.stateful[S, E, F](sup, new Context(path, derivedSystem))(init)(stateful)
+      childrenSet   <- Ref.make(Set.empty[ActorRef[Throwable, Any]])
+      actor         <- Actor.stateful[S, E, F](sup, new Context(path, derivedSystem, childrenSet))(init)(stateful)
       _             <- refActorMap.set(map + (finalName -> actor))
-
-    } yield ActorRefLocal[E, F](path, actor)
+    } yield new ActorRefLocal[E, F](path, actor)
 
   /**
    *
@@ -156,38 +168,44 @@ final class ActorSystem private[actors] (
    * @tparam F - actor's DSL type
    * @return task if actor reference. Selection process might fail with "Actor not found error"
    */
-  def selectActor[E <: Throwable, F[+_]](path: String): Task[ActorRef[E, F]] =
+  def select[E <: Throwable, F[+_]](path: String): Task[ActorRef[E, F]] =
     for {
-
       solvedPath                              <- resolvePath(path)
       (pathActSysName, addr, port, actorName) = solvedPath
 
       actorMap <- refActorMap.get
 
       actorRef <- if (pathActSysName == actorSystemName) {
-
                    for {
                      actorRef <- actorMap.get(actorName) match {
                                   case Some(value) =>
                                     for {
                                       actor <- IO.effectTotal(value.asInstanceOf[Actor[E, F]])
-                                    } yield ActorRefLocal(path, actor)
+                                    } yield new ActorRefLocal(path, actor)
                                   case None =>
                                     IO.fail(new Exception("No such actor in local ActorSystem."))
                                 }
                    } yield actorRef
-
                  } else {
-
                    for {
                      address <- InetAddress
                                  .byName(addr)
                                  .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port))
-                   } yield ActorRefRemote[E, F](path, address)
-
+                   } yield new ActorRefRemote[E, F](path, address)
                  }
-
     } yield actorRef
+
+  /**
+   *
+   * Stops all actors within this ActorSystem.
+   *
+   * @return all actors' unprocessed messages
+   */
+  def shutdown: Task[List[_]] =
+    for {
+      systemActors <- refActorMap.get
+      actorsDump   <- ZIO.traverse(systemActors)(_.asInstanceOf[ActorRef[Throwable, Any]].stop)
+    } yield actorsDump.flatten
 
   /* INTERNAL API */
 
@@ -202,7 +220,7 @@ final class ActorSystem private[actors] (
 
               _ <- p.succeed(())
 
-              loop = channel.accept.flatMap(_.use { worker =>
+              loop = channel.accept.use { worker =>
                 for {
                   obj      <- readFromWire(worker)
                   envelope = obj.asInstanceOf[Envelope]
@@ -217,7 +235,7 @@ final class ActorSystem private[actors] (
                                         throwable =>
                                           new Exception(s"System internal exception - ${throwable.getMessage}")
                                       )
-                            response <- actor.unsafeOp(envelope.msg).either
+                            response <- actor.unsafeOp(envelope.command).either
                             _        <- writeToWire(worker, response)
                           } yield ()
                         case None =>
@@ -226,24 +244,19 @@ final class ActorSystem private[actors] (
                             _             <- writeToWire(worker, responseError)
                           } yield ()
                       }
-
                 } yield ()
-              })
+              }
 
               _ <- loop.forever
-
             } yield ()
           }.fork
       _ <- p.await
-
     } yield ()
-
 }
 
 /* INTERNAL API */
 
 private[actors] object ActorSystemUtils {
-
   private val regex = "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w|\\/]+)$".r
 
   def resolvePath(path: String): Task[(String, Addr, Port, String)] =
@@ -263,7 +276,7 @@ private[actors] object ActorSystemUtils {
     }
 
   def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[(Addr, Port)]): String =
-    s"zio://$actorSystemName@${remoteConfig.map({ case (addr, port) => addr + ":" + port }).getOrElse("local")}$actorPath"
+    s"zio://$actorSystemName@${remoteConfig.map({ case (addr, port) => addr + ":" + port }).getOrElse("0.0.0.0:0000")}$actorPath"
 
   def readFromWire(socket: AsynchronousSocketChannel): Task[Any] =
     for {
@@ -286,5 +299,4 @@ private[actors] object ActorSystemUtils {
       _      <- socket.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(bytes.size).array()))
       _      <- socket.write(Chunk.fromArray(bytes))
     } yield ()
-
 }

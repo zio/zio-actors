@@ -1,14 +1,16 @@
 {
-  "sidebar": {
-    "Content": [
-      "getting_started",
-      "index",
-      "overview",
-      "persistence",
-      "queue",
-      "registry",
-      "stashing",
-      "supervision"
+  "overview-sidebar": {
+    "Overview": [
+      "overview/overview_index",
+      "overview/overview_basics",
+      "overview/overview_supervision",
+      "overview/overview_remoting"
+    ]
+  },
+  "usecases-sidebar": {
+    "Use Cases": [
+      "usecases/usecases_index",
+      "usecases/usecases_pingpong"
     ]
   }
 }

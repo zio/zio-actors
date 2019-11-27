@@ -5,8 +5,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import Gitter from 'react-sidecar';
-
 const React = require('react');
 
 class Footer extends React.Component {
@@ -49,10 +47,14 @@ class Footer extends React.Component {
                         </a>
                     </div>
                     <div>
+                        <h5>Chat with us on Discord</h5>
+                        <a href="https://discord.gg/2ccFBr4"><img src="/img/discord.png" width="120" alt="discord"/></a>
+                    </div>
+                    <div>
                         <h5>Additional resources</h5>
                         <a
-                            href="https://javadoc.io/doc/dev.zio/zio_2.12/">
-                            Scaladoc of ZIO
+                            href="https://javadoc.io/doc/dev.zio/zio-actors_2.12/">
+                            Scaladoc of zio-actors
                         </a>
                     </div>
                 </section>

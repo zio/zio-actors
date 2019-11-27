@@ -1,18 +1,18 @@
 package zio.actors
 
 import java.net.ConnectException
+
 import zio.actors.Actor.Stateful
 import zio.{ console, random, IO }
 import zio.test.DefaultRunnableSpec
 import zio.test._
 import zio.test.Assertion._
-import SpecUtils._
 import zio.clock.Clock
 import zio.duration._
 import zio.test.environment.TestConsole
+import SpecUtils._
 
 object SpecUtils {
-
   sealed trait Message[+A]
   case class Str(value: String) extends Message[String]
 
@@ -47,7 +47,7 @@ object SpecUtils {
           (for {
             path <- sender.path
             _    <- console.putStrLn(s"Ping from: $path, sending pong")
-            _    <- (sender ! Pong).fork
+            _    <- sender ! Pong
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
 
         case Pong =>
@@ -60,7 +60,7 @@ object SpecUtils {
           (for {
             _    <- console.putStrLn("The game starts...")
             self <- context.self[Throwable, PingPongProto]
-            _    <- (to ! Ping(self)).fork
+            _    <- to ! Ping(self)
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
       }
   }
@@ -78,7 +78,6 @@ object SpecUtils {
         case UnsafeMessage => IO.fail(new Exception("Error on remote side"))
       }
   }
-
 }
 
 object RemoteSpec
@@ -91,12 +90,12 @@ object RemoteSpec
               port1          = (portRand % 1000) + 8000
               port2          = port1 + 1
               actorSystemOne <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
-              _              <- actorSystemOne.createActor("actorOne", Supervisor.none, 0, handlerMessageTrait)
+              _              <- actorSystemOne.make("actorOne", Supervisor.none, 0, handlerMessageTrait)
               actorSystemTwo <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
-              actorRef <- actorSystemTwo.selectActor[MyErrorDomain, Message](
+              actorRef <- actorSystemTwo.select[MyErrorDomain, Message](
                            s"zio://testSystemOne@127.0.0.1:$port1/actorOne"
                          )
-              result <- actorRef ! Str("ZIO-Actor response... ")
+              result <- actorRef ? Str("ZIO-Actor response... ")
             } yield assert(result, equalTo("ZIO-Actor response... received plus 01"))
           },
           testM("ActorRef serialization case") {
@@ -105,12 +104,12 @@ object RemoteSpec
               port1           = (portRand % 1000) + 8000
               port2           = port1 + 1
               actorSystemRoot <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
-              one             <- actorSystemRoot.createActor("actorOne", Supervisor.none, (), protoHandler)
+              one             <- actorSystemRoot.make("actorOne", Supervisor.none, (), protoHandler)
 
               actorSystem <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
-              _           <- actorSystem.createActor("actorTwo", Supervisor.none, (), protoHandler)
+              _           <- actorSystem.make("actorTwo", Supervisor.none, (), protoHandler)
 
-              remoteActor <- actorSystemRoot.selectActor[Throwable, PingPongProto](
+              remoteActor <- actorSystemRoot.select[Throwable, PingPongProto](
                               s"zio://testSystemTwo@127.0.0.1:$port2/actorTwo"
                             )
 
@@ -119,7 +118,6 @@ object RemoteSpec
               _ <- Clock.Live.clock.sleep(2.seconds)
 
               outputVector <- TestConsole.output
-
             } yield {
               assert(outputVector.size, equalTo(3)) &&
               assert(outputVector(0), equalTo("The game starts...\n")) &&
@@ -137,7 +135,7 @@ object RemoteSpec
               portRand    <- random.nextInt
               port1       = (portRand % 1000) + 8000
               actorSystem <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port1)))
-              _           <- actorSystem.selectActor[Throwable, PingPongProto](s"zio://testSystemTwo@127.0.0.1:$port1/actorTwo")
+              _           <- actorSystem.select[Throwable, PingPongProto](s"zio://testSystemTwo@127.0.0.1:$port1/actorTwo")
             } yield ()
 
             assertM(
@@ -154,7 +152,7 @@ object RemoteSpec
               port1       = (portRand % 1000) + 8000
               port2       = port1 + 2
               actorSystem <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port1)))
-              actorRef <- actorSystem.selectActor[Throwable, PingPongProto](
+              actorRef <- actorSystem.select[Throwable, PingPongProto](
                            s"zio://testSystemOne@127.0.0.1:$port2/actorTwo"
                          )
               _ <- actorRef ! GameInit(actorRef)
@@ -173,10 +171,10 @@ object RemoteSpec
               port2          = port1 + 1
               actorSystemOne <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
               _              <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
-              actorRef <- actorSystemOne.selectActor[Throwable, PingPongProto](
+              actorRef <- actorSystemOne.select[Throwable, PingPongProto](
                            s"zio://testSystemTwo@127.0.0.1:$port2/actorTwo"
                          )
-              _ <- actorRef ! GameInit(actorRef)
+              _ <- actorRef ? GameInit(actorRef)
             } yield ()
 
             assertM(
@@ -191,12 +189,12 @@ object RemoteSpec
               port1          = (portRand % 1000) + 8000
               port2          = port1 + 1
               actorSystemOne <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
-              _              <- actorSystemOne.createActor("actorOne", Supervisor.none, (), errorHandler)
+              _              <- actorSystemOne.make("actorOne", Supervisor.none, (), errorHandler)
               actorSystemTwo <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
-              actorRef <- actorSystemTwo.selectActor[Throwable, ErrorProto](
+              actorRef <- actorSystemTwo.select[Throwable, ErrorProto](
                            s"zio://testSystemOne@127.0.0.1:$port1/actorOne"
                          )
-              _ <- actorRef ! UnsafeMessage
+              _ <- actorRef ? UnsafeMessage
             } yield ()
 
             assertM(

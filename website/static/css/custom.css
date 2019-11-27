@@ -18,3 +18,24 @@
 a {
     color: #bd271a
 }
+
+.blockContent h2 {
+    color: #bd271a
+}
+
+.mainContainer {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.nav-footer .sitemap .nav-home {
+    width: 150px;
+}
+
+.input-group {
+    display: flex;
+}
+
+.input-group-append {
+    margin-left: -1px;
+}

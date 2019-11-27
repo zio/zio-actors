@@ -63,8 +63,8 @@ class HomeSplash extends React.Component {
                 <div className="inner">
                     <ProjectTitle siteConfig={siteConfig}/>
                     <PromoSection>
-                        <Button href={docUrl('getting_started')}>Getting Started</Button>
-                        <Button href={docUrl('overview')}>Overview</Button>
+                        <Button href={docUrl('overview/overview_index')}>Overview</Button>
+                        <Button href={docUrl('usecases/usecases_index')}>Use Cases</Button>
                         <Button href="https://github.com/zio/zio-actors" target="_blank">GitHub</Button>
                     </PromoSection>
                 </div>
@@ -98,7 +98,7 @@ class Index extends React.Component {
                 <h2>Welcome to ZIO Actors</h2>
                 <MarkdownBlock>
                     A high-performance, purely-functional library for building, composing, and supervising typed actors
-                    based on `ZIO`.
+                    backed by `ZIO`.
                 </MarkdownBlock>
 
                 <MarkdownBlock>
@@ -113,14 +113,9 @@ class Index extends React.Component {
                     Functional Way that are typed leveraging [ZIO](https://github.com/zio/zio).
                 </MarkdownBlock>
 
-                <MarkdownBlock>
-                    To learn more about how ZIO Actors can help you accomplish the impossible, see [Getting
-                    Started](getting_started.md) and [Overview](overview.md).
-                </MarkdownBlock>
-
-                <MarkdownBlock>
-                    # ZIO Actors current alternatives
-                </MarkdownBlock>
+                <h2>
+                    ZIO Actors current alternatives
+                </h2>
 
                 <MarkdownBlock>
                     - [Akka](https://akka.io) (Scala & Java)
@@ -144,21 +139,9 @@ class Index extends React.Component {
 
                 <MarkdownBlock>
                     We differentiate ourselves from the above competition by having the following benefits:
-                    - Purely Functional
-                    - Everything Typed
-                    - Light Weight
-                </MarkdownBlock>
-
-                <MarkdownBlock>
-                    # Background and Example
-                </MarkdownBlock>
-
-                <MarkdownBlock>
-                    - [Scalaz 8 vs Akka Actors](https://www.youtube.com/watch?v=Eihz7kqn6mU)
-                </MarkdownBlock>
-
-                <MarkdownBlock>
-                    - [Scalaz 8 vs Akka Actors slides](https://www.slideshare.net/jdegoes/scalaz-8-vs-akka-actors)
+                    * Purely Functional
+                    * Everything Typed
+                    * Light Weight
                 </MarkdownBlock>
             </div>
         );
@@ -167,13 +150,13 @@ class Index extends React.Component {
             <Block layout="fourColumn">
                 {[
                     {
-                        content: 'Finally actors\' tell operation is not a side effect',
+                        content: 'Model actors\' communication without side effects',
                         image: `${baseUrl}img/undraw_tweetstorm.svg`,
                         imageAlign: 'top',
                         title: 'Effectful',
                     },
                     {
-                        content: 'Fully typed - no more message type puzzle',
+                        content: 'Fully typed - with message, response and error type',
                         image: `${baseUrl}img/undraw_operating_system.svg`,
                         imageAlign: 'top',
                         title: 'Typed',
