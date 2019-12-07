@@ -1,7 +1,16 @@
 ---
-id: overview
-title: "Overview"
+id: overview_basics
+title: "Basics"
 ---
+
+Actors are higher level concurrency models which receive messages, process them and update their internal state.
+Within processing actor can spawn finite number of children actors and send finite number of messages to other actors.  
+
+This can be visualized as a simple diagram:
+
+![diagram](../assets/actor.svg)
+
+## Usage
 
 The basic actors usage requires defining a `Stateful` for describing actor's behavior.
 Then actor's creation is done with passing supervision manner, initial state and mentioned `Stateful`.
@@ -37,7 +46,13 @@ Then we are ready to instantiate the actor and fire off messages:
 ```scala mdoc:silent
 for {
   system <- ActorSystem("mySystem", remoteConfig = None)
-  actor <- system.createActor("actor1", Supervisor.none, (), stateful)
+  actor <- system.make("actor1", Supervisor.none, (), stateful)
   doubled <- actor ! DoubleCommand(42)
 } yield doubled
 ```
+
+This is `fire-and-forget` interaction pattern where caller is blocked until recipients confirms enqueueing message in mailbox queue.
+There's also `ask` interaction pattern where for caller sending a message is completed after receiving response message from recipient.
+It's performed via `?` method.
+
+From recipient's point of view these two interaction patterns are indistinguishable. 
