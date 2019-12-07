@@ -1,14 +1,11 @@
 ---
-id: supervision
+id: overview_supervision
 title: "Supervision"
 ---
 
-A Supervisors responsibility is to manage actors.
+A `Supervisors` responsibility is to manage actors failure policies.
 
-- Makes sure all messages in the queue are processed
-- Has retry logic to manage failures
-- Takes the next available message and start actor to process it
-- Puts failed actors back on the queue for reprocessing whilst respecting retry preferences
+`ZIO` provides us a comprehensive and composable set of  `Schedules` that can be used to define complex supervising policy.
 
 There are three supervision scenarios available. Let's look at short examples.
 First do the imports:

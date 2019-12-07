@@ -22,7 +22,7 @@ const users = [
 
 const siteConfig = {
   title: 'ZIO Actors',
-  tagline: 'High-performance, purely-functional library for building and supervising typed actors based on ZIO',
+  tagline: 'High-performance, purely-functional library for building and supervising typed actors backed by ZIO',
   url: 'https://github.com/zio/zio-actors',
   baseUrl: '/', // Base URL for your project */
   // For github.io type URLs, you would set the url and baseUrl like:
@@ -38,8 +38,8 @@ const siteConfig = {
 
   // For no header links in the top nav bar -> headerLinks: [],
   headerLinks: [
-    {doc: 'getting_started', label: 'Getting Started'},
-    {doc: 'overview', label: 'Overview'},
+    {doc: 'overview/overview_index', label: 'Overview'},
+    {doc: 'usecases/usecases_index', label: 'Use Cases'}
   ],
 
   // If you have users set above, you add it here:
