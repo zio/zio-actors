@@ -50,6 +50,8 @@ lazy val root =
     .settings(
       stdSettings("zio-actors")
     )
+    .settings(buildInfoSettings("zio.actors"))
+    .enablePlugins(BuildInfoPlugin)
 
 lazy val docs = project
   .in(file("zio-actors-docs"))

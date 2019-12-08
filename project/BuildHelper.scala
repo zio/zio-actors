@@ -1,5 +1,7 @@
 import sbt._
 import sbt.Keys._
+import sbtbuildinfo._
+import BuildInfoKeys._
 
 object BuildHelper {
   private val Scala212        = "2.12.10"
@@ -59,6 +61,13 @@ object BuildHelper {
       case _ =>
         Seq("-Xexperimental") ++ stdOptsUpto212
     }
+
+  def buildInfoSettings(packageName: String) =
+    Seq(
+      buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion, isSnapshot),
+      buildInfoPackage := packageName,
+      buildInfoObject := "BuildInfo"
+    )
 
   def stdSettings(prjName: String) = Seq(
     name := s"$prjName",

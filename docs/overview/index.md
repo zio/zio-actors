@@ -14,6 +14,11 @@ Here's list of contents available:
 
 Include ZIO Actors in your project by adding the following to your `build.sbt`:
 
-```scala
-libraryDependencies += "dev.zio" %% "zio-actors" % "0.1.0"
+```scala mdoc:passthrough
+println(s"""```""")
+if (zio.actors.BuildInfo.isSnapshot)
+  println(s"""resolvers += Resolver.sonatypeRepo("snapshots")""")
+println(s"""libraryDependencies += "dev.zio" %% "zio-actors" % "${zio.actors.BuildInfo.version}""")
+println(s"""```""")
 ```
+
