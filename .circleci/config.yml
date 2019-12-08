@@ -169,8 +169,8 @@ microsite: &microsite
             nvm install
             nvm use
             node -v
-            ./sbt docs/docusaurusCreateSite
-            ./sbt docs/docusaurusPublishGhpages
+            ./sbt ++${SCALA_VERSION}! docs/docusaurusCreateSite
+            ./sbt ++${SCALA_VERSION}! docs/docusaurusPublishGhpages
       - <<: *clean_cache
       - <<: *save_cache
 
@@ -249,6 +249,7 @@ jobs:
     <<: *microsite
     <<: *machine_ubuntu
     environment:
+      - <<: *scala_212
       - <<: *jdk_8
 
 workflows:
