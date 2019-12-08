@@ -68,16 +68,16 @@ Within processing actor can spawn finite number of children actors and send fini
 <p>The basic actors usage requires defining a <code>Stateful</code> for describing actor's behavior.
 Then actor's creation is done with passing supervision manner, initial state and mentioned <code>Stateful</code>.</p>
 <p>Imports required for example:</p>
-<pre><code class="hljs css language-scala mdoc:silent"><span class="hljs-keyword">import</span> zio.actors.<span class="hljs-type">Actor</span>.<span class="hljs-type">Stateful</span>
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">import</span> zio.actors.<span class="hljs-type">Actor</span>.<span class="hljs-type">Stateful</span>
 <span class="hljs-keyword">import</span> zio.actors._
 <span class="hljs-keyword">import</span> zio.<span class="hljs-type">IO</span>
 </code></pre>
 <p>Our domain that will be used:</p>
-<pre><code class="hljs css language-scala mdoc:silent"><span class="hljs-keyword">sealed</span> <span class="hljs-class"><span class="hljs-keyword">trait</span> <span class="hljs-title">Command</span>[+_]</span>
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">sealed</span> <span class="hljs-class"><span class="hljs-keyword">trait</span> <span class="hljs-title">Command</span>[+_]</span>
 <span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">DoubleCommand</span>(<span class="hljs-params">value: <span class="hljs-type">Int</span></span>) <span class="hljs-keyword">extends</span> <span class="hljs-title">Command</span>[<span class="hljs-type">Int</span>]</span>
 </code></pre>
 <p>Our actor's assigment will be to double received values. Here's the <code>Stateful</code> implementation:</p>
-<pre><code class="hljs css language-scala mdoc:silent"><span class="hljs-keyword">val</span> stateful = <span class="hljs-keyword">new</span> <span class="hljs-type">Stateful</span>[<span class="hljs-type">Unit</span>, <span class="hljs-type">Throwable</span>, <span class="hljs-type">Command</span>] {
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">val</span> stateful = <span class="hljs-keyword">new</span> <span class="hljs-type">Stateful</span>[<span class="hljs-type">Unit</span>, <span class="hljs-type">Throwable</span>, <span class="hljs-type">Command</span>] {
   <span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">receive</span></span>[<span class="hljs-type">A</span>](state: <span class="hljs-type">Unit</span>, msg: <span class="hljs-type">Command</span>[<span class="hljs-type">A</span>], context: <span class="hljs-type">Context</span>): <span class="hljs-type">IO</span>[<span class="hljs-type">Throwable</span>, (<span class="hljs-type">Unit</span>, <span class="hljs-type">A</span>)] =
     msg <span class="hljs-keyword">match</span> {
       <span class="hljs-keyword">case</span> <span class="hljs-type">DoubleCommand</span>(value) =&gt; <span class="hljs-type">IO</span>.effectTotal(((), value * <span class="hljs-number">2</span>))
@@ -85,7 +85,7 @@ Then actor's creation is done with passing supervision manner, initial state and
 }
 </code></pre>
 <p>Then we are ready to instantiate the actor and fire off messages:</p>
-<pre><code class="hljs css language-scala mdoc:silent"><span class="hljs-keyword">for</span> {
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">for</span> {
   system &lt;- <span class="hljs-type">ActorSystem</span>(<span class="hljs-string">"mySystem"</span>, remoteConfig = <span class="hljs-type">None</span>)
   actor &lt;- system.make(<span class="hljs-string">"actor1"</span>, <span class="hljs-type">Supervisor</span>.none, (), stateful)
   doubled &lt;- actor ! <span class="hljs-type">DoubleCommand</span>(<span class="hljs-number">42</span>)
@@ -95,4 +95,4 @@ Then actor's creation is done with passing supervision manner, initial state and
 There's also <code>ask</code> interaction pattern where for caller sending a message is completed after receiving response message from recipient.
 It's performed via <code>?</code> method.</p>
 <p>From recipient's point of view these two interaction patterns are indistinguishable.</p>
-</span></div></article></div><div class="docLastUpdate"><em>Last updated on 11/14/2019</em></div><div class="docs-prevnext"><a class="docs-prev button" href="/zio-actors/docs/overview/overview_index"><span class="arrow-prev">← </span><span>Contents</span></a><a class="docs-next button" href="/zio-actors/docs/overview/overview_supervision"><span>Supervision</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#usage">Usage</a></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/zio-actors/" class="nav-home"><img src="/zio-actors/img/sidebar_brand2x.png" alt="ZIO Actors"/></a><div><h5>GitHub</h5><a class="github-button" href="https://github.com/zio/zio-actors" data-icon="octicon-star" data-count-href="/zio/zio-actors/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div><div><h5>Chat with us on Discord</h5><a href="https://discord.gg/2ccFBr4"><img src="/img/discord.png" width="120" alt="discord"/></a></div><div><h5>Additional resources</h5><a href="https://javadoc.io/doc/dev.zio/zio-actors_2.12/">Scaladoc of zio-actors</a></div></section><section class="copyright">Copyright © 2019 ZIO Maintainers</section></footer></div></body></html>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/zio-actors/docs/overview/overview_index"><span class="arrow-prev">← </span><span>Contents</span></a><a class="docs-next button" href="/zio-actors/docs/overview/overview_supervision"><span>Supervision</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#usage">Usage</a></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/zio-actors/" class="nav-home"><img src="/zio-actors/img/sidebar_brand2x.png" alt="ZIO Actors"/></a><div><h5>GitHub</h5><a class="github-button" href="https://github.com/zio/zio-actors" data-icon="octicon-star" data-count-href="/zio/zio-actors/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div><div><h5>Chat with us on Discord</h5><a href="https://discord.gg/2ccFBr4"><img src="/img/discord.png" width="120" alt="discord"/></a></div><div><h5>Additional resources</h5><a href="https://javadoc.io/doc/dev.zio/zio-actors_2.12/">Scaladoc of zio-actors</a></div></section><section class="copyright">Copyright © 2019 ZIO Maintainers</section></footer></div></body></html>
