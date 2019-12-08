@@ -3,6 +3,7 @@ package zio.actors
 import zio.{ IO, Promise, Queue, Ref, Task }
 
 object Actor {
+
   /**
    *
    * Description of actor behavior (can act as FSM)
@@ -12,6 +13,7 @@ object Actor {
    * @tparam F message DSL
    */
   trait Stateful[S, +E <: Throwable, -F[+_]] {
+
     /**
      *
      * Override method triggered on message received

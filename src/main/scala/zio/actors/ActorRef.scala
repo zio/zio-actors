@@ -14,6 +14,7 @@ import zio.{ DefaultRuntime, IO, Task, UIO }
  * @tparam F wrapper type constructing DSL
  */
 sealed trait ActorRef[+E <: Throwable, -F[+_]] extends Serializable {
+
   /**
    *
    * Send a message to an actor as `ask` interaction pattern -

@@ -51,6 +51,7 @@ final class Context private[actors] (
   private val actorSystem: ActorSystem,
   private val childrenRef: Ref[Set[ActorRef[Throwable, Any]]]
 ) {
+
   /**
    *
    * Accessor for self actor reference
@@ -126,6 +127,7 @@ final class ActorSystem private[actors] (
   private val refActorMap: Ref[Map[String, Any]],
   private val parentActor: Option[String]
 ) {
+
   /**
    *
    * Creates actor and registers it to dependent actor system
@@ -231,9 +233,8 @@ final class ActorSystem private[actors] (
                           for {
                             actor <- IO
                                       .effect(value.asInstanceOf[Actor[Throwable, Any]])
-                                      .mapError(
-                                        throwable =>
-                                          new Exception(s"System internal exception - ${throwable.getMessage}")
+                                      .mapError(throwable =>
+                                        new Exception(s"System internal exception - ${throwable.getMessage}")
                                       )
                             response <- actor.unsafeOp(envelope.command).either
                             _        <- writeToWire(worker, response)
