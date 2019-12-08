@@ -18,19 +18,20 @@ inThisBuild(
         "code@softinio.com",
         url("https://www.softinio.com")
       )
+    ),
+    pgpPassphrase := sys.env.get("PGP_PASSWORD").map(_.toArray),
+    pgpPublicRing := file("/tmp/public.asc")
+    pgpSecretRing := file("/tmp/secret.asc")
+    scmInfo := Some(
+      ScmInfo(url("https://github.com/zio/zio-actors/"), "scm:git:git@github.com:zio/zio-actors.git")
     )
   )
 )
 
+ThisBuild / publishTo := sonatypePublishToBundle.value
+
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
-
-pgpPublicRing := file("/tmp/public.asc")
-pgpSecretRing := file("/tmp/secret.asc")
-releaseEarlyWith := SonatypePublisher
-scmInfo := Some(
-  ScmInfo(url("https://github.com/zio/zio-actors/"), "scm:git:git@github.com:zio/zio-actors.git")
-)
 
 val zioVersion    = "1.0.0-RC17"
 val zioNioVersion = "0.4.0"
