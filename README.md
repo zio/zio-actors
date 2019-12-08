@@ -9,11 +9,11 @@ High-performance, purely-functional library for building, composing, and supervi
 [ZIO Actors Microsite](https://zio.github.io/zio-actors/)
 
 # Contributing
-[Documentation for contributors](CONTRIBUTING.md)
+[Documentation for contributors](https://zio.github.io/zio-actors/docs/about/about_contributing)
 
 ## Code of Conduct
 
-See the [Code of Conduct](./CODE_OF_CONDUCT.md)
+See the [Code of Conduct](https://zio.github.io/zio-actors/docs/about/about_coc)
 
 ## Support
 
