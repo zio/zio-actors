@@ -24,21 +24,47 @@ install_jdk: &install_jdk
       name: Install JDK
       command: |
         while $(ps aux | grep -i ' apt ' | grep -v grep > /dev/null); do sleep 1; done # Wait for apt to be ready
-        sudo add-apt-repository ppa:openjdk-r/ppa -y
+
+        sudo rm /etc/apt/sources.list.d/*
+        sudo tee /etc/apt/sources.list > /dev/null \<< 'EOF'
+        deb http://mirror.math.princeton.edu/pub/ubuntu/ xenial main universe
+        deb http://mirror.math.princeton.edu/pub/ubuntu/ xenial-updates main universe
+        deb http://mirror.math.princeton.edu/pub/ubuntu/ xenial-backports main universe
+        deb http://mirror.math.princeton.edu/pub/ubuntu/ xenial-security main restricted universe
+        EOF
+
+        if [ $JDK_VERSION == 11 ]; then
+          wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | sudo apt-key add -
+          sudo add-apt-repository https://adoptopenjdk.jfrog.io/adoptopenjdk/deb/ -y
+        fi
         sudo apt update
-        sudo apt install openjdk-${JDK_VERSION}-jdk -y
+        if [ $JDK_VERSION == 11 ]; then
+          sudo apt install -y adoptopenjdk-11-hotspot
+        elif [ $JDK_VERSION == 8 ]; then
+          sudo apt install -y openjdk-8-jdk
+        fi
+        java -version
 
 load_cache: &load_cache
   - restore_cache:
-      key: sbt-actors-cache
+      key: sbt-actors-cache-v2
+
+clean_cache: &clean_cache
+  - run:
+      name: Clean unwanted files from cache
+      command: |
+        rm -fv $HOME/.ivy2/.sbt.ivy.lock
+        find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
+        find $HOME/.sbt        -name "*.lock"               -print -delete
 
 save_cache: &save_cache
   - save_cache:
-      key: sbt-actors-cache
+      key: sbt-actors-cache-v2
       paths:
           - "~/.ivy2/cache"
           - "~/.sbt"
           - "~/.m2"
+          - "~/.cache"
           - "~/website/node_modules"
 
 install_yarn: &install_yarn
@@ -55,7 +81,6 @@ install_nodejs: &install_nodejs
   - run:
       name: Install node.js
       command: |
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
         export NVM_DIR="/opt/circleci/.nvm"
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
         nvm install
@@ -88,7 +113,7 @@ mdoc: &mdoc
         name: Generate documentation
         command: |
           ./sbt doc
-          ./sbt ++${SCALA_VERSION}! docs/mdoc
+          ./sbt ++${SCALA_VERSION}! mdoc
     - <<: *save_cache
 
 test: &test
@@ -108,6 +133,9 @@ release: &release
           name: Fetch git tags
           command: git fetch --tags
       - <<: *load_cache
+      - run: 
+          name: Write sonatype credentials
+          command: echo "credentials += Credentials(\"Sonatype Nexus Repository Manager\", \"oss.sonatype.org\", \"${SONATYPE_USER}\", \"${SONATYPE_PASSWORD}\")" > ~/.sbt/1.0/sonatype.sbt
       - run:
           name: Write PGP public key
           command: echo -n "${PGP_PUBLIC}" | base64 -d > /tmp/public.asc
@@ -116,18 +144,7 @@ release: &release
           command: echo -n "${PGP_SECRET}" | base64 -d > /tmp/secret.asc
       - run:
           name: Release artifacts
-          command: ./sbt ++${SCALA_VERSION}! releaseEarly
-
-documentation: &documentation
-  steps:
-      - checkout
-      - <<: *load_cache
-      - <<: *install_nodejs
-      - <<: *install_yarn
-      - run:
-          name: Generating docs
-          command: sbt ++2.12.8! doc
-      - <<: *save_cache
+          command: ./sbt ++${SCALA_VERSION}! clean sonatypeBundleClean +publishSigned sonatypeBundleRelease
 
 microsite: &microsite
   steps:
@@ -136,8 +153,25 @@ microsite: &microsite
             - "11:2c:fa:98:69:d8:a1:d5:76:2e:38:d0:91:39:85:ce"
       - checkout
       - <<: *load_cache
-      - run: sbt ++2.12.8! microsite/makeMicrosite
-      - run: sbt ++2.12.8! microsite/publishMicrosite
+      - <<: *install_nodejs
+      - <<: *install_yarn
+      - run:
+          name: Publishing website
+          command: |
+            git config --global user.email "${GH_NAME}@users.noreply.github.com"
+            git config --global user.name "${GH_NAME}"
+            export GIT_USER=${GH_NAME}
+            export TRAVIS_BUILD_NUMBER="${CIRCLE_BUILD_NUM}"
+            export TRAVIS_COMMIT="${CIRCLE_SHA1}"
+            sudo chown -R $USER:$USER /tmp
+            export NVM_DIR="/opt/circleci/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm install
+            nvm use
+            node -v
+            ./sbt docs/docusaurusCreateSite
+            ./sbt docs/docusaurusPublishGhpages
+      - <<: *clean_cache
       - <<: *save_cache
 
 jobs:
@@ -211,12 +245,6 @@ jobs:
       - <<: *scala_213
       - <<: *jdk_8
 
-  documentation:
-    <<: *documentation
-    <<: *machine_ubuntu
-    environment:
-      - <<: *jdk_8
-
   microsite:
     <<: *microsite
     <<: *machine_ubuntu
@@ -264,19 +292,7 @@ workflows:
       - release:
           context: Sonatype
           requires:
-            - test_212_jdk8_jvm
-            - test_212_jdk11_jvm
-            - test_213_jdk8_jvm
-            - test_213_jdk11_jvm
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
-      - documentation:
-          context: Sonatype
-          requires:
-            - release
+            - microsite
           filters:
             branches:
               ignore: /.*/
@@ -285,9 +301,14 @@ workflows:
       - microsite:
           context: Website
           requires:
-            - release
+            - test_212_jdk8_jvm
+            - test_212_jdk11_jvm
+            - test_213_jdk8_jvm
+            - test_213_jdk11_jvm
+            - mdoc
           filters:
             branches:
-              ignore: /.*/
+              only: 
+                - master
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
