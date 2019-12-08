@@ -113,7 +113,7 @@ mdoc: &mdoc
         name: Generate documentation
         command: |
           ./sbt doc
-          ./sbt ++${SCALA_VERSION}! docs/mdoc
+          ./sbt ++${SCALA_VERSION}! mdoc
     - <<: *save_cache
 
 test: &test
