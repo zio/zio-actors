@@ -11,6 +11,12 @@ inThisBuild(
         "John De Goes",
         "john@degoes.net",
         url("http://degoes.net")
+      ),
+      Developer(
+        "softinio",
+        "Salar Rahmanian",
+        "code@softinio.com",
+        url("https://www.softinio.com")
       )
     )
   )
