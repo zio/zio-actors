@@ -33,8 +33,12 @@ const siteConfig = {
   headerLinks: [
     {doc: 'overview/overview_index', label: 'Overview'},
     {doc: 'usecases/usecases_index', label: 'Use Cases'},
-    { doc: 'about/about_index', label: 'About' }
+    {href: 'api/index.html', label: 'API'},
+    {doc: 'about/about_index', label: 'About'}
   ],
+
+  // by default Docusaurus combines CSS files in a way that doesn't play nicely with Scaladoc
+  separateCss: ["api"],
 
   // If you have users set above, you add it here:
   users,
