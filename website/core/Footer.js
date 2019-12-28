@@ -48,7 +48,7 @@ class Footer extends React.Component {
                     </div>
                     <div>
                         <h5>Chat with us on Discord</h5>
-                        <a href="https://discord.gg/2ccFBr4"><img src="/img/discord.png" width="120" alt="discord"/></a>
+                        <a href="https://discord.gg/2ccFBr4"><img src={this.props.config.baseUrl + "/img/discord.png"} width="120" alt="discord"/></a>
                     </div>
                     <div>
                         <h5>Additional resources</h5>
