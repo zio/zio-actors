@@ -105,6 +105,12 @@ const siteConfig = {
 
   customDocsPath: 'zio-actors-docs/target/mdoc',
 
+  algolia: {
+    apiKey: 'b7978c4d7d28a5a9181d2eea975b0e99',
+    indexName: 'zio-actors',
+    algoliaOptions: {} // Optional, if provided by Algolia
+  },
+
   // You may provide arbitrary config keys to be used as needed by your
   // template. For example, if you need your repo's URL...
   //   repoUrl: 'https://github.com/facebook/test-site',
