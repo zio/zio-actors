@@ -7,12 +7,12 @@ import zio.{ Chunk, IO, Promise, Ref, Task, UIO, ZIO }
 import zio.actors.Actor.Stateful
 import zio.actors.ActorSystem.{ Addr, Port }
 import zio.actors.ActorSystemUtils._
-import zio.nio.{ Buffer, InetAddress, SocketAddress }
-import zio.nio.channels.{ AsynchronousServerSocketChannel, AsynchronousSocketChannel }
+import zio.nio.core.{ Buffer, InetAddress, SocketAddress }
+import zio.nio.core.channels.{ AsynchronousServerSocketChannel, AsynchronousSocketChannel }
 
 /**
  *
- *  Object providing constructor for Actor System with optional remoting module.
+ * Object providing constructor for Actor System with optional remoting module.
  *
  */
 object ActorSystem {
@@ -23,7 +23,7 @@ object ActorSystem {
    *
    * Constructor for Actor System
    *
-   * @param name - Identifier for Actor System
+   * @param name         - Identifier for Actor System
    * @param remoteConfig - Optional configuration for a remoting internal module.
    *                     If not provided the actor system will only handle local actors in terms of actor selection.
    *                     When provided - remote messaging and remote actor selection is possible
@@ -65,10 +65,10 @@ final class Context private[actors] (
    * Creates actor and registers it to dependent actor system
    *
    * @param actorName name of the actor
-   * @param sup - supervision strategy
-   * @param init - initial state
-   * @param stateful - actor's behavior description
-   * @tparam S - state type
+   * @param sup       - supervision strategy
+   * @param init      - initial state
+   * @param stateful  - actor's behavior description
+   * @tparam S  - state type
    * @tparam E1 - custom error type
    * @tparam F1 - DSL type
    * @return reference to the created actor in effect that can't fail
@@ -117,8 +117,8 @@ final class Context private[actors] (
 
 /**
  *
- *  Type representing running instance of actor system provisioning actor herding,
- *  remoting and actor creation and selection.
+ * Type representing running instance of actor system provisioning actor herding,
+ * remoting and actor creation and selection.
  *
  */
 final class ActorSystem private[actors] (
@@ -133,9 +133,9 @@ final class ActorSystem private[actors] (
    * Creates actor and registers it to dependent actor system
    *
    * @param actorName name of the actor
-   * @param sup - supervision strategy
-   * @param init - initial state
-   * @param stateful - actor's behavior description
+   * @param sup       - supervision strategy
+   * @param init      - initial state
+   * @param stateful  - actor's behavior description
    * @tparam S - state type
    * @tparam E - custom error type
    * @tparam F - DSL type
@@ -216,41 +216,39 @@ final class ActorSystem private[actors] (
       addr    <- InetAddress.byName(address)
       address <- SocketAddress.inetSocketAddress(addr, port)
       p       <- Promise.make[Nothing, Unit]
-      _ <- AsynchronousServerSocketChannel().use { channel =>
-            for {
-              _ <- channel.bind(address)
+      channel <- AsynchronousServerSocketChannel()
+      loopEffect = for {
+        _ <- channel.bind(address)
 
-              _ <- p.succeed(())
+        _ <- p.succeed(())
 
-              loop = channel.accept.use { worker =>
-                for {
-                  obj      <- readFromWire(worker)
-                  envelope = obj.asInstanceOf[Envelope]
-                  actorMap <- refActorMap.get
+        loop = for {
+          worker   <- channel.accept
+          obj      <- readFromWire(worker)
+          envelope = obj.asInstanceOf[Envelope]
+          actorMap <- refActorMap.get
 
-                  _ <- actorMap.get("/" + envelope.recipient.split("/").last) match {
-                        case Some(value) =>
-                          for {
-                            actor <- IO
-                                      .effect(value.asInstanceOf[Actor[Throwable, Any]])
-                                      .mapError(throwable =>
-                                        new Exception(s"System internal exception - ${throwable.getMessage}")
-                                      )
-                            response <- actor.unsafeOp(envelope.command).either
-                            _        <- writeToWire(worker, response)
-                          } yield ()
-                        case None =>
-                          for {
-                            responseError <- IO.fail(new Exception("No such remote actor")).either
-                            _             <- writeToWire(worker, responseError)
-                          } yield ()
-                      }
-                } yield ()
+          _ <- actorMap.get("/" + envelope.recipient.split("/").last) match {
+                case Some(value) =>
+                  for {
+                    actor <- IO
+                              .effect(value.asInstanceOf[Actor[Throwable, Any]])
+                              .mapError(throwable =>
+                                new Exception(s"System internal exception - ${throwable.getMessage}")
+                              )
+                    response <- actor.unsafeOp(envelope.command).either
+                    _        <- writeToWire(worker, response)
+                  } yield ()
+                case None =>
+                  for {
+                    responseError <- IO.fail(new Exception("No such remote actor")).either
+                    _             <- writeToWire(worker, responseError)
+                  } yield ()
               }
-
-              _ <- loop.forever
-            } yield ()
-          }.fork
+        } yield ()
+        _ <- loop.forever
+      } yield ()
+      _ <- loopEffect.onTermination(_ => channel.close.catchAll(_ => ZIO.unit)).fork
       _ <- p.await
     } yield ()
 }

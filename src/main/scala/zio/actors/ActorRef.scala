@@ -2,8 +2,8 @@ package zio.actors
 
 import java.io.{ IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException }
 
-import zio.nio.{ InetAddress, InetSocketAddress, SocketAddress }
-import zio.nio.channels.AsynchronousSocketChannel
+import zio.nio.core.{ InetAddress, InetSocketAddress, SocketAddress }
+import zio.nio.core.channels.AsynchronousSocketChannel
 import zio.{ DefaultRuntime, IO, Task, UIO }
 
 /**
@@ -123,14 +123,13 @@ private[actors] final class ActorRefRemote[E <: Throwable, -F[+_]](
 
   private def sendEnvelope[A](command: Command): Task[A] =
     for {
-      response <- AsynchronousSocketChannel().use { client =>
-                   for {
-                     _         <- client.connect(address)
-                     actorPath <- path
-                     _         <- writeToWire(client, new Envelope(command, actorPath))
-                     response  <- readFromWire(client)
-                   } yield response.asInstanceOf[Either[E, A]]
-                 }
+      client <- AsynchronousSocketChannel()
+      response <- for {
+                   _         <- client.connect(address)
+                   actorPath <- path
+                   _         <- writeToWire(client, new Envelope(command, actorPath))
+                   response  <- readFromWire(client)
+                 } yield response.asInstanceOf[Either[E, A]]
       result <- IO.fromEither(response)
     } yield result
 
