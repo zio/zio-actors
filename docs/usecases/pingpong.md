@@ -3,7 +3,22 @@ id: usecases_pingpong
 title: "Ping Pong"
 ---
 
-Here are type hierarchy and `Stateful` instance which can be used to create two actors performing basic ping-pong communication:
+Here are type hierarchy and `Stateful` instance which can be used to create two actors performing basic ping-pong communication.
+
+#### Configuration File at `./src/main/resources/application.conf`
+
+```hocon
+testSystemOne.zio.actors.remoting {
+  hostname = "127.0.0.1"
+  port = 8055
+}
+testSystemTwo.zio.actors.remoting {
+  hostname = "127.0.0.1"
+  port = 8056
+}
+```
+
+#### Program
 
 ```scala mdoc:silent
 import zio.actors.Actor.Stateful
@@ -45,17 +60,14 @@ val protoHandler = new Stateful[Unit, Throwable, PingPong] {
   }
 
 val program = for {
-  portRand        <- random.nextInt
-  port1           = (portRand % 1000) + 8000
-  port2           = port1 + 1
-  actorSystemRoot <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
+  actorSystemRoot <- ActorSystem("testSystemOne")
   one             <- actorSystemRoot.make("actorOne", Supervisor.none, (), protoHandler)
 
-  actorSystem <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
+  actorSystem <- ActorSystem("testSystemTwo")
   _           <- actorSystem.make("actorTwo", Supervisor.none, (), protoHandler)
 
   remoteActor <- actorSystemRoot.select[Throwable, PingPong](
-    s"zio://testSystemTwo@127.0.0.1:$port2/actorTwo"
+    "zio://testSystemTwo@127.0.0.1:8056/actorTwo"
   )
 
   _ <- one ! GameInit(remoteActor)

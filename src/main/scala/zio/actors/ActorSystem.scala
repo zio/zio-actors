@@ -1,12 +1,12 @@
 package zio.actors
 
-import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream }
+import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream }
 import java.nio.ByteBuffer
 
 import zio.{ Chunk, IO, Promise, Ref, Task, UIO, ZIO }
 import zio.actors.Actor.Stateful
-import zio.actors.ActorSystem.{ Addr, Port }
 import zio.actors.ActorSystemUtils._
+import zio.actors.Utils._
 import zio.nio.core.{ Buffer, InetAddress, SocketAddress }
 import zio.nio.core.channels.{ AsynchronousServerSocketChannel, AsynchronousSocketChannel }
 
@@ -16,28 +16,23 @@ import zio.nio.core.channels.{ AsynchronousServerSocketChannel, AsynchronousSock
  *
  */
 object ActorSystem {
-  type Addr = String
-  type Port = Int
 
   /**
    *
    * Constructor for Actor System
    *
-   * @param name         - Identifier for Actor System
-   * @param remoteConfig - Optional configuration for a remoting internal module.
+   * @param sysName    - Identifier for Actor System
+   * @param configFile - Optional configuration for a remoting internal module.
    *                     If not provided the actor system will only handle local actors in terms of actor selection.
    *                     When provided - remote messaging and remote actor selection is possible
    * @return instantiated actor system
    */
-  def apply(name: String, remoteConfig: Option[(Addr, Port)]): Task[ActorSystem] =
+  def apply(sysName: String, configFile: Option[File] = None): Task[ActorSystem] =
     for {
       initActorRefMap <- Ref.make(Map.empty[String, Any])
-      actorSystem     <- IO.effect(new ActorSystem(name, remoteConfig, initActorRefMap, parentActor = None))
-
-      _ <- remoteConfig.fold[Task[Unit]](IO.unit) {
-            case (addr, port) =>
-              actorSystem.receiveLoop(addr, port)
-          }
+      config          <- retrieveConfig(sysName, configFile)
+      actorSystem     <- IO.effect(new ActorSystem(sysName, config, initActorRefMap, parentActor = None))
+      _               <- IO.effectTotal(config).flatMap(_.fold[Task[Unit]](IO.unit)(c => actorSystem.receiveLoop(c.addr, c.port)))
     } yield actorSystem
 }
 
@@ -123,7 +118,7 @@ final class Context private[actors] (
  */
 final class ActorSystem private[actors] (
   private val actorSystemName: String,
-  private val remoteConfig: Option[(Addr, Port)],
+  private val remoteConfig: Option[RemoteConfig],
   private val refActorMap: Ref[Map[String, Any]],
   private val parentActor: Option[String]
 ) {
@@ -191,8 +186,8 @@ final class ActorSystem private[actors] (
                  } else {
                    for {
                      address <- InetAddress
-                                 .byName(addr)
-                                 .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port))
+                                 .byName(addr.value)
+                                 .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port.value))
                    } yield new ActorRefRemote[E, F](path, address)
                  }
     } yield actorRef
@@ -211,10 +206,10 @@ final class ActorSystem private[actors] (
 
   /* INTERNAL API */
 
-  private def receiveLoop(address: Addr, port: Port): Task[Unit] =
+  private def receiveLoop(address: Utils.Addr, port: Utils.Port): Task[Unit] =
     for {
-      addr    <- InetAddress.byName(address)
-      address <- SocketAddress.inetSocketAddress(addr, port)
+      addr    <- InetAddress.byName(address.value)
+      address <- SocketAddress.inetSocketAddress(addr, port.value)
       p       <- Promise.make[Nothing, Unit]
       channel <- AsynchronousServerSocketChannel()
       loopEffect = for {
@@ -262,8 +257,8 @@ private[actors] object ActorSystemUtils {
     regex.findFirstMatchIn(path) match {
       case Some(value) if value.groupCount == 4 =>
         val actorSystemName = value.group(1)
-        val address         = value.group(2)
-        val port            = value.group(3).toInt
+        val address         = Addr(value.group(2))
+        val port            = Port(value.group(3).toInt)
         val actorName       = "/" + value.group(4)
         IO.succeed((actorSystemName, address, port, actorName))
       case None =>
@@ -274,8 +269,11 @@ private[actors] object ActorSystemUtils {
         )
     }
 
-  def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[(Addr, Port)]): String =
-    s"zio://$actorSystemName@${remoteConfig.map({ case (addr, port) => addr + ":" + port }).getOrElse("0.0.0.0:0000")}$actorPath"
+  def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[RemoteConfig]): String =
+    s"zio://$actorSystemName@${remoteConfig.map(c => c.addr.value + ":" + c.port.value).getOrElse("0.0.0.0:0000")}$actorPath"
+
+  def retrieveConfig(sysName: String, configFile: Option[File]): Task[Option[RemoteConfig]] =
+    configFile.fold[Task[Option[RemoteConfig]]](IO.none)(file => Utils.getConfiguration(sysName, file))
 
   def readFromWire(socket: AsynchronousSocketChannel): Task[Any] =
     for {

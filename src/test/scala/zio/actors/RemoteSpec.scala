@@ -1,5 +1,6 @@
 package zio.actors
 
+import java.io.File
 import java.net.ConnectException
 
 import zio.actors.Actor.Stateful
@@ -78,6 +79,8 @@ object SpecUtils {
         case UnsafeMessage => IO.fail(new Exception("Error on remote side"))
       }
   }
+
+  val configFile = Some(new File("./src/test/resources/application.conf"))
 }
 
 object RemoteSpec
@@ -85,30 +88,26 @@ object RemoteSpec
       suite("RemoteSpec")(
         suite("Remote communication suite")(
           testM("remote test send message") {
-            val port1 = 9665
-            val port2 = port1 + 1
             for {
-              actorSystemOne <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
+              actorSystemOne <- ActorSystem("testSystem11", configFile)
               _              <- actorSystemOne.make("actorOne", Supervisor.none, 0, handlerMessageTrait)
-              actorSystemTwo <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
+              actorSystemTwo <- ActorSystem("testSystem12", configFile)
               actorRef <- actorSystemTwo.select[MyErrorDomain, Message](
-                           s"zio://testSystemOne@127.0.0.1:$port1/actorOne"
+                           "zio://testSystem11@127.0.0.1:9665/actorOne"
                          )
               result <- actorRef ? Str("ZIO-Actor response... ")
             } yield assert(result, equalTo("ZIO-Actor response... received plus 01"))
           },
           testM("ActorRef serialization case") {
-            val port1 = 9667
-            val port2 = port1 + 1
             for {
-              actorSystemRoot <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
+              actorSystemRoot <- ActorSystem("testSystem21", configFile)
               one             <- actorSystemRoot.make("actorOne", Supervisor.none, (), protoHandler)
 
-              actorSystem <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
+              actorSystem <- ActorSystem("testSystem22", configFile)
               _           <- actorSystem.make("actorTwo", Supervisor.none, (), protoHandler)
 
               remoteActor <- actorSystemRoot.select[Throwable, PingPongProto](
-                              s"zio://testSystemTwo@127.0.0.1:$port2/actorTwo"
+                              "zio://testSystem22@127.0.0.1:9668/actorTwo"
                             )
 
               _ <- one ! GameInit(remoteActor)
@@ -121,7 +120,7 @@ object RemoteSpec
               assert(outputVector(0), equalTo("The game starts...\n")) &&
               assert(
                 outputVector(1),
-                equalTo(s"Ping from: zio://testSystemOne@127.0.0.1:$port1/actorOne, sending pong\n")
+                equalTo("Ping from: zio://testSystem21@127.0.0.1:9667/actorOne, sending pong\n")
               ) &&
               assert(outputVector(2), equalTo("Received pong\n"))
             }
@@ -129,10 +128,9 @@ object RemoteSpec
         ),
         suite("Error handling suite")(
           testM("ActorRef not found case (in local actor system)") {
-            val port1 = 9669
             val program = for {
-              actorSystem <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port1)))
-              _           <- actorSystem.select[Throwable, PingPongProto](s"zio://testSystemTwo@127.0.0.1:$port1/actorTwo")
+              actorSystem <- ActorSystem("testSystem31", configFile)
+              _           <- actorSystem.select[Throwable, PingPongProto]("zio://testSystem31@127.0.0.1:9669/actorTwo")
             } yield ()
 
             assertM(
@@ -144,12 +142,10 @@ object RemoteSpec
             )
           },
           testM("Remote system does not exist") {
-            val port1 = 9671
-            val port2 = port1 + 1
             val program = for {
-              actorSystem <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port1)))
+              actorSystem <- ActorSystem("testSystem41", configFile)
               actorRef <- actorSystem.select[Throwable, PingPongProto](
-                           s"zio://testSystemOne@127.0.0.1:$port2/actorTwo"
+                           "zio://testSystem42@127.0.0.1:9672/actorTwo"
                          )
               _ <- actorRef ! GameInit(actorRef)
             } yield ()
@@ -161,13 +157,11 @@ object RemoteSpec
             )
           },
           testM("Remote actor does not exist") {
-            val port1 = 9673
-            val port2 = port1 + 1
             val program = for {
-              actorSystemOne <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
-              _              <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
+              actorSystemOne <- ActorSystem("testSystem51", configFile)
+              _              <- ActorSystem("testSystem52", configFile)
               actorRef <- actorSystemOne.select[Throwable, PingPongProto](
-                           s"zio://testSystemTwo@127.0.0.1:$port2/actorTwo"
+                           "zio://testSystem52@127.0.0.1:9674/actorTwo"
                          )
               _ <- actorRef ? GameInit(actorRef)
             } yield ()
@@ -179,14 +173,12 @@ object RemoteSpec
             )
           },
           testM("On remote side error message processing error") {
-            val port1 = 9675
-            val port2 = port1 + 1
             val program = for {
-              actorSystemOne <- ActorSystem("testSystemOne", Some(("127.0.0.1", port1)))
+              actorSystemOne <- ActorSystem("testSystem61", configFile)
               _              <- actorSystemOne.make("actorOne", Supervisor.none, (), errorHandler)
-              actorSystemTwo <- ActorSystem("testSystemTwo", Some(("127.0.0.1", port2)))
+              actorSystemTwo <- ActorSystem("testSystem62", configFile)
               actorRef <- actorSystemTwo.select[Throwable, ErrorProto](
-                           s"zio://testSystemOne@127.0.0.1:$port1/actorOne"
+                           "zio://testSystem61@127.0.0.1:9675/actorOne"
                          )
               _ <- actorRef ? UnsafeMessage
             } yield ()

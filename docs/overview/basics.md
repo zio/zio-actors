@@ -18,6 +18,8 @@ Then actor's creation is done with passing supervision manner, initial state and
 Imports required for example:
 
 ```scala mdoc:silent
+import java.io.File
+
 import zio.actors.Actor.Stateful
 import zio.actors._
 import zio.IO
@@ -45,7 +47,7 @@ Then we are ready to instantiate the actor and fire off messages:
 
 ```scala mdoc:silent
 for {
-  system <- ActorSystem("mySystem", remoteConfig = None)
+  system <- ActorSystem("mySystem")
   actor <- system.make("actor1", Supervisor.none, (), stateful)
   doubled <- actor ! DoubleCommand(42)
 } yield doubled
@@ -56,3 +58,22 @@ There's also `ask` interaction pattern where for caller sending a message is com
 It's performed via `?` method.
 
 From recipient's point of view these two interaction patterns are indistinguishable. 
+
+### Configuration
+
+For each `ActorSystem` created there should be a config entry in configuration file. 
+By default configuration file is expected to be at `./src/main/resources/application.conf`. 
+Exemplary configuration entry for an `ActorSystem` named `Test1`:
+
+```hocon
+Test1.zio.actors.remoting {
+  hostname = "127.0.0.1"
+  port = 1234
+}
+```
+
+Custom configuration file can be provided when instantiating `ActorSystem`:
+
+```scala mdoc:silent
+ActorSystem("mySystem", Some(new File("./my/custom/path/app.conf")))
+```

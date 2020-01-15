@@ -4,13 +4,14 @@ title: "Remoting"
 ---
 
 Remoting makes it possible to lookup for actors that reside on another `ActorSystems`.
-The configuration is done by providing address and port that the `ActorSystem` will be bound to:
+The configuration is done by providing address and port in configuration file 
+([see Configuration section](basics.md#configuration)) that the `ActorSystem` will be bound to:
 
 ```scala mdoc:silent
 import zio.actors._
 
 for {
-  _ <- ActorSystem("mySystem", remoteConfig = Some(("127.0.0.1", 9090)))
+  _ <- ActorSystem("mySystem")
 } yield ()
 ```
 

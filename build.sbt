@@ -33,14 +33,16 @@ ThisBuild / publishTo := sonatypePublishToBundle.value
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
-val zioVersion    = "1.0.0-RC17"
-val zioNioVersion = "1.0.0-RC2"
+val zioVersion       = "1.0.0-RC17"
+val zioNioVersion    = "1.0.0-RC2"
+val zioConfigVersion = "1.0.0-RC10"
 libraryDependencies ++= Seq(
-  "dev.zio"        %% "zio"          % zioVersion,
-  "dev.zio"        %% "zio-nio"      % zioNioVersion,
-  "dev.zio"        %% "zio-test"     % zioVersion % "test",
-  "dev.zio"        %% "zio-test-sbt" % zioVersion % "test",
-  "org.scala-lang" % "scala-reflect" % scalaVersion.value
+  "dev.zio"        %% "zio"                 % zioVersion,
+  "dev.zio"        %% "zio-test"            % zioVersion % "test",
+  "dev.zio"        %% "zio-test-sbt"        % zioVersion % "test",
+  "dev.zio"        %% "zio-nio"             % zioNioVersion,
+  "dev.zio"        %% "zio-config-typesafe" % zioConfigVersion,
+  "org.scala-lang" % "scala-reflect"        % scalaVersion.value
 )
 
 testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
