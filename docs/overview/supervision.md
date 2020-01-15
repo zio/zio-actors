@@ -27,8 +27,6 @@ Supervisor.none
 Retrying is provided via `retry` with specified `Schedule` like `recurs`:
 
 ```scala mdoc:silent
-val duration  = Duration(5, TimeUnit.SECONDS)
-
 Supervisor.retry(Schedule.recurs(10))
 ```
 

@@ -45,7 +45,7 @@ object ActorsSpec
           }
 
           for {
-            system <- ActorSystem("test1", remoteConfig = None)
+            system <- ActorSystem("test1")
             actor  <- system.make("actor1", Supervisor.none, 0, handler)
             _      <- actor ! Increase
             _      <- actor ! Increase
@@ -136,7 +136,7 @@ object ActorsSpec
               }
           }
           for {
-            system <- ActorSystem("test1", remoteConfig = None)
+            system <- ActorSystem("test1")
             actor  <- system.make("actor1", Supervisor.none, (), handler)
             _      <- actor ! Letter
             _      <- actor ! Letter

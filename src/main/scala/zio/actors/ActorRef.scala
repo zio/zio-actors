@@ -76,8 +76,8 @@ private[actors] sealed abstract class ActorRefSerial[E <: Throwable, -F[+_]](pri
       resolved           <- resolvePath(actorPath)
       (_, addr, port, _) = resolved
       address <- InetAddress
-                  .byName(addr)
-                  .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port))
+                  .byName(addr.value)
+                  .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port.value))
     } yield new ActorRefRemote[E, F](actorPath, address)
 
     ActorRefSerial.runtimeForResolve.unsafeRun(remoteRef)
