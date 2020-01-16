@@ -1,6 +1,7 @@
 package zio.actors
 
 import zio.{ IO, Promise, Queue, Ref, Task }
+import zio.ZIO
 
 object Actor {
 
@@ -12,7 +13,7 @@ object Actor {
    * @tparam E error type
    * @tparam F message DSL
    */
-  trait Stateful[S, +E <: Throwable, -F[+_]] {
+  trait Stateful[-R, S, +E <: Throwable, -F[+_]] {
 
     /**
      *
@@ -24,23 +25,23 @@ object Actor {
      * @tparam A - domain of return entities
      * @return effectful result
      */
-    def receive[A](state: S, msg: F[A], context: Context): IO[E, (S, A)]
+    def receive[A](state: S, msg: F[A], context: Context): ZIO[R, E, (S, A)]
   }
 
   /* INTERNAL API */
 
   private val DefaultActorMailboxSize = 10000
 
-  private[actors] final def stateful[S, E <: Throwable, F[+_]](
-    supervisor: Supervisor[E],
+  private[actors] final def stateful[R, S, E <: Throwable, F[+_]](
+    supervisor: Supervisor[R, E],
     context: Context,
     mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S)(
-    stateful: Actor.Stateful[S, E, F]
-  ): IO[Nothing, Actor[E, F]] = {
+    stateful: Actor.Stateful[R, S, E, F]
+  ): ZIO[R, Nothing, Actor[E, F]] = {
     type PendingMessage[E, F[_], A] = (F[A], Promise[E, A])
 
-    def process[A](msg: PendingMessage[E, F, A], state: Ref[S]): IO[Nothing, Unit] =
+    def process[A](msg: PendingMessage[E, F, A], state: Ref[S]): ZIO[R, Nothing, Unit] =
       for {
         s             <- state.get
         (fa, promise) = msg

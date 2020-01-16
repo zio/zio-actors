@@ -20,7 +20,7 @@ object SpecUtils {
   sealed trait MyErrorDomain extends Throwable
   case object DomainError    extends MyErrorDomain
 
-  val handlerMessageTrait = new Stateful[Int, MyErrorDomain, Message] {
+  val handlerMessageTrait = new Stateful[Any, Int, MyErrorDomain, Message] {
     override def receive[A](
       state: Int,
       msg: Message[A],
@@ -37,7 +37,7 @@ object SpecUtils {
   case object Pong                                                   extends PingPongProto[Unit]
   case class GameInit(recipient: ActorRef[Throwable, PingPongProto]) extends PingPongProto[Unit]
 
-  val protoHandler = new Stateful[Unit, Throwable, PingPongProto] {
+  val protoHandler = new Stateful[Any, Unit, Throwable, PingPongProto] {
     override def receive[A](
       state: Unit,
       msg: PingPongProto[A],
@@ -69,7 +69,7 @@ object SpecUtils {
   sealed trait ErrorProto[+A]
   case object UnsafeMessage extends ErrorProto[String]
 
-  val errorHandler = new Stateful[Unit, Throwable, ErrorProto] {
+  val errorHandler = new Stateful[Any, Unit, Throwable, ErrorProto] {
     override def receive[A](
       state: Unit,
       msg: ErrorProto[A],

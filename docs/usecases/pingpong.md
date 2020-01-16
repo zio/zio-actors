@@ -32,7 +32,7 @@ case class Ping(sender: ActorRef[Throwable, PingPong])        extends PingPong[U
 case object Pong                                              extends PingPong[Unit]
 case class GameInit(recipient: ActorRef[Throwable, PingPong]) extends PingPong[Unit]
 
-val protoHandler = new Stateful[Unit, Throwable, PingPong] {
+val protoHandler = new Stateful[Any, Unit, Throwable, PingPong] {
     override def receive[A](
       state: Unit,
       msg: PingPong[A],
