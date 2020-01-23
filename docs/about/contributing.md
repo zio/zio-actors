@@ -71,6 +71,23 @@ The main project in ZIO is `coreJVM` (the core project on the JVM; there is also
 project coreJVM
 ```
 
+### Build the microsite locally
+
+In order to build the microsite locally use the following commands:
+```bash
+sbt docs/mdoc 
+cd website
+yarn install
+yarn run build
+```
+
+Now to run the microsite, use 
+```bash
+yarn start
+```
+
+You should be able to visit `localhost:3000/zio-actors` on your browser and view the microsite locally
+
 ### Find an Issue
 
 You may have your own idea about what contributions to make to ZIO, which is great! If you want to make sure the ZIO contributors are open to your idea, you can [open an issue](https://github.com/zio/zio/issues/new) first on the ZIO project site.
