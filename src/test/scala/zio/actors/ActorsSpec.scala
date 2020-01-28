@@ -31,7 +31,7 @@ object ActorsSpec
         testM("sequential message processing") {
           import CounterUtils._
 
-          val handler = new Stateful[Int, Nothing, Message] {
+          val handler = new Stateful[Any, Int, Nothing, Message] {
             override def receive[A](
               state: Int,
               msg: Message[A],
@@ -59,8 +59,8 @@ object ActorsSpec
 
           val maxRetries = 10
 
-          def makeHandler(ref: Ref[Int]): Actor.Stateful[Unit, Throwable, Message] =
-            new Stateful[Unit, Throwable, Message] {
+          def makeHandler(ref: Ref[Int]): Actor.Stateful[Any, Unit, Throwable, Message] =
+            new Stateful[Any, Unit, Throwable, Message] {
               override def receive[A](
                 state: Unit,
                 msg: Message[A],
@@ -91,7 +91,7 @@ object ActorsSpec
         testM("error recovery by fallback action") {
           import TickUtils._
 
-          val handler = new Stateful[Unit, Throwable, Message] {
+          val handler = new Stateful[Any, Unit, Throwable, Message] {
             override def receive[A](
               state: Unit,
               msg: Message[A],
@@ -105,7 +105,7 @@ object ActorsSpec
           val called   = new AtomicBoolean(false)
           val schedule = Schedule.recurs(10)
           val policy =
-            Supervisor.retryOrElse[Throwable, Int](
+            Supervisor.retryOrElse[Any, Throwable, Int](
               schedule,
               (_, _) => IO.effectTotal(called.set(true))
             )
@@ -121,7 +121,7 @@ object ActorsSpec
         testM("Stopping actors") {
           import StopUtils._
 
-          val handler = new Stateful[Unit, Throwable, Msg] {
+          val handler = new Stateful[Any, Unit, Throwable, Msg] {
             override def receive[A](
               state: Unit,
               msg: Msg[A],

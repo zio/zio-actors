@@ -68,12 +68,12 @@ final class Context private[actors] (
    * @tparam F1 - DSL type
    * @return reference to the created actor in effect that can't fail
    */
-  def make[S, E1 <: Throwable, F1[+_]](
+  def make[R, S, E1 <: Throwable, F1[+_]](
     actorName: String,
-    sup: Supervisor[E1],
+    sup: Supervisor[R, E1],
     init: S,
-    stateful: Stateful[S, E1, F1]
-  ): Task[ActorRef[E1, F1]] =
+    stateful: Stateful[R, S, E1, F1]
+  ): ZIO[R, Throwable, ActorRef[E1, F1]] =
     for {
       actorRef <- actorSystem.make(actorName, sup, init, stateful)
       children <- childrenRef.get
@@ -136,12 +136,12 @@ final class ActorSystem private[actors] (
    * @tparam F - DSL type
    * @return reference to the created actor in effect that can't fail
    */
-  def make[S, E <: Throwable, F[+_]](
+  def make[R, S, E <: Throwable, F[+_]](
     actorName: String,
-    sup: Supervisor[E],
+    sup: Supervisor[R, E],
     init: S,
-    stateful: Stateful[S, E, F]
-  ): Task[ActorRef[E, F]] =
+    stateful: Stateful[R, S, E, F]
+  ): ZIO[R, Throwable, ActorRef[E, F]] =
     for {
       map           <- refActorMap.get
       finalName     = parentActor.getOrElse("") + "/" + actorName
@@ -149,7 +149,7 @@ final class ActorSystem private[actors] (
       path          = buildPath(actorSystemName, finalName, remoteConfig)
       derivedSystem = new ActorSystem(actorSystemName, remoteConfig, refActorMap, Some(finalName))
       childrenSet   <- Ref.make(Set.empty[ActorRef[Throwable, Any]])
-      actor         <- Actor.stateful[S, E, F](sup, new Context(path, derivedSystem, childrenSet))(init)(stateful)
+      actor         <- Actor.stateful[R, S, E, F](sup, new Context(path, derivedSystem, childrenSet))(init)(stateful)
       _             <- refActorMap.set(map + (finalName -> actor))
     } yield new ActorRefLocal[E, F](path, actor)
 
