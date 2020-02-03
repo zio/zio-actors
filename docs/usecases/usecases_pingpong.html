@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Ping Pong · ZIO Actors</title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="Here are type hierarchy and `Stateful` instance which can be used to create two actors performing basic ping-pong communication:"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Ping Pong · ZIO Actors"/><meta property="og:type" content="website"/><meta property="og:url" content="https://zio.github.io/zio-actors/"/><meta property="og:description" content="Here are type hierarchy and `Stateful` instance which can be used to create two actors performing basic ping-pong communication:"/><meta property="og:image" content="https://zio.github.io/zio-actors/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://zio.github.io/zio-actors/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/zio-actors/img/favicon.png"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="https://unpkg.com/vanilla-back-to-top@7.1.14/dist/vanilla-back-to-top.min.js"></script><script>
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Ping Pong · ZIO Actors</title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="Here are type hierarchy and `Stateful` instance which can be used to create two actors performing basic ping-pong communication."/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Ping Pong · ZIO Actors"/><meta property="og:type" content="website"/><meta property="og:url" content="https://zio.github.io/zio-actors/"/><meta property="og:description" content="Here are type hierarchy and `Stateful` instance which can be used to create two actors performing basic ping-pong communication."/><meta property="og:image" content="https://zio.github.io/zio-actors/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://zio.github.io/zio-actors/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/zio-actors/img/favicon.png"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.css"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="https://unpkg.com/vanilla-back-to-top@7.1.14/dist/vanilla-back-to-top.min.js"></script><script>
         document.addEventListener('DOMContentLoaded', function() {
           addBackToTop(
             {"zIndex":100,"cornerOffset":100}
           )
         });
-        </script><script src="/zio-actors/js/scrollSpy.js"></script><link rel="stylesheet" href="/zio-actors/css/main.css"/><script src="/zio-actors/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/zio-actors/"><img class="logo" src="/zio-actors/img/navbar_brand2x.png" alt="ZIO Actors"/><h2 class="headerTitleWithLogo">ZIO Actors</h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class=""><a href="/zio-actors/docs/overview/overview_index" target="_self">Overview</a></li><li class="siteNavGroupActive"><a href="/zio-actors/docs/usecases/usecases_index" target="_self">Use Cases</a></li><li class=""><a href="/zio-actors/docs/about/about_index" target="_self">About</a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Use Cases</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Use Cases</h3><ul class=""><li class="navListItem"><a class="navItem" href="/zio-actors/docs/usecases/usecases_index">Contents</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/zio-actors/docs/usecases/usecases_pingpong">Ping Pong</a></li></ul></div></div></section></div><script>
+        </script><script src="/zio-actors/js/scrollSpy.js"></script><link rel="stylesheet" href="/zio-actors/css/main.css"/><script src="/zio-actors/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/zio-actors/"><img class="logo" src="/zio-actors/img/navbar_brand2x.png" alt="ZIO Actors"/><h2 class="headerTitleWithLogo">ZIO Actors</h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class=""><a href="/zio-actors/docs/overview/overview_index" target="_self">Overview</a></li><li class="siteNavGroupActive"><a href="/zio-actors/docs/usecases/usecases_index" target="_self">Use Cases</a></li><li class=""><a href="api/index.html" target="_self">API</a></li><li class=""><a href="/zio-actors/docs/about/about_index" target="_self">About</a></li><li class="navSearchWrapper reactNavSearchWrapper"><input type="text" id="search_input_react" placeholder="Search" title="Search"/></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Use Cases</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Use Cases</h3><ul class=""><li class="navListItem"><a class="navItem" href="/zio-actors/docs/usecases/usecases_index">Contents</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/zio-actors/docs/usecases/usecases_pingpong">Ping Pong</a></li></ul></div></div></section></div><script>
             var coll = document.getElementsByClassName('collapsible');
             var checkActiveCategory = true;
             for (var i = 0; i < coll.length; i++) {
@@ -60,7 +60,18 @@
                 };
               }
             });
-        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Ping Pong</h1></header><article><div><span><p>Here are type hierarchy and <code>Stateful</code> instance which can be used to create two actors performing basic ping-pong communication:</p>
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Ping Pong</h1></header><article><div><span><p>Here are type hierarchy and <code>Stateful</code> instance which can be used to create two actors performing basic ping-pong communication.</p>
+<h4><a class="anchor" aria-hidden="true" id="configuration-file-at-srcmainresourcesapplicationconf"></a><a href="#configuration-file-at-srcmainresourcesapplicationconf" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Configuration File at <code>./src/main/resources/application.conf</code></h4>
+<pre><code class="hljs css language-hocon">testSystemOne.zio.actors.remoting {
+  hostname = <span class="hljs-string">"127.0.0.1"</span>
+ <span class="hljs-built_in"> port </span>= 8055
+}
+testSystemTwo.zio.actors.remoting {
+  hostname = <span class="hljs-string">"127.0.0.1"</span>
+ <span class="hljs-built_in"> port </span>= 8056
+}
+</code></pre>
+<h4><a class="anchor" aria-hidden="true" id="program"></a><a href="#program" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Program</h4>
 <pre><code class="hljs css language-scala"><span class="hljs-keyword">import</span> zio.actors.<span class="hljs-type">Actor</span>.<span class="hljs-type">Stateful</span>
 <span class="hljs-keyword">import</span> zio.actors._
 <span class="hljs-keyword">import</span> zio.<span class="hljs-type">IO</span>
@@ -72,7 +83,7 @@
 <span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">object</span> <span class="hljs-title">Pong</span>                                              <span class="hljs-keyword">extends</span> <span class="hljs-title">PingPong</span>[<span class="hljs-type">Unit</span>]</span>
 <span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">GameInit</span>(<span class="hljs-params">recipient: <span class="hljs-type">ActorRef</span>[<span class="hljs-type">Throwable</span>, <span class="hljs-type">PingPong</span>]</span>) <span class="hljs-keyword">extends</span> <span class="hljs-title">PingPong</span>[<span class="hljs-type">Unit</span>]</span>
 
-<span class="hljs-keyword">val</span> protoHandler = <span class="hljs-keyword">new</span> <span class="hljs-type">Stateful</span>[<span class="hljs-type">Unit</span>, <span class="hljs-type">Throwable</span>, <span class="hljs-type">PingPong</span>] {
+<span class="hljs-keyword">val</span> protoHandler = <span class="hljs-keyword">new</span> <span class="hljs-type">Stateful</span>[<span class="hljs-type">Any</span>, <span class="hljs-type">Unit</span>, <span class="hljs-type">Throwable</span>, <span class="hljs-type">PingPong</span>] {
     <span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">receive</span></span>[<span class="hljs-type">A</span>](
       state: <span class="hljs-type">Unit</span>,
       msg: <span class="hljs-type">PingPong</span>[<span class="hljs-type">A</span>],
@@ -100,21 +111,37 @@
   }
 
 <span class="hljs-keyword">val</span> program = <span class="hljs-keyword">for</span> {
-  portRand        &lt;- random.nextInt
-  port1           = (portRand % <span class="hljs-number">1000</span>) + <span class="hljs-number">8000</span>
-  port2           = port1 + <span class="hljs-number">1</span>
-  actorSystemRoot &lt;- <span class="hljs-type">ActorSystem</span>(<span class="hljs-string">"testSystemOne"</span>, <span class="hljs-type">Some</span>((<span class="hljs-string">"127.0.0.1"</span>, port1)))
+  actorSystemRoot &lt;- <span class="hljs-type">ActorSystem</span>(<span class="hljs-string">"testSystemOne"</span>)
   one             &lt;- actorSystemRoot.make(<span class="hljs-string">"actorOne"</span>, <span class="hljs-type">Supervisor</span>.none, (), protoHandler)
 
-  actorSystem &lt;- <span class="hljs-type">ActorSystem</span>(<span class="hljs-string">"testSystemTwo"</span>, <span class="hljs-type">Some</span>((<span class="hljs-string">"127.0.0.1"</span>, port2)))
+  actorSystem &lt;- <span class="hljs-type">ActorSystem</span>(<span class="hljs-string">"testSystemTwo"</span>)
   _           &lt;- actorSystem.make(<span class="hljs-string">"actorTwo"</span>, <span class="hljs-type">Supervisor</span>.none, (), protoHandler)
 
   remoteActor &lt;- actorSystemRoot.select[<span class="hljs-type">Throwable</span>, <span class="hljs-type">PingPong</span>](
-    <span class="hljs-string">s"zio://testSystemTwo@127.0.0.1:<span class="hljs-subst">$port2</span>/actorTwo"</span>
+    <span class="hljs-string">"zio://testSystemTwo@127.0.0.1:8056/actorTwo"</span>
   )
 
   _ &lt;- one ! <span class="hljs-type">GameInit</span>(remoteActor)
 
 } <span class="hljs-keyword">yield</span> ()
 </code></pre>
-</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/zio-actors/docs/usecases/usecases_index"><span class="arrow-prev">← </span><span>Contents</span></a></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/zio-actors/" class="nav-home"><img src="/zio-actors/img/sidebar_brand2x.png" alt="ZIO Actors"/></a><div><h5>GitHub</h5><a class="github-button" href="https://github.com/zio/zio-actors" data-icon="octicon-star" data-count-href="/zio/zio-actors/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div><div><h5>Chat with us on Discord</h5><a href="https://discord.gg/2ccFBr4"><img src="/img/discord.png" width="120" alt="discord"/></a></div><div><h5>Additional resources</h5><a href="https://javadoc.io/doc/dev.zio/zio-actors_2.12/">Scaladoc of zio-actors</a></div></section><section class="copyright">Copyright © 2019 ZIO Maintainers</section></footer></div></body></html>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/zio-actors/docs/usecases/usecases_index"><span class="arrow-prev">← </span><span>Contents</span></a></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/zio-actors/" class="nav-home"><img src="/zio-actors/img/sidebar_brand2x.png" alt="ZIO Actors"/></a><div><h5>GitHub</h5><a class="github-button" href="https://github.com/zio/zio-actors" data-icon="octicon-star" data-count-href="/zio/zio-actors/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div><div><h5>Chat with us on Discord</h5><a href="https://discord.gg/2ccFBr4"><img src="/zio-actors//img/discord.png" width="120" alt="discord"/></a></div><div><h5>Additional resources</h5><a href="/zio-actors/api/index.html">Scaladoc of zio-actors</a></div></section><section class="copyright">Copyright © 2020 ZIO Maintainers</section></footer></div><script type="text/javascript" src="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.js"></script><script>
+                document.addEventListener('keyup', function(e) {
+                  if (e.target !== document.body) {
+                    return;
+                  }
+                  // keyCode for '/' (slash)
+                  if (e.keyCode === 191) {
+                    const search = document.getElementById('search_input_react');
+                    search && search.focus();
+                  }
+                });
+              </script><script>
+              var search = docsearch({
+                
+                apiKey: 'b7978c4d7d28a5a9181d2eea975b0e99',
+                indexName: 'zio-actors',
+                inputSelector: '#search_input_react',
+                algoliaOptions: {}
+              });
+            </script></body></html>
