@@ -4,7 +4,7 @@ import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputS
 import java.nio.ByteBuffer
 
 import zio.{ Chunk, IO, Promise, Ref, Task, UIO, ZIO }
-import zio.actors.Actor.Stateful
+import zio.actors.Actor.{ AbstractStateful, Stateful }
 import zio.actors.ActorSystemUtils._
 import zio.actors.Utils._
 import zio.nio.core.{ Buffer, InetAddress, SocketAddress }
@@ -31,7 +31,7 @@ object ActorSystem {
     for {
       initActorRefMap <- Ref.make(Map.empty[String, Any])
       config          <- retrieveConfig(sysName, configFile)
-      actorSystem     <- IO.effect(new ActorSystem(sysName, config, initActorRefMap, parentActor = None))
+      actorSystem     <- IO.effect(new ActorSystem(sysName, configFile, config, initActorRefMap, parentActor = None))
       _               <- IO.effectTotal(config).flatMap(_.fold[Task[Unit]](IO.unit)(c => actorSystem.receiveLoop(c.addr, c.port)))
     } yield actorSystem
 }
@@ -43,7 +43,7 @@ object ActorSystem {
  */
 final class Context private[actors] (
   private val path: String,
-  private val actorSystem: ActorSystem,
+  private[actors] val actorSystem: ActorSystem,
   private val childrenRef: Ref[Set[ActorRef[Throwable, Any]]]
 ) {
 
@@ -104,9 +104,10 @@ final class Context private[actors] (
   def stop: Task[List[_]] =
     for {
       children <- childrenRef.get
-      _        <- ZIO.traverse(children)(_.stop)
+      _        <- ZIO.traverse(children)(c => c.stop *> c.path >>= actorSystem.dropFromActorMap)
       self     <- self[Throwable, Any]
       dump     <- self.stop
+      _        <- self.path >>= actorSystem.dropFromActorMap
     } yield dump
 }
 
@@ -117,7 +118,8 @@ final class Context private[actors] (
  *
  */
 final class ActorSystem private[actors] (
-  private val actorSystemName: String,
+  private[actors] val actorSystemName: String,
+  private[actors] val configFile: Option[File],
   private val remoteConfig: Option[RemoteConfig],
   private val refActorMap: Ref[Map[String, Any]],
   private val parentActor: Option[String]
@@ -147,9 +149,9 @@ final class ActorSystem private[actors] (
       finalName     <- buildFinalName(parentActor.getOrElse(""), actorName)
       _             <- if (map.contains(finalName)) IO.fail(new Exception(s"Actor $finalName already exists")) else IO.unit
       path          = buildPath(actorSystemName, finalName, remoteConfig)
-      derivedSystem = new ActorSystem(actorSystemName, remoteConfig, refActorMap, Some(finalName))
+      derivedSystem = new ActorSystem(actorSystemName, configFile, remoteConfig, refActorMap, Some(finalName))
       childrenSet   <- Ref.make(Set.empty[ActorRef[Throwable, Any]])
-      actor         <- Actor.stateful[R, S, E, F](sup, new Context(path, derivedSystem, childrenSet))(init)(stateful)
+      actor         <- stateful.constructActor(sup, new Context(path, derivedSystem, childrenSet))(init)
       _             <- refActorMap.set(map + (finalName -> actor))
     } yield new ActorRefLocal[E, F](path, actor)
 
@@ -205,6 +207,14 @@ final class ActorSystem private[actors] (
     } yield actorsDump.flatten
 
   /* INTERNAL API */
+
+  private[actors] def dropFromActorMap(path: String): Task[Unit] =
+    for {
+      solvedPath           <- resolvePath(path)
+      (_, _, _, actorName) = solvedPath
+      map                  <- refActorMap.get
+      _                    <- refActorMap.set(map - actorName)
+    } yield ()
 
   private def receiveLoop(address: Utils.Addr, port: Utils.Port): Task[Unit] =
     for {
@@ -285,7 +295,10 @@ private[actors] object ActorSystemUtils {
     s"zio://$actorSystemName@${remoteConfig.map(c => c.addr.value + ":" + c.port.value).getOrElse("0.0.0.0:0000")}$actorPath"
 
   def retrieveConfig(sysName: String, configFile: Option[File]): Task[Option[RemoteConfig]] =
-    configFile.fold[Task[Option[RemoteConfig]]](IO.none)(file => Utils.getConfiguration(sysName, file))
+    configFile.fold[Task[Option[RemoteConfig]]](IO.none)(file => Utils.getRemoteConfig(sysName, file))
+
+  def objFromByteArray(bytes: Array[Byte]): Task[Any] =
+    Task.effect(new ObjectInputStream(new ByteArrayInputStream(bytes)).readObject())
 
   def readFromWire(socket: AsynchronousSocketChannel): Task[Any] =
     for {
@@ -294,17 +307,21 @@ private[actors] object ActorSystemUtils {
       intBuffer <- buffer.asIntBuffer
       toRead    <- intBuffer.get(0)
       content   <- socket.read(toRead)
-      arr       = content.toArray
-      obj       = new ObjectInputStream(new ByteArrayInputStream(arr)).readObject()
+      bytes     = content.toArray
+      obj       <- objFromByteArray(bytes)
     } yield obj
+
+  def objToByteArray(obj: Any): Task[Array[Byte]] =
+    for {
+      stream <- UIO.effectTotal(new ByteArrayOutputStream())
+      oos    <- IO.effect(new ObjectOutputStream(stream))
+      _      = oos.writeObject(obj)
+      _      = oos.close()
+    } yield stream.toByteArray
 
   def writeToWire(socket: AsynchronousSocketChannel, obj: Any): Task[Unit] =
     for {
-      stream <- IO.effect(new ByteArrayOutputStream())
-      oos    <- UIO.effectTotal(new ObjectOutputStream(stream))
-      _      = oos.writeObject(obj)
-      _      = oos.close()
-      bytes  = stream.toByteArray
+      bytes  <- objToByteArray(obj)
       _      <- socket.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(bytes.size).array()))
       _      <- socket.write(Chunk.fromArray(bytes))
     } yield ()

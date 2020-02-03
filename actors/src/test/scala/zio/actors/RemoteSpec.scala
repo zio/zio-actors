@@ -80,7 +80,7 @@ object SpecUtils {
       }
   }
 
-  val configFile = Some(new File("./src/test/resources/application.conf"))
+  val configFile = Some(new File("./actors/src/test/resources/application.conf"))
 }
 
 object RemoteSpec

@@ -34,24 +34,53 @@ addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck"
 val zioVersion       = "1.0.0-RC17"
 val zioNioVersion    = "1.0.0-RC2"
 val zioConfigVersion = "1.0.0-RC10"
-libraryDependencies ++= Seq(
-  "dev.zio"        %% "zio"                 % zioVersion,
-  "dev.zio"        %% "zio-test"            % zioVersion % "test",
-  "dev.zio"        %% "zio-test-sbt"        % zioVersion % "test",
-  "dev.zio"        %% "zio-nio"             % zioNioVersion,
-  "dev.zio"        %% "zio-config-typesafe" % zioConfigVersion,
-  "org.scala-lang" % "scala-reflect"        % scalaVersion.value
-)
-
-testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
 lazy val root =
-  (project in file("."))
+  project
+    .in(file("."))
+    .settings(skip in publish := true)
+    .aggregate(zioActors, zioActorsPersistence)
+
+lazy val zioActors = module("zio-actors", "actors")
+  .enablePlugins(BuildInfoPlugin)
+  .settings(buildInfoSettings("zio.actors"))
+  .settings(
+    libraryDependencies ++= Seq(
+      "dev.zio"        %% "zio"                 % zioVersion,
+      "dev.zio"        %% "zio-test"            % zioVersion % "test",
+      "dev.zio"        %% "zio-test-sbt"        % zioVersion % "test",
+      "dev.zio"        %% "zio-nio"             % zioNioVersion,
+      "dev.zio"        %% "zio-config-typesafe" % zioConfigVersion,
+      "org.scala-lang" % "scala-reflect"        % scalaVersion.value
+    ),
+    testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+  )
+  .settings(
+    stdSettings("zio-actors")
+  )
+
+lazy val zioActorsPersistence = module("zio-actors-persistence", "persistence")
+  .settings(
+    libraryDependencies ++= Seq(
+      "dev.zio"      %% "zio-test"         % zioVersion % "test",
+      "dev.zio"      %% "zio-test-sbt"     % zioVersion % "test",
+      "dev.zio"      %% "zio-interop-cats" % "2.0.0.0-RC10",
+      "org.tpolecat" %% "doobie-core"      % "0.8.8",
+      "org.tpolecat" %% "doobie-hikari"    % "0.8.8",
+      "org.tpolecat" %% "doobie-postgres"  % "0.8.8"
+    ),
+    testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+  )
+  .dependsOn(zioActors)
+
+def module(moduleName: String, fileName: String): Project =
+  Project(moduleName, file(fileName))
+    .settings(stdSettings(moduleName))
     .settings(
-      stdSettings("zio-actors")
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio" % zioVersion
+      )
     )
-    .settings(buildInfoSettings("zio.actors"))
-    .enablePlugins(BuildInfoPlugin)
 
 lazy val docs = project
   .in(file("zio-actors-docs"))
@@ -69,5 +98,5 @@ lazy val docs = project
     docusaurusCreateSite := docusaurusCreateSite.dependsOn(unidoc in Compile).value,
     docusaurusPublishGhpages := docusaurusPublishGhpages.dependsOn(unidoc in Compile).value
   )
-  .dependsOn(root)
+  .dependsOn(zioActors, zioActorsPersistence)
   .enablePlugins(MdocPlugin, DocusaurusPlugin, ScalaUnidocPlugin)
