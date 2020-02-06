@@ -1,7 +1,7 @@
 package zio.actors
 
 import zio.actors.Actor.PendingMessage
-import zio.{ IO, Promise, Queue, Ref, Task, UIO }
+import zio._
 
 object Actor {
 
@@ -11,11 +11,12 @@ object Actor {
    *
    * Description of actor behavior (can act as FSM)
    *
+   * @tparam R environment type
    * @tparam S state type that is updated every message digested
    * @tparam E error type
    * @tparam F message DSL
    */
-  trait Stateful[S, +E <: Throwable, -F[+_]] extends AbstractStateful[S, E, F] {
+  trait Stateful[R, S, +E <: Throwable, -F[+_]] extends AbstractStateful[R, S, E, F] {
 
     /**
      *
@@ -27,17 +28,17 @@ object Actor {
      * @tparam A - domain of return entities
      * @return effectful result
      */
-    def receive[A](state: S, msg: F[A], context: Context): IO[E, (S, A)]
+    def receive[A](state: S, msg: F[A], context: Context): ZIO[R, E, (S, A)]
 
     /* INTERNAL API */
 
     final override def constructActor(
-      supervisor: Supervisor[E],
+      supervisor: Supervisor[R, E],
       context: Context,
       mailboxSize: Int = DefaultActorMailboxSize
-    )(initial: S): UIO[Actor[E, F]] = {
+    )(initial: S): URIO[R, Actor[E, F]] = {
 
-      def process[A](msg: PendingMessage[E, F, A], state: Ref[S]): IO[Nothing, Unit] =
+      def process[A](msg: PendingMessage[E, F, A], state: Ref[S]): URIO[R, Unit] =
         for {
           s             <- state.get
           (fa, promise) = msg
@@ -63,13 +64,13 @@ object Actor {
     }
   }
 
-  private[actors] trait AbstractStateful[S, +E <: Throwable, -F[+_]] {
+  private[actors] trait AbstractStateful[R, S, +E <: Throwable, -F[+_]] {
 
     private[actors] def constructActor(
-      supervisor: Supervisor[E],
+      supervisor: Supervisor[R, E],
       context: Context,
       mailboxSize: Int = DefaultActorMailboxSize
-    )(initial: S): Task[Actor[E, F]]
+    )(initial: S): RIO[R, Actor[E, F]]
 
   }
 

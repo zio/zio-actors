@@ -3,7 +3,7 @@ package zio.actors.persistence
 import java.io.File
 
 import zio.actors.{ ActorSystem, Context, Supervisor }
-import zio.IO
+import zio.{ IO, UIO }
 import zio.test.DefaultRunnableSpec
 import zio.test._
 import zio.test.Assertion._
@@ -24,12 +24,12 @@ object CounterUtils {
 
 object SpecUtils {
 
-  val ESCounterHandler = new EventSourcedStateful[Int, Nothing, Message, CounterEvent]("id1") {
+  val ESCounterHandler = new EventSourcedStateful[Any, Int, Nothing, Message, CounterEvent]("id1") {
     override def receive[A](
       state: Int,
       msg: Message[A],
       context: Context
-    ): IO[Nothing, (Command[CounterEvent], A)] =
+    ): UIO[(Command[CounterEvent], A)] =
       msg match {
         case Reset    => IO.effectTotal((Command.persist(ResetEvent), ()))
         case Increase => IO.effectTotal((Command.persist(IncreaseEvent), ()))

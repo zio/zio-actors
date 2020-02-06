@@ -56,7 +56,7 @@ The imports we need for simple example:
 import zio.actors._
 import zio.actors.{ ActorSystem, Context, Supervisor }
 import zio.actors.persistence._
-import zio.IO
+import zio.{ IO, Task }
 ```
 
 Case objects for messages that our actor can process and persisted events:
@@ -76,12 +76,12 @@ case object IncreaseEvent extends CounterEvent
 `EventSourcedStateful` implementation with persisted and idempotent receive patterns:
 
 ```scala mdoc:silent
-  val ESCounterHandler = new EventSourcedStateful[Int, Throwable, Message, CounterEvent]("id1") {
+  val ESCounterHandler = new EventSourcedStateful[Any, Int, Throwable, Message, CounterEvent]("id1") {
     override def receive[A](
       state: Int,
       msg: Message[A],
       context: Context
-    ): IO[Throwable, (Command[CounterEvent], A)] =
+    ): Task[(Command[CounterEvent], A)] =
       msg match {
         case Reset    => IO.effectTotal((Command.persist(ResetEvent), ()))
         case Increase => IO.effectTotal((Command.persist(IncreaseEvent), ()))

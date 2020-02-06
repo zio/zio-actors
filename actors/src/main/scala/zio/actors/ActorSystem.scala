@@ -3,7 +3,7 @@ package zio.actors
 import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream }
 import java.nio.ByteBuffer
 
-import zio.{ Chunk, IO, Promise, Ref, Task, UIO, ZIO }
+import zio.{ Chunk, IO, Promise, RIO, Ref, Task, UIO, ZIO }
 import zio.actors.Actor.{ AbstractStateful, Stateful }
 import zio.actors.ActorSystemUtils._
 import zio.actors.Utils._
@@ -142,8 +142,8 @@ final class ActorSystem private[actors] (
     actorName: String,
     sup: Supervisor[R, E],
     init: S,
-    stateful: Stateful[R, S, E, F]
-  ): ZIO[R, Throwable, ActorRef[E, F]] =
+    stateful: AbstractStateful[R, S, E, F]
+  ): RIO[R, ActorRef[E, F]] =
     for {
       map           <- refActorMap.get
       finalName     <- buildFinalName(parentActor.getOrElse(""), actorName)
