@@ -321,8 +321,8 @@ private[actors] object ActorSystemUtils {
 
   def writeToWire(socket: AsynchronousSocketChannel, obj: Any): Task[Unit] =
     for {
-      bytes  <- objToByteArray(obj)
-      _      <- socket.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(bytes.size).array()))
-      _      <- socket.write(Chunk.fromArray(bytes))
+      bytes <- objToByteArray(obj)
+      _     <- socket.write(Chunk.fromArray(ByteBuffer.allocate(4).putInt(bytes.size).array()))
+      _     <- socket.write(Chunk.fromArray(bytes))
     } yield ()
 }

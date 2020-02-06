@@ -48,8 +48,8 @@ Then we are ready to instantiate the actor and fire off messages:
 
 ```scala mdoc:silent
 for {
-  system <- ActorSystem("mySystem")
-  actor <- system.make("actor1", Supervisor.none, (), stateful)
+  system  <- ActorSystem("mySystem")
+  actor   <- system.make("actor1", Supervisor.none, (), stateful)
   doubled <- actor ! DoubleCommand(42)
 } yield doubled
 ```

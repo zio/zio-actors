@@ -28,7 +28,7 @@ object StopUtils {
 object ActorsSpec
     extends DefaultRunnableSpec(
       suite("Test the basic actor behavior")(
-        testM("sequential message processing") {
+        testM("Sequential message processing") {
           import CounterUtils._
 
           val handler = new Stateful[Any, Int, Nothing, Message] {
@@ -54,7 +54,7 @@ object ActorsSpec
             c2     <- actor ? Get
           } yield assert(c1, equalTo(2)) && assert(c2, equalTo(0))
         },
-        testM("error recovery by retrying") {
+        testM("Error recovery by retrying") {
           import TickUtils._
 
           val maxRetries = 10
@@ -88,7 +88,7 @@ object ActorsSpec
             count    <- ref.get
           } yield assert(count, equalTo(maxRetries))
         },
-        testM("error recovery by fallback action") {
+        testM("Error recovery by fallback action") {
           import TickUtils._
 
           val handler = new Stateful[Any, Unit, Throwable, Message] {

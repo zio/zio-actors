@@ -87,7 +87,7 @@ object RemoteSpec
     extends DefaultRunnableSpec(
       suite("RemoteSpec")(
         suite("Remote communication suite")(
-          testM("remote test send message") {
+          testM("Remote test send message") {
             for {
               actorSystemOne <- ActorSystem("testSystem11", configFile)
               _              <- actorSystemOne.make("actorOne", Supervisor.none, 0, handlerMessageTrait)

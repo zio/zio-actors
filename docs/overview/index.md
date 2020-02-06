@@ -9,6 +9,7 @@ Here's list of contents available:
  - **[Basics](basics.md)** — Instantiating `ActorSystem`, defining actor's behavior, spawning actors.
  - **[Supervision](supervision.md)** — Short description of supervision functionality usage
  - **[Remoting](remoting.md)** — Defining remoting configuration, usage example, restrictions
+ - **[Persistence](persistence.md)** - Event sourcing mechanism, datastore configuration
 
 ## Installation
 
