@@ -3,7 +3,7 @@ package zio.actors.persistence
 import java.io.File
 
 import zio.actors.{ ActorSystem, Context, Supervisor }
-import zio.{ IO, UIO }
+import zio.UIO
 import zio.test.DefaultRunnableSpec
 import zio.test._
 import zio.test.Assertion._
@@ -29,15 +29,13 @@ object SpecUtils {
       state: Int,
       msg: Message[A],
       context: Context
-    ): UIO[(Command[CounterEvent], A)] =
+    ): UIO[(Command[CounterEvent], Int => A)] =
       msg match {
-        case Reset    => IO.effectTotal((Command.persist(ResetEvent), ()))
-        case Increase => IO.effectTotal((Command.persist(IncreaseEvent), ()))
-        case Get      => IO.effectTotal((Command.ignore, state))
+        case Reset    => UIO((Command.persist(ResetEvent), _ => ()))
+        case Increase => UIO((Command.persist(IncreaseEvent), _ => ()))
+        case Get      => UIO((Command.ignore, _ => state))
         case Stop =>
-          context.stop
-            .map(_ => (Command.ignore, ()))
-            .catchAll(_ => IO.effectTotal((Command.ignore, ())))
+          context.stop.catchAll(_ => UIO.unit) *> UIO((Command.ignore, _ => ()))
       }
 
     override def sourceEvent(state: Int, event: CounterEvent): Int =

@@ -37,7 +37,7 @@ object Command {
 abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persistenceId: String)
     extends AbstractStateful[R, S, E, F] {
 
-  def receive[A](state: S, msg: F[A], context: Context): ZIO[R, E, (Command[Ev], A)]
+  def receive[A](state: S, msg: F[A], context: Context): ZIO[R, E, (Command[Ev], S => A)]
 
   def sourceEvent(state: S, event: Ev): S
 
@@ -88,15 +88,15 @@ abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persisten
         fullCompleter = (
           (
             ev: Command[Ev],
-            a: A
+            sa: S => A
           ) =>
             ev match {
-              case Ignore => idempotentCompleter(a)
+              case Ignore => idempotentCompleter(sa(s))
               case Persist(ev) =>
                 for {
                   _            <- journal.persistEvent(persistenceId, ev)
                   updatedState = sourceEvent(s, ev)
-                  res          <- effectfulCompleter(updatedState, a)
+                  res          <- effectfulCompleter(updatedState, sa(updatedState))
                 } yield res
             }
           ).tupled

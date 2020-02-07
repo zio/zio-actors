@@ -81,12 +81,12 @@ case object IncreaseEvent extends CounterEvent
       state: Int,
       msg: Message[A],
       context: Context
-    ): Task[(Command[CounterEvent], A)] =
+    ): Task[(Command[CounterEvent], Int => A)] =
       msg match {
-        case Reset    => IO.effectTotal((Command.persist(ResetEvent), ()))
-        case Increase => IO.effectTotal((Command.persist(IncreaseEvent), ()))
-        case Get      => IO.effectTotal((Command.ignore, state))
-        case Stop     => context.stop.map(_ => (Command.ignore, ()))     
+        case Reset    => IO.effectTotal((Command.persist(ResetEvent), _ => ()))
+        case Increase => IO.effectTotal((Command.persist(IncreaseEvent), _ => ()))
+        case Get      => IO.effectTotal((Command.ignore, _ => state))
+        case Stop     => context.stop.map(_ => (Command.ignore, _ => ()))     
       }
 
     override def sourceEvent(state: Int, event: CounterEvent): Int =
