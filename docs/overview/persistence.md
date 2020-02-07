@@ -66,7 +66,6 @@ sealed trait Message[+_]
 case object Reset    extends Message[Unit]
 case object Increase extends Message[Unit]
 case object Get      extends Message[Int]
-case object Stop     extends Message[Unit]
 
 sealed trait CounterEvent
 case object ResetEvent    extends CounterEvent
@@ -86,7 +85,6 @@ case object IncreaseEvent extends CounterEvent
         case Reset    => IO.effectTotal((Command.persist(ResetEvent), _ => ()))
         case Increase => IO.effectTotal((Command.persist(IncreaseEvent), _ => ()))
         case Get      => IO.effectTotal((Command.ignore, _ => state))
-        case Stop     => context.stop.map(_ => (Command.ignore, _ => ()))     
       }
 
     override def sourceEvent(state: Int, event: CounterEvent): Int =
@@ -105,8 +103,8 @@ for {
   actorSystem <- ActorSystem("testSystem1")
   actor       <- actorSystem.make("actor1", Supervisor.none, 0, ESCounterHandler)
   _           <- actor ! Increase
-  _           <- actor ! Increase
-  _           <- actor ? Stop
+  _           <- actor ? Increase
+  _           <- actor.stop
   actor       <- actorSystem.make("actor1", Supervisor.none, 0, ESCounterHandler)
   _           <- actor ! Increase
   counter     <- actor ? Get

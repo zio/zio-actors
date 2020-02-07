@@ -46,6 +46,7 @@ abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persisten
   override final def constructActor(
     supervisor: Supervisor[R, E],
     context: Context,
+    optOutActorSystem: () => Task[Unit],
     mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S): RIO[R, Actor[E, F]] = {
 
@@ -119,7 +120,7 @@ abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persisten
             t <- queue.take
             _ <- process(t, state, journal)
           } yield ()).forever.fork
-    } yield new Actor[E, F](queue)
+    } yield new Actor[E, F](queue, context.childrenRef)(optOutActorSystem)
   }
 
 }

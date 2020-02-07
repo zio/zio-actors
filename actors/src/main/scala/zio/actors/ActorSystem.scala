@@ -44,7 +44,7 @@ object ActorSystem {
 final class Context private[actors] (
   private val path: String,
   private[actors] val actorSystem: ActorSystem,
-  private val childrenRef: Ref[Set[ActorRef[Throwable, Any]]]
+  private[actors] val childrenRef: Ref[Set[ActorRef[Throwable, Any]]]
 ) {
 
   /**
@@ -95,20 +95,6 @@ final class Context private[actors] (
   def select[E1 <: Throwable, F1[+_]](path: String): Task[ActorRef[E1, F1]] =
     actorSystem.select(path)
 
-  /**
-   *
-   * Stops this actors and all its children.
-   *
-   * @return list of actor's unprocessed messages
-   */
-  def stop: Task[List[_]] =
-    for {
-      children <- childrenRef.get
-      _        <- ZIO.traverse(children)(c => c.stop *> c.path >>= actorSystem.dropFromActorMap)
-      self     <- self[Throwable, Any]
-      dump     <- self.stop
-      _        <- self.path >>= actorSystem.dropFromActorMap
-    } yield dump
 }
 
 /**
@@ -121,7 +107,7 @@ final class ActorSystem private[actors] (
   private[actors] val actorSystemName: String,
   private[actors] val configFile: Option[File],
   private val remoteConfig: Option[RemoteConfig],
-  private val refActorMap: Ref[Map[String, Any]],
+  private[actors] val refActorMap: Ref[Map[String, Any]],
   private val parentActor: Option[String]
 ) {
 
@@ -151,8 +137,12 @@ final class ActorSystem private[actors] (
       path          = buildPath(actorSystemName, finalName, remoteConfig)
       derivedSystem = new ActorSystem(actorSystemName, configFile, remoteConfig, refActorMap, Some(finalName))
       childrenSet   <- Ref.make(Set.empty[ActorRef[Throwable, Any]])
-      actor         <- stateful.constructActor(sup, new Context(path, derivedSystem, childrenSet))(init)
-      _             <- refActorMap.set(map + (finalName -> actor))
+      actor <- stateful.constructActor(
+                sup,
+                new Context(path, derivedSystem, childrenSet),
+                () => dropFromActorMap(path)
+              )(init)
+      _ <- refActorMap.set(map + (finalName -> actor))
     } yield new ActorRefLocal[E, F](path, actor)
 
   /**
@@ -203,7 +193,7 @@ final class ActorSystem private[actors] (
   def shutdown: Task[List[_]] =
     for {
       systemActors <- refActorMap.get
-      actorsDump   <- ZIO.traverse(systemActors)(_.asInstanceOf[ActorRef[Throwable, Any]].stop)
+      actorsDump   <- ZIO.traverse(systemActors.values)(_.asInstanceOf[Actor[Throwable, Any]].stop)
     } yield actorsDump.flatten
 
   /* INTERNAL API */

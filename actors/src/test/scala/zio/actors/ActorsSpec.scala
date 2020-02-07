@@ -21,8 +21,7 @@ object TickUtils {
 
 object StopUtils {
   sealed trait Msg[+_]
-  case object Shutdown extends Msg[List[_]]
-  case object Letter   extends Msg[Unit]
+  case object Letter extends Msg[Unit]
 }
 
 object ActorsSpec
@@ -31,7 +30,7 @@ object ActorsSpec
         testM("Sequential message processing") {
           import CounterUtils._
 
-          val handler = new Stateful[Any, Int, Nothing, Message] {
+          val handler: Stateful[Any, Int, Nothing, Message] = new Stateful[Any, Int, Nothing, Message] {
             override def receive[A](
               state: Int,
               msg: Message[A],
@@ -129,18 +128,14 @@ object ActorsSpec
             ): IO[Throwable, (Unit, A)] =
               msg match {
                 case Letter => IO.succeed(((), ()))
-                case Shutdown =>
-                  for {
-                    dump <- context.stop
-                  } yield ((), dump)
               }
           }
           for {
             system <- ActorSystem("test1")
             actor  <- system.make("actor1", Supervisor.none, (), handler)
             _      <- actor ! Letter
-            _      <- actor ! Letter
-            dump   <- actor ? Shutdown
+            _      <- actor ? Letter
+            dump   <- actor.stop
           } yield assert(
             dump,
             isSubtype[List[_]](anything) &&

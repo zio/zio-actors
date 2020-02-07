@@ -35,6 +35,7 @@ object Actor {
     final override def constructActor(
       supervisor: Supervisor[R, E],
       context: Context,
+      optOutActorSystem: () => Task[Unit],
       mailboxSize: Int = DefaultActorMailboxSize
     )(initial: S): URIO[R, Actor[E, F]] = {
 
@@ -60,7 +61,7 @@ object Actor {
               t <- queue.take
               _ <- process(t, state)
             } yield ()).forever.fork
-      } yield new Actor[E, F](queue)
+      } yield new Actor[E, F](queue, context.childrenRef)(optOutActorSystem)
     }
   }
 
@@ -69,6 +70,7 @@ object Actor {
     private[actors] def constructActor(
       supervisor: Supervisor[R, E],
       context: Context,
+      optOutActorSystem: () => Task[Unit],
       mailboxSize: Int = DefaultActorMailboxSize
     )(initial: S): RIO[R, Actor[E, F]]
 
@@ -78,7 +80,10 @@ object Actor {
 
 }
 
-private[actors] final class Actor[+E <: Throwable, -F[+_]](queue: Queue[PendingMessage[E, F, _]]) {
+private[actors] final class Actor[+E <: Throwable, -F[+_]](
+  queue: Queue[PendingMessage[E, F, _]],
+  childrenRef: Ref[Set[ActorRef[Throwable, Any]]]
+)(optOutActorSystem: () => Task[Unit]) {
   def ?[A](fa: F[A]): Task[A] =
     for {
       promise <- Promise.make[E, A]
@@ -102,9 +107,16 @@ private[actors] final class Actor[+E <: Throwable, -F[+_]](queue: Queue[PendingM
         this.stop
     }
 
-  val stop: IO[Nothing, List[_]] =
+  //TODO add poison pill?
+  //private val poisonPill: Task[List[_]] = ???
+
+  val stop: Task[List[_]] =
     for {
-      tall <- queue.takeAll
-      _    <- queue.shutdown
+      children <- childrenRef.get
+      _        <- ZIO.traverse(children)(_.stop)
+      _        <- childrenRef.set(Set.empty)
+      tall     <- queue.takeAll
+      _        <- queue.shutdown
+      _        <- optOutActorSystem()
     } yield tall
 }

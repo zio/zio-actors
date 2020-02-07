@@ -43,10 +43,10 @@ sealed trait ActorRef[+E <: Throwable, -F[+_]] extends Serializable {
   val path: UIO[String]
 
   /**
-   * Not available from outside of the actor.
-   * Actor can be stopped only within behavior's context or by ActorSystem shutdown
+   * Stops actor and all its children
    */
-  private[actors] val stop: Task[List[_]]
+  val stop: Task[List[_]]
+
 }
 
 /* INTERNAL API */
@@ -94,7 +94,7 @@ private[actors] final class ActorRefLocal[E <: Throwable, -F[+_]](
 
   override def !(fa: F[_]): Task[Unit] = actor ! fa
 
-  override val stop: IO[Nothing, List[_]] = actor.stop
+  override val stop: Task[List[_]] = actor.stop
 
   @throws[IOException]
   private def writeObject(out: ObjectOutputStream): Unit =

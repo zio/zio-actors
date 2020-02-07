@@ -44,8 +44,8 @@ private[actors] class InMemJournal[Ev](journalRef: Ref[List[JournalRow[Ev]]]) ex
     for {
       journal <- journalRef.get
       maxSeq  = journal.filter(_.persistenceId == persistenceId).map(_.seqNum)
-      mm      = if (maxSeq.isEmpty) 0 else maxSeq.max
-      _       <- journalRef.set(journal :+ JournalRow(persistenceId, mm + 1, event))
+      max     = if (maxSeq.isEmpty) 0 else maxSeq.max
+      _       <- journalRef.set(journal :+ JournalRow(persistenceId, max + 1, event))
     } yield ()
 
   override def getEvents(persistenceId: String): Task[Seq[Ev]] =
