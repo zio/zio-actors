@@ -144,7 +144,7 @@ final class ActorSystem private[actors] (
   ): ZIO[R, Throwable, ActorRef[E, F]] =
     for {
       map           <- refActorMap.get
-      finalName     = parentActor.getOrElse("") + "/" + actorName
+      finalName     <- buildFinalName(parentActor.getOrElse(""), actorName)
       _             <- if (map.contains(finalName)) IO.fail(new Exception(s"Actor $finalName already exists")) else IO.unit
       path          = buildPath(actorSystemName, finalName, remoteConfig)
       derivedSystem = new ActorSystem(actorSystemName, remoteConfig, refActorMap, Some(finalName))
@@ -180,7 +180,7 @@ final class ActorSystem private[actors] (
                                       actor <- IO.effectTotal(value.asInstanceOf[Actor[E, F]])
                                     } yield new ActorRefLocal(path, actor)
                                   case None =>
-                                    IO.fail(new Exception("No such actor in local ActorSystem."))
+                                    IO.fail(new Exception(s"No such actor $actorName in local ActorSystem."))
                                 }
                    } yield actorRef
                  } else {
@@ -222,8 +222,14 @@ final class ActorSystem private[actors] (
           obj      <- readFromWire(worker)
           envelope = obj.asInstanceOf[Envelope]
           actorMap <- refActorMap.get
-
-          _ <- actorMap.get("/" + envelope.recipient.split("/").last) match {
+          remoteActorPath <- for {
+                              path <- resolvePath(envelope.recipient)
+                            } yield {
+                              path match {
+                                case (_, _, _, actorPath) => actorPath
+                              }
+                            }
+          _ <- actorMap.get(remoteActorPath) match {
                 case Some(value) =>
                   for {
                     actor <- IO
@@ -251,10 +257,14 @@ final class ActorSystem private[actors] (
 /* INTERNAL API */
 
 private[actors] object ActorSystemUtils {
-  private val regex = "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w|\\/]+)$".r
+
+  private val regexName = "[\\w+|\\d+|(\\-_.*$+:@&=,!~';.)|\\/]+".r
+
+  private val regexFullPath =
+    "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w+|\\d+|\\-_.*$+:@&=,!~';.|\\/]+)$".r
 
   def resolvePath(path: String): Task[(String, Addr, Port, String)] =
-    regex.findFirstMatchIn(path) match {
+    regexFullPath.findFirstMatchIn(path) match {
       case Some(value) if value.groupCount == 4 =>
         val actorSystemName = value.group(1)
         val address         = Addr(value.group(2))
@@ -267,6 +277,17 @@ private[actors] object ActorSystemUtils {
             "Invalid path provided. The pattern is zio://YOUR_ACTOR_SYSTEM_NAME@ADDRES:PORT/RELATIVE_ACTOR_PATH"
           )
         )
+    }
+
+  def buildFinalName(parentActorName: String, actorName: String): Task[String] =
+    actorName match {
+      case ""   => IO.fail(new Exception("Actor actor must not be empty"))
+      case null => IO.fail(new Exception("Actor actor must not be null"))
+      case name =>
+        regexName.pattern.matcher(name).matches match {
+          case true  => UIO.effectTotal(parentActorName + "/" + actorName)
+          case false => IO.fail(new Exception(s"Invalid actor name provided $name. Valid symbols are -_.*$$+:@&=,!~';"))
+        }
     }
 
   def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[RemoteConfig]): String =

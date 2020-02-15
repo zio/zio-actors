@@ -137,7 +137,11 @@ object RemoteSpec
               program.run,
               fails(isSubtype[Throwable](anything)) &&
                 fails(
-                  hasField[Throwable, String]("message", _.getMessage, equalTo("No such actor in local ActorSystem."))
+                  hasField[Throwable, String](
+                    "message",
+                    _.getMessage,
+                    equalTo("No such actor /actorTwo in local ActorSystem.")
+                  )
                 )
             )
           },
@@ -188,6 +192,17 @@ object RemoteSpec
               fails(isSubtype[Throwable](anything)) &&
                 fails(hasField[Throwable, String]("message", _.getMessage, equalTo("Error on remote side")))
             )
+          },
+          testM("remote test select actor with special symbols") {
+            for {
+              actorSystemOne <- ActorSystem("testSystem71", configFile)
+              _              <- actorSystemOne.make("actor-One-;_&", Supervisor.none, 0, handlerMessageTrait)
+              actorSystemTwo <- ActorSystem("testSystem72", configFile)
+              actorRef <- actorSystemTwo.select[MyErrorDomain, Message](
+                           "zio://testSystem71@127.0.0.1:9677/actor-One-;_&"
+                         )
+              result <- actorRef ? Str("ZIO-Actor response... ")
+            } yield assert(result, equalTo("ZIO-Actor response... received plus 01"))
           }
         )
       )

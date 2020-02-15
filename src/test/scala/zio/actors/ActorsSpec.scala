@@ -146,6 +146,60 @@ object ActorsSpec
             isSubtype[List[_]](anything) &&
               hasField[List[_], Int]("size", _.size, equalTo(0))
           )
+        },
+        testM("Select local actor") {
+          import TickUtils._
+
+          val handler = new Stateful[Any, Unit, Throwable, Message] {
+            override def receive[A](
+              state: Unit,
+              msg: Message[A],
+              context: Context
+            ): IO[Throwable, (Unit, A)] =
+              msg match {
+                case Tick => IO.succeed(((), ()))
+              }
+          }
+          for {
+            system    <- ActorSystem("test5")
+            _         <- system.make("actor1-1", Supervisor.none, (), handler)
+            actor     <- system.select[Throwable, Message]("zio://test5@0.0.0.0:0000/actor1-1")
+            _         <- actor ! Tick
+            actorPath <- actor.path
+          } yield assert(actorPath, equalTo("zio://test5@0.0.0.0:0000/actor1-1"))
+        },
+        testM("Local actor does not exist") {
+          import TickUtils._
+
+          val handler = new Stateful[Any, Unit, Throwable, Message] {
+            override def receive[A](
+              state: Unit,
+              msg: Message[A],
+              context: Context
+            ): IO[Throwable, (Unit, A)] =
+              msg match {
+                case Tick => IO.succeed(((), ()))
+              }
+          }
+
+          val program = for {
+            system <- ActorSystem("test6")
+            _      <- system.make("actorOne", Supervisor.none, (), handler)
+            actor  <- system.select[Throwable, Message]("zio://test6@0.0.0.0:0000/actorTwo")
+            _      <- actor ! Tick
+          } yield ()
+
+          assertM(
+            program.run,
+            fails(isSubtype[Throwable](anything)) &&
+              fails(
+                hasField[Throwable, String](
+                  "message",
+                  _.getMessage,
+                  equalTo("No such actor /actorTwo in local ActorSystem.")
+                )
+              )
+          )
         }
       )
     )
