@@ -1,11 +1,12 @@
 package zio.actors.persistence.journal
 
 import zio.Task
+import zio.actors.persistence.PersistenceId.PersistenceId
 
 private[actors] trait Journal[Ev] {
 
-  def persistEvent(persistenceId: String, event: Ev): Task[Unit]
+  def persistEvent(persistenceId: PersistenceId, event: Ev): Task[Unit]
 
-  def getEvents(persistenceId: String): Task[Seq[Ev]]
+  def getEvents(persistenceId: PersistenceId): Task[Seq[Ev]]
 
 }

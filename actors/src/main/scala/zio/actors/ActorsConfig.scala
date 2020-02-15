@@ -1,17 +1,15 @@
 package zio.actors
 
-import java.io.File
-
 import zio.Task
 import zio.config.ConfigDescriptor
 import zio.config.ConfigDescriptor._
 import zio.config.typesafe.TypesafeConfig
 
-private[actors] object Utils {
+private[actors] object ActorsConfig {
 
-  case class Addr(value: String) extends AnyVal
-  case class Port(value: Int)    extends AnyVal
-  case class RemoteConfig(addr: Addr, port: Port)
+  final case class Addr(value: String) extends AnyVal
+  final case class Port(value: Int)    extends AnyVal
+  final case class RemoteConfig(addr: Addr, port: Port)
 
   val remoteConfig: ConfigDescriptor[String, String, Option[RemoteConfig]] =
     nested("remoting") {
@@ -30,15 +28,15 @@ private[actors] object Utils {
 
   def getConfig[T](
     systemName: String,
-    configFile: File,
+    configStr: String,
     configDescriptor: ConfigDescriptor[String, String, T]
   ): Task[T] =
     for {
-      config          <- TypesafeConfig.fromHocconFile(selectiveSystemConfig(systemName, configDescriptor), configFile)
+      config          <- TypesafeConfig.fromHocconString(configStr, selectiveSystemConfig(systemName, configDescriptor))
       unwrappedConfig <- config.config.config
     } yield unwrappedConfig
 
-  def getRemoteConfig(systemName: String, configFile: File): Task[Option[RemoteConfig]] =
-    getConfig(systemName, configFile, remoteConfig)
+  def getRemoteConfig(systemName: String, configStr: String): Task[Option[RemoteConfig]] =
+    getConfig(systemName, configStr, remoteConfig)
 
 }

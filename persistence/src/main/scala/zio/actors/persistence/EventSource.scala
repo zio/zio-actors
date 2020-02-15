@@ -1,12 +1,12 @@
 package zio.actors.persistence
 
-import java.io.File
+import scala.reflect._
 
 import zio.actors.{ Actor, Context, Supervisor }
 import zio.{ IO, Queue, RIO, Ref, Task, ZIO }
 import zio.actors.Actor._
-import zio.actors.persistence.Utils.JournalPlugin
-import zio.actors.persistence.journal.{ InMemJournal, JDBCJournal, Journal }
+import zio.actors.persistence.journal.Journal
+import PersistenceId._
 
 /**
  *
@@ -16,12 +16,17 @@ import zio.actors.persistence.journal.{ InMemJournal, JDBCJournal, Journal }
  * @tparam Ev events that will be persisted
  */
 sealed trait Command[+Ev]
-case class Persist[+Ev](event: Ev) extends Command[Ev]
-case object Ignore                 extends Command[Nothing]
 object Command {
-  def persist[Ev](event: Ev): Persist[Ev] = Persist(event)
+  case class Persist[+Ev](event: Ev) extends Command[Ev]
+  case object Ignore                 extends Command[Nothing]
 
-  def ignore: Ignore.type = Ignore
+  def persist[Ev](event: Ev): Persist[Ev] = Persist(event)
+  def ignore: Ignore.type                 = Ignore
+}
+
+object PersistenceId {
+  final case class PersistenceId(value: String) extends AnyVal
+  def apply(value: String): PersistenceId = PersistenceId(value)
 }
 
 /**
@@ -34,7 +39,7 @@ object Command {
  * @tparam F type of messages that actor receives
  * @tparam Ev events that will be persisted
  */
-abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persistenceId: String)
+abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persistenceId: PersistenceId)
     extends AbstractStateful[R, S, E, F] {
 
   def receive[A](state: S, msg: F[A], context: Context): ZIO[R, E, (Command[Ev], S => A)]
@@ -43,38 +48,26 @@ abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persisten
 
   /* INTERNAL API */
 
-  override final def constructActor(
+  override final def makeActor(
     supervisor: Supervisor[R, E],
     context: Context,
     optOutActorSystem: () => Task[Unit],
     mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S): RIO[R, Actor[E, F]] = {
 
-    val sysName       = context.actorSystem.actorSystemName
-    val optConfigFile = context.actorSystem.configFile
-
-    def retrieveConfig[A](f: (String, File) => Task[A]): Task[A] =
-      optConfigFile.fold[Task[A]](Task.fail(new Exception("Couldn't retrieve persistence config")))(file =>
-        f(sysName, file)
-      )
+    val ctString = classTag[String]
 
     def retrieveJournal: Task[Journal[Ev]] =
       for {
-        pluginChoice <- retrieveConfig(Utils.getPluginChoice)
-        journal <- pluginChoice match {
-                    case JournalPlugin("jdbc-journal") =>
-                      for {
-                        dbConfig <- retrieveConfig(Utils.getDbConfig)
-                        j        <- JDBCJournal.getJournal[Ev](dbConfig)
-                      } yield j
-                    case JournalPlugin("in-mem-journal") =>
-                      for {
-                        inMemConfig <- retrieveConfig(Utils.getInMemConfig)
-                        j           <- InMemJournal.getJournal[Ev](inMemConfig.key)
-                      } yield j
-                    case _ =>
-                      IO.fail(new Exception("Invalid plugin config definition"))
-                  }
+        configStr <- IO
+                      .fromOption(context.actorSystemConfig)
+                      .mapError(_ => new Exception("Couldn't retrieve persistence config"))
+        systemName  = context.actorSystemName
+        pluginClass <- PersistenceConfig.getPluginClass(systemName, configStr)
+        clazz       = Class.forName(pluginClass.value)
+        declMeth    = clazz.getDeclaredMethod("getJournal", ctString.runtimeClass, ctString.runtimeClass)
+        getJournal  = (s: String, f: String) => declMeth.invoke(null, s, f)
+        journal     <- getJournal(systemName, configStr).asInstanceOf[Task[Journal[Ev]]]
       } yield journal
 
     def applyEvents(events: Seq[Ev], state: S): S = events.foldLeft(state)(sourceEvent)
@@ -92,8 +85,8 @@ abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persisten
             sa: S => A
           ) =>
             ev match {
-              case Ignore => idempotentCompleter(sa(s))
-              case Persist(ev) =>
+              case Command.Ignore => idempotentCompleter(sa(s))
+              case Command.Persist(ev) =>
                 for {
                   _            <- journal.persistEvent(persistenceId, ev)
                   updatedState = sourceEvent(s, ev)
@@ -120,7 +113,7 @@ abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persisten
             t <- queue.take
             _ <- process(t, state, journal)
           } yield ()).forever.fork
-    } yield new Actor[E, F](queue, context.childrenRef)(optOutActorSystem)
+    } yield new Actor[E, F](queue)(optOutActorSystem)
   }
 
 }

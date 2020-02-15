@@ -23,7 +23,7 @@ object CounterUtils {
 
 object SpecUtils {
 
-  val ESCounterHandler = new EventSourcedStateful[Any, Int, Nothing, Message, CounterEvent]("id1") {
+  val ESCounterHandler = new EventSourcedStateful[Any, Int, Nothing, Message, CounterEvent](PersistenceId("id1")) {
     override def receive[A](
       state: Int,
       msg: Message[A],
@@ -70,7 +70,13 @@ object PersistenceSpec
             assertM(
               program.run,
               fails(isSubtype[Throwable](anything)) &&
-                fails(hasField[Throwable, String]("message", _.getMessage, equalTo("Invalid plugin config definition")))
+                fails(
+                  hasField[Throwable, Boolean](
+                    "message",
+                    _.getMessage.contains("No configuration setting found for key 'corrupt-plugin'"),
+                    isTrue
+                  )
+                )
             )
           }
         )

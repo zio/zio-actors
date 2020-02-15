@@ -32,7 +32,7 @@ object Actor {
 
     /* INTERNAL API */
 
-    final override def constructActor(
+    final override def makeActor(
       supervisor: Supervisor[R, E],
       context: Context,
       optOutActorSystem: () => Task[Unit],
@@ -61,13 +61,13 @@ object Actor {
               t <- queue.take
               _ <- process(t, state)
             } yield ()).forever.fork
-      } yield new Actor[E, F](queue, context.childrenRef)(optOutActorSystem)
+      } yield new Actor[E, F](queue)(optOutActorSystem)
     }
   }
 
   private[actors] trait AbstractStateful[R, S, +E <: Throwable, -F[+_]] {
 
-    private[actors] def constructActor(
+    private[actors] def makeActor(
       supervisor: Supervisor[R, E],
       context: Context,
       optOutActorSystem: () => Task[Unit],
@@ -81,8 +81,7 @@ object Actor {
 }
 
 private[actors] final class Actor[+E <: Throwable, -F[+_]](
-  queue: Queue[PendingMessage[E, F, _]],
-  childrenRef: Ref[Set[ActorRef[Throwable, Any]]]
+  queue: Queue[PendingMessage[E, F, _]]
 )(optOutActorSystem: () => Task[Unit]) {
   def ?[A](fa: F[A]): Task[A] =
     for {
@@ -100,23 +99,17 @@ private[actors] final class Actor[+E <: Throwable, -F[+_]](
   def unsafeOp(command: Command): Task[Any] =
     command match {
       case Command.Ask(msg) =>
-        this.?(msg.asInstanceOf[F[_]])
+        this ? msg.asInstanceOf[F[_]]
       case Command.Tell(msg) =>
-        this.!(msg.asInstanceOf[F[_]])
+        this ! msg.asInstanceOf[F[_]]
       case Command.Stop =>
         this.stop
     }
 
-  //TODO add poison pill?
-  //private val poisonPill: Task[List[_]] = ???
-
   val stop: Task[List[_]] =
     for {
-      children <- childrenRef.get
-      _        <- ZIO.traverse(children)(_.stop)
-      _        <- childrenRef.set(Set.empty)
-      tall     <- queue.takeAll
-      _        <- queue.shutdown
-      _        <- optOutActorSystem()
+      tall <- queue.takeAll
+      _    <- queue.shutdown
+      _    <- optOutActorSystem()
     } yield tall
 }

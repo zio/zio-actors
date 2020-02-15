@@ -75,7 +75,7 @@ case object IncreaseEvent extends CounterEvent
 `EventSourcedStateful` implementation with persisted and idempotent receive patterns:
 
 ```scala mdoc:silent
-  val ESCounterHandler = new EventSourcedStateful[Any, Int, Throwable, Message, CounterEvent]("id1") {
+  val ESCounterHandler = new EventSourcedStateful[Any, Int, Throwable, Message, CounterEvent](PersistenceId("id1")) {
     override def receive[A](
       state: Int,
       msg: Message[A],
