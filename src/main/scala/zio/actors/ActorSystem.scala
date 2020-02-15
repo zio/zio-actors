@@ -218,17 +218,11 @@ final class ActorSystem private[actors] (
         _ <- p.succeed(())
 
         loop = for {
-          worker   <- channel.accept
-          obj      <- readFromWire(worker)
-          envelope = obj.asInstanceOf[Envelope]
-          actorMap <- refActorMap.get
-          remoteActorPath <- for {
-                              path <- resolvePath(envelope.recipient)
-                            } yield {
-                              path match {
-                                case (_, _, _, actorPath) => actorPath
-                              }
-                            }
+          worker          <- channel.accept
+          obj             <- readFromWire(worker)
+          envelope        = obj.asInstanceOf[Envelope]
+          actorMap        <- refActorMap.get
+          remoteActorPath <- resolvePath(envelope.recipient).map(_._4)
           _ <- actorMap.get(remoteActorPath) match {
                 case Some(value) =>
                   for {
@@ -258,13 +252,13 @@ final class ActorSystem private[actors] (
 
 private[actors] object ActorSystemUtils {
 
-  private val regexName = "[\\w+|\\d+|(\\-_.*$+:@&=,!~';.)|\\/]+".r
+  private val RegexName = "[\\w+|\\d+|(\\-_.*$+:@&=,!~';.)|\\/]+".r
 
-  private val regexFullPath =
+  private val RegexFullPath =
     "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w+|\\d+|\\-_.*$+:@&=,!~';.|\\/]+)$".r
 
   def resolvePath(path: String): Task[(String, Addr, Port, String)] =
-    regexFullPath.findFirstMatchIn(path) match {
+    RegexFullPath.findFirstMatchIn(path) match {
       case Some(value) if value.groupCount == 4 =>
         val actorSystemName = value.group(1)
         val address         = Addr(value.group(2))
@@ -279,15 +273,12 @@ private[actors] object ActorSystemUtils {
         )
     }
 
-  def buildFinalName(parentActorName: String, actorName: String): Task[String] =
+  private[actors] def buildFinalName(parentActorName: String, actorName: String): Task[String] =
     actorName match {
-      case ""   => IO.fail(new Exception("Actor actor must not be empty"))
-      case null => IO.fail(new Exception("Actor actor must not be null"))
-      case name =>
-        regexName.pattern.matcher(name).matches match {
-          case true  => UIO.effectTotal(parentActorName + "/" + actorName)
-          case false => IO.fail(new Exception(s"Invalid actor name provided $name. Valid symbols are -_.*$$+:@&=,!~';"))
-        }
+      case ""            => IO.fail(new Exception("Actor actor must not be empty"))
+      case null          => IO.fail(new Exception("Actor actor must not be null"))
+      case RegexName(_*) => UIO.effectTotal(parentActorName + "/" + actorName)
+      case _             => IO.fail(new Exception(s"Invalid actor name provided $actorName. Valid symbols are -_.*$$+:@&=,!~';"))
     }
 
   def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[RemoteConfig]): String =
