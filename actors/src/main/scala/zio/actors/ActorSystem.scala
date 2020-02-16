@@ -3,7 +3,7 @@ package zio.actors
 import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream }
 import java.nio.ByteBuffer
 
-import zio.{ Chunk, IO, Managed, Promise, RIO, Ref, Task, UIO, ZIO }
+import zio.{ Chunk, IO, Promise, RIO, Ref, Task, UIO, ZIO }
 import zio.actors.Actor.{ AbstractStateful, Stateful }
 import zio.actors.ActorSystemUtils._
 import zio.actors.ActorsConfig._
@@ -299,21 +299,16 @@ private[actors] object ActorSystemUtils {
 
   def retrieveConfig(configFile: Option[File]): Task[Option[String]] =
     configFile.fold[Task[Option[String]]](Task.none) { file =>
-      Managed.make(IO(Source.fromFile(file)))(f => UIO(f.close())).use { a =>
-        IO.some(a.mkString)
-      }
+      IO(Source.fromFile(file)).toManaged(f => UIO(f.close())).use(s => IO.some(s.mkString))
     }
 
   def retrieveRemoteConfig(sysName: String, configStr: Option[String]): Task[Option[RemoteConfig]] =
     configStr.fold[Task[Option[RemoteConfig]]](Task.none)(file => ActorsConfig.getRemoteConfig(sysName, file))
 
   def objFromByteArray(bytes: Array[Byte]): Task[Any] =
-    for {
-      stream <- UIO(new ByteArrayInputStream(bytes))
-      ois    <- Task(new ObjectInputStream(stream))
-      obj    <- Task(ois.readObject())
-      _      <- Task(ois.close())
-    } yield obj
+    Task(new ObjectInputStream(new ByteArrayInputStream(bytes))).toManaged(s => UIO(s.close())).use { s =>
+      Task(s.readObject())
+    }
 
   def readFromWire(socket: AsynchronousSocketChannel): Task[Any] =
     for {
@@ -329,10 +324,10 @@ private[actors] object ActorSystemUtils {
   def objToByteArray(obj: Any): Task[Array[Byte]] =
     for {
       stream <- UIO(new ByteArrayOutputStream())
-      oos    <- Task(new ObjectOutputStream(stream))
-      _      <- Task(oos.writeObject(obj))
-      _      <- Task(oos.close())
-    } yield stream.toByteArray
+      bytes <- Task(new ObjectOutputStream(stream)).toManaged(s => UIO(s.close())).use { s =>
+                Task(s.writeObject(obj)) *> UIO(stream.toByteArray)
+              }
+    } yield bytes
 
   def writeToWire(socket: AsynchronousSocketChannel, obj: Any): Task[Unit] =
     for {

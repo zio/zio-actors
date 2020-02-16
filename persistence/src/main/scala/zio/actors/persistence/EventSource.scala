@@ -93,7 +93,7 @@ abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persisten
                   res          <- effectfulCompleter(updatedState, sa(updatedState))
                 } yield res
             }
-          ).tupled
+        ).tupled
         _ <- receiver.foldM(
               e =>
                 supervisor
