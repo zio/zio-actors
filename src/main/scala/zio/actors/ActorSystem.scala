@@ -144,7 +144,7 @@ final class ActorSystem private[actors] (
   ): ZIO[R, Throwable, ActorRef[E, F]] =
     for {
       map           <- refActorMap.get
-      finalName     = parentActor.getOrElse("") + "/" + actorName
+      finalName     <- buildFinalName(parentActor.getOrElse(""), actorName)
       _             <- if (map.contains(finalName)) IO.fail(new Exception(s"Actor $finalName already exists")) else IO.unit
       path          = buildPath(actorSystemName, finalName, remoteConfig)
       derivedSystem = new ActorSystem(actorSystemName, remoteConfig, refActorMap, Some(finalName))
@@ -180,7 +180,7 @@ final class ActorSystem private[actors] (
                                       actor <- IO.effectTotal(value.asInstanceOf[Actor[E, F]])
                                     } yield new ActorRefLocal(path, actor)
                                   case None =>
-                                    IO.fail(new Exception("No such actor in local ActorSystem."))
+                                    IO.fail(new Exception(s"No such actor $actorName in local ActorSystem."))
                                 }
                    } yield actorRef
                  } else {
@@ -218,12 +218,12 @@ final class ActorSystem private[actors] (
         _ <- p.succeed(())
 
         loop = for {
-          worker   <- channel.accept
-          obj      <- readFromWire(worker)
-          envelope = obj.asInstanceOf[Envelope]
-          actorMap <- refActorMap.get
-
-          _ <- actorMap.get("/" + envelope.recipient.split("/").last) match {
+          worker          <- channel.accept
+          obj             <- readFromWire(worker)
+          envelope        = obj.asInstanceOf[Envelope]
+          actorMap        <- refActorMap.get
+          remoteActorPath <- resolvePath(envelope.recipient).map(_._4)
+          _ <- actorMap.get(remoteActorPath) match {
                 case Some(value) =>
                   for {
                     actor <- IO
@@ -251,10 +251,14 @@ final class ActorSystem private[actors] (
 /* INTERNAL API */
 
 private[actors] object ActorSystemUtils {
-  private val regex = "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w|\\/]+)$".r
+
+  private val RegexName = "[\\w+|\\d+|(\\-_.*$+:@&=,!~';.)|\\/]+".r
+
+  private val RegexFullPath =
+    "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w+|\\d+|\\-_.*$+:@&=,!~';.|\\/]+)$".r
 
   def resolvePath(path: String): Task[(String, Addr, Port, String)] =
-    regex.findFirstMatchIn(path) match {
+    RegexFullPath.findFirstMatchIn(path) match {
       case Some(value) if value.groupCount == 4 =>
         val actorSystemName = value.group(1)
         val address         = Addr(value.group(2))
@@ -267,6 +271,14 @@ private[actors] object ActorSystemUtils {
             "Invalid path provided. The pattern is zio://YOUR_ACTOR_SYSTEM_NAME@ADDRES:PORT/RELATIVE_ACTOR_PATH"
           )
         )
+    }
+
+  private[actors] def buildFinalName(parentActorName: String, actorName: String): Task[String] =
+    actorName match {
+      case ""            => IO.fail(new Exception("Actor actor must not be empty"))
+      case null          => IO.fail(new Exception("Actor actor must not be null"))
+      case RegexName(_*) => UIO.effectTotal(parentActorName + "/" + actorName)
+      case _             => IO.fail(new Exception(s"Invalid actor name provided $actorName. Valid symbols are -_.*$$+:@&=,!~';"))
     }
 
   def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[RemoteConfig]): String =
