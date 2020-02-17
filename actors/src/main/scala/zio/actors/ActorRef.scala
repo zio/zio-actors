@@ -10,10 +10,9 @@ import zio.{ DefaultRuntime, IO, Task, UIO }
  *
  * Reference to actor that might reside on local JVM instance or be available via remote communication
  *
- * @tparam E error type
  * @tparam F wrapper type constructing DSL
  */
-sealed trait ActorRef[+E <: Throwable, -F[+_]] extends Serializable {
+sealed trait ActorRef[-F[+_]] extends Serializable {
 
   /**
    *
@@ -29,7 +28,7 @@ sealed trait ActorRef[+E <: Throwable, -F[+_]] extends Serializable {
   /**
    *
    * Send message to an actor as `fire-and-forget` -
-   * caller is blocked until message is enqueued by recipient's mailbox
+   * caller is blocked until message is enqueued in stub's mailbox
    *
    * @param fa message
    * @return lifted unit
@@ -55,8 +54,8 @@ private[actors] object ActorRefSerial {
   private[actors] val runtimeForResolve = new DefaultRuntime {}
 }
 
-private[actors] sealed abstract class ActorRefSerial[E <: Throwable, -F[+_]](private var actorPath: String)
-    extends ActorRef[E, F]
+private[actors] sealed abstract class ActorRefSerial[-F[+_]](private var actorPath: String)
+    extends ActorRef[F]
     with Serializable {
   import ActorSystemUtils._
 
@@ -78,7 +77,7 @@ private[actors] sealed abstract class ActorRefSerial[E <: Throwable, -F[+_]](pri
       address <- InetAddress
                   .byName(addr.value)
                   .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port.value))
-    } yield new ActorRefRemote[E, F](actorPath, address)
+    } yield new ActorRefRemote[F](actorPath, address)
 
     ActorRefSerial.runtimeForResolve.unsafeRun(remoteRef)
   }
@@ -86,10 +85,10 @@ private[actors] sealed abstract class ActorRefSerial[E <: Throwable, -F[+_]](pri
   override val path: UIO[String] = UIO.effectTotal(actorPath)
 }
 
-private[actors] final class ActorRefLocal[E <: Throwable, -F[+_]](
+private[actors] final class ActorRefLocal[-F[+_]](
   private val actorName: String,
-  actor: Actor[E, F]
-) extends ActorRefSerial[E, F](actorName) {
+  actor: Actor[F]
+) extends ActorRefSerial[F](actorName) {
   override def ?[A](fa: F[A]): Task[A] = actor ? fa
 
   override def !(fa: F[_]): Task[Unit] = actor ! fa
@@ -109,10 +108,10 @@ private[actors] final class ActorRefLocal[E <: Throwable, -F[+_]](
     super.readResolve1()
 }
 
-private[actors] final class ActorRefRemote[E <: Throwable, -F[+_]](
+private[actors] final class ActorRefRemote[-F[+_]](
   private val actorName: String,
   address: InetSocketAddress
-) extends ActorRefSerial[E, F](actorName) {
+) extends ActorRefSerial[F](actorName) {
   import ActorSystemUtils._
 
   override def ?[A](fa: F[A]): Task[A] = sendEnvelope(Command.Ask(fa))
@@ -129,7 +128,7 @@ private[actors] final class ActorRefRemote[E <: Throwable, -F[+_]](
                    actorPath <- path
                    _         <- writeToWire(client, new Envelope(command, actorPath))
                    response  <- readFromWire(client)
-                 } yield response.asInstanceOf[Either[E, A]]
+                 } yield response.asInstanceOf[Either[Throwable, A]]
       result <- IO.fromEither(response)
     } yield result
 

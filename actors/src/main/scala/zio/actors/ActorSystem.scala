@@ -49,7 +49,7 @@ object ActorSystem {
 final class Context private[actors] (
   private val path: String,
   private val actorSystem: ActorSystem,
-  private val childrenRef: Ref[Set[ActorRef[Throwable, Any]]]
+  private val childrenRef: Ref[Set[ActorRef[Any]]]
 ) {
 
   /**
@@ -58,7 +58,7 @@ final class Context private[actors] (
    *
    * @return actor reference in a task
    */
-  def self[E <: Throwable, F[+_]]: Task[ActorRef[E, F]] = actorSystem.select(path)
+  def self[F[+_]]: Task[ActorRef[F]] = actorSystem.select(path)
 
   /**
    *
@@ -69,20 +69,19 @@ final class Context private[actors] (
    * @param init      - initial state
    * @param stateful  - actor's behavior description
    * @tparam S  - state type
-   * @tparam E1 - custom error type
    * @tparam F1 - DSL type
    * @return reference to the created actor in effect that can't fail
    */
-  def make[R, S, E1 <: Throwable, F1[+_]](
+  def make[R, S, F1[+_]](
     actorName: String,
-    sup: Supervisor[R, E1],
+    sup: Supervisor[R],
     init: S,
-    stateful: Stateful[R, S, E1, F1]
-  ): ZIO[R, Throwable, ActorRef[E1, F1]] =
+    stateful: Stateful[R, S, F1]
+  ): ZIO[R, Throwable, ActorRef[F1]] =
     for {
       actorRef <- actorSystem.make(actorName, sup, init, stateful)
       children <- childrenRef.get
-      _        <- childrenRef.set(children + actorRef.asInstanceOf[ActorRef[Throwable, Any]])
+      _        <- childrenRef.set(children + actorRef.asInstanceOf[ActorRef[Any]])
     } yield actorRef
 
   /**
@@ -97,7 +96,7 @@ final class Context private[actors] (
    * @tparam F1 - actor's DSL type
    * @return task if actor reference. Selection process might fail with "Actor not found error"
    */
-  def select[E1 <: Throwable, F1[+_]](path: String): Task[ActorRef[E1, F1]] =
+  def select[E1 <: Throwable, F1[+_]](path: String): Task[ActorRef[F1]] =
     actorSystem.select(path)
 
   /* INTERNAL API */
@@ -131,30 +130,29 @@ final class ActorSystem private[actors] (
    * @param init      - initial state
    * @param stateful  - actor's behavior description
    * @tparam S - state type
-   * @tparam E - custom error type
    * @tparam F - DSL type
    * @return reference to the created actor in effect that can't fail
    */
-  def make[R, S, E <: Throwable, F[+_]](
+  def make[R, S, F[+_]](
     actorName: String,
-    sup: Supervisor[R, E],
+    sup: Supervisor[R],
     init: S,
-    stateful: AbstractStateful[R, S, E, F]
-  ): RIO[R, ActorRef[E, F]] =
+    stateful: AbstractStateful[R, S, F]
+  ): RIO[R, ActorRef[F]] =
     for {
       map           <- refActorMap.get
       finalName     <- buildFinalName(parentActor.getOrElse(""), actorName)
       _             <- if (map.contains(finalName)) IO.fail(new Exception(s"Actor $finalName already exists")) else IO.unit
       path          = buildPath(actorSystemName, finalName, remoteConfig)
       derivedSystem = new ActorSystem(actorSystemName, config, remoteConfig, refActorMap, Some(finalName))
-      childrenSet   <- Ref.make(Set.empty[ActorRef[Throwable, Any]])
+      childrenSet   <- Ref.make(Set.empty[ActorRef[Any]])
       actor <- stateful.makeActor(
                 sup,
                 new Context(path, derivedSystem, childrenSet),
                 () => dropFromActorMap(path, childrenSet)
               )(init)
       _ <- refActorMap.set(map + (finalName -> actor))
-    } yield new ActorRefLocal[E, F](path, actor)
+    } yield new ActorRefLocal[F](path, actor)
 
   /**
    *
@@ -164,11 +162,10 @@ final class ActorSystem private[actors] (
    * Otherwise it will always create remote actor stub internally and return ActorRef as if it was found.   *
    *
    * @param path - absolute path to the actor
-   * @tparam E - actor's custom error type
    * @tparam F - actor's DSL type
    * @return task if actor reference. Selection process might fail with "Actor not found error"
    */
-  def select[E <: Throwable, F[+_]](path: String): Task[ActorRef[E, F]] =
+  def select[F[+_]](path: String): Task[ActorRef[F]] =
     for {
       solvedPath                              <- resolvePath(path)
       (pathActSysName, addr, port, actorName) = solvedPath
@@ -180,7 +177,7 @@ final class ActorSystem private[actors] (
                      actorRef <- actorMap.get(actorName) match {
                                   case Some(value) =>
                                     for {
-                                      actor <- IO.effectTotal(value.asInstanceOf[Actor[E, F]])
+                                      actor <- IO.effectTotal(value.asInstanceOf[Actor[F]])
                                     } yield new ActorRefLocal(path, actor)
                                   case None =>
                                     IO.fail(new Exception(s"No such actor $actorName in local ActorSystem."))
@@ -191,7 +188,7 @@ final class ActorSystem private[actors] (
                      address <- InetAddress
                                  .byName(addr.value)
                                  .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port.value))
-                   } yield new ActorRefRemote[E, F](path, address)
+                   } yield new ActorRefRemote[F](path, address)
                  }
     } yield actorRef
 
@@ -204,12 +201,12 @@ final class ActorSystem private[actors] (
   def shutdown: Task[List[_]] =
     for {
       systemActors <- refActorMap.get
-      actorsDump   <- ZIO.traverse(systemActors.values)(_.asInstanceOf[Actor[Throwable, Any]].stop)
+      actorsDump   <- ZIO.traverse(systemActors.values)(_.asInstanceOf[Actor[Any]].stop)
     } yield actorsDump.flatten
 
   /* INTERNAL API */
 
-  private[actors] def dropFromActorMap(path: String, childrenRef: Ref[Set[ActorRef[Throwable, Any]]]): Task[Unit] =
+  private[actors] def dropFromActorMap(path: String, childrenRef: Ref[Set[ActorRef[Any]]]): Task[Unit] =
     for {
       solvedPath           <- resolvePath(path)
       (_, _, _, actorName) = solvedPath
@@ -240,7 +237,7 @@ final class ActorSystem private[actors] (
                 case Some(value) =>
                   for {
                     actor <- IO
-                              .effect(value.asInstanceOf[Actor[Throwable, Any]])
+                              .effect(value.asInstanceOf[Actor[Any]])
                               .mapError(throwable =>
                                 new Exception(s"System internal exception - ${throwable.getMessage}")
                               )

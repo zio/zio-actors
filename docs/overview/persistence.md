@@ -29,6 +29,18 @@ ActorSystemName.zio.actors.persistence {
 }
 ```
 
+and also use `postgresql` plugin for that purpose:
+
+```scala mdoc:passthrough
+
+println(s"""```""")
+if (zio.actors.BuildInfo.isSnapshot)
+  println(s"""resolvers += Resolver.sonatypeRepo("snapshots")""")
+println(s"""libraryDependencies += "dev.zio" %% "zio-actors-persistence-jdbc" % "${zio.actors.BuildInfo.version}"""")
+println(s"""```""")
+
+```
+
 Currently the table that needs to be present in database has such schema:
 
 ```sql
@@ -56,7 +68,7 @@ The imports we need for simple example:
 import zio.actors._
 import zio.actors.{ ActorSystem, Context, Supervisor }
 import zio.actors.persistence._
-import zio.{ IO, Task }
+import zio.UIO
 ```
 
 Case objects for messages that our actor can process and persisted events:
@@ -75,16 +87,16 @@ case object IncreaseEvent extends CounterEvent
 `EventSourcedStateful` implementation with persisted and idempotent receive patterns:
 
 ```scala mdoc:silent
-  val ESCounterHandler = new EventSourcedStateful[Any, Int, Throwable, Message, CounterEvent](PersistenceId("id1")) {
+  val ESCounterHandler = new EventSourcedStateful[Any, Int, Message, CounterEvent](PersistenceId("id1")) {
     override def receive[A](
       state: Int,
       msg: Message[A],
       context: Context
-    ): Task[(Command[CounterEvent], Int => A)] =
+    ): UIO[(Command[CounterEvent], Int => A)] =
       msg match {
-        case Reset    => IO.effectTotal((Command.persist(ResetEvent), _ => ()))
-        case Increase => IO.effectTotal((Command.persist(IncreaseEvent), _ => ()))
-        case Get      => IO.effectTotal((Command.ignore, _ => state))
+        case Reset    => UIO((Command.persist(ResetEvent), _ => ()))
+        case Increase => UIO((Command.persist(IncreaseEvent), _ => ()))
+        case Get      => UIO((Command.ignore, _ => state))
       }
 
     override def sourceEvent(state: Int, event: CounterEvent): Int =

@@ -20,7 +20,7 @@ object SpecUtils {
   sealed trait MyErrorDomain extends Throwable
   case object DomainError    extends MyErrorDomain
 
-  val handlerMessageTrait = new Stateful[Any, Int, MyErrorDomain, Message] {
+  val handlerMessageTrait = new Stateful[Any, Int, Message] {
     override def receive[A](
       state: Int,
       msg: Message[A],
@@ -33,11 +33,11 @@ object SpecUtils {
   }
 
   sealed trait PingPongProto[+A]
-  case class Ping(sender: ActorRef[Throwable, PingPongProto])        extends PingPongProto[Unit]
-  case object Pong                                                   extends PingPongProto[Unit]
-  case class GameInit(recipient: ActorRef[Throwable, PingPongProto]) extends PingPongProto[Unit]
+  case class Ping(sender: ActorRef[PingPongProto])        extends PingPongProto[Unit]
+  case object Pong                                        extends PingPongProto[Unit]
+  case class GameInit(recipient: ActorRef[PingPongProto]) extends PingPongProto[Unit]
 
-  val protoHandler = new Stateful[Any, Unit, Throwable, PingPongProto] {
+  val protoHandler = new Stateful[Any, Unit, PingPongProto] {
     override def receive[A](
       state: Unit,
       msg: PingPongProto[A],
@@ -60,7 +60,7 @@ object SpecUtils {
         case GameInit(to) =>
           (for {
             _    <- console.putStrLn("The game starts...")
-            self <- context.self[Throwable, PingPongProto]
+            self <- context.self[PingPongProto]
             _    <- to ! Ping(self)
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
       }
@@ -69,7 +69,7 @@ object SpecUtils {
   sealed trait ErrorProto[+A]
   case object UnsafeMessage extends ErrorProto[String]
 
-  val errorHandler = new Stateful[Any, Unit, Throwable, ErrorProto] {
+  val errorHandler = new Stateful[Any, Unit, ErrorProto] {
     override def receive[A](
       state: Unit,
       msg: ErrorProto[A],
@@ -92,7 +92,7 @@ object RemoteSpec
               actorSystemOne <- ActorSystem("testSystem11", configFile)
               _              <- actorSystemOne.make("actorOne", Supervisor.none, 0, handlerMessageTrait)
               actorSystemTwo <- ActorSystem("testSystem12", configFile)
-              actorRef <- actorSystemTwo.select[MyErrorDomain, Message](
+              actorRef <- actorSystemTwo.select[Message](
                            "zio://testSystem11@127.0.0.1:9665/actorOne"
                          )
               result <- actorRef ? Str("ZIO-Actor response... ")
@@ -106,7 +106,7 @@ object RemoteSpec
               actorSystem <- ActorSystem("testSystem22", configFile)
               _           <- actorSystem.make("actorTwo", Supervisor.none, (), protoHandler)
 
-              remoteActor <- actorSystemRoot.select[Throwable, PingPongProto](
+              remoteActor <- actorSystemRoot.select[PingPongProto](
                               "zio://testSystem22@127.0.0.1:9668/actorTwo"
                             )
 
@@ -130,7 +130,7 @@ object RemoteSpec
           testM("ActorRef not found case (in local actor system)") {
             val program = for {
               actorSystem <- ActorSystem("testSystem31", configFile)
-              _           <- actorSystem.select[Throwable, PingPongProto]("zio://testSystem31@127.0.0.1:9669/actorTwo")
+              _           <- actorSystem.select[PingPongProto]("zio://testSystem31@127.0.0.1:9669/actorTwo")
             } yield ()
 
             assertM(
@@ -148,7 +148,7 @@ object RemoteSpec
           testM("Remote system does not exist") {
             val program = for {
               actorSystem <- ActorSystem("testSystem41", configFile)
-              actorRef <- actorSystem.select[Throwable, PingPongProto](
+              actorRef <- actorSystem.select[PingPongProto](
                            "zio://testSystem42@127.0.0.1:9672/actorTwo"
                          )
               _ <- actorRef ! GameInit(actorRef)
@@ -164,7 +164,7 @@ object RemoteSpec
             val program = for {
               actorSystemOne <- ActorSystem("testSystem51", configFile)
               _              <- ActorSystem("testSystem52", configFile)
-              actorRef <- actorSystemOne.select[Throwable, PingPongProto](
+              actorRef <- actorSystemOne.select[PingPongProto](
                            "zio://testSystem52@127.0.0.1:9674/actorTwo"
                          )
               _ <- actorRef ? GameInit(actorRef)
@@ -181,7 +181,7 @@ object RemoteSpec
               actorSystemOne <- ActorSystem("testSystem61", configFile)
               _              <- actorSystemOne.make("actorOne", Supervisor.none, (), errorHandler)
               actorSystemTwo <- ActorSystem("testSystem62", configFile)
-              actorRef <- actorSystemTwo.select[Throwable, ErrorProto](
+              actorRef <- actorSystemTwo.select[ErrorProto](
                            "zio://testSystem61@127.0.0.1:9675/actorOne"
                          )
               _ <- actorRef ? UnsafeMessage
@@ -198,7 +198,7 @@ object RemoteSpec
               actorSystemOne <- ActorSystem("testSystem71", configFile)
               _              <- actorSystemOne.make("actor-One-;_&", Supervisor.none, 0, handlerMessageTrait)
               actorSystemTwo <- ActorSystem("testSystem72", configFile)
-              actorRef <- actorSystemTwo.select[MyErrorDomain, Message](
+              actorRef <- actorSystemTwo.select[Message](
                            "zio://testSystem71@127.0.0.1:9677/actor-One-;_&"
                          )
               result <- actorRef ? Str("ZIO-Actor response... ")

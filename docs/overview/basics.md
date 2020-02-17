@@ -22,8 +22,7 @@ import java.io.File
 
 import zio.actors.Actor.Stateful
 import zio.actors._
-import zio.IO
-import zio.ZIO
+import zio.UIO
 ```
 
 Our domain that will be used:
@@ -36,10 +35,10 @@ case class DoubleCommand(value: Int) extends Command[Int]
 Our actor's assigment will be to double received values. Here's the `Stateful` implementation:
 
 ```scala mdoc:silent
-val stateful = new Stateful[Any, Unit, Throwable, Command] {
-  override def receive[A](state: Unit, msg: Command[A], context: Context): ZIO[Any, Throwable, (Unit, A)] =
+val stateful = new Stateful[Any, Unit, Command] {
+  override def receive[A](state: Unit, msg: Command[A], context: Context): UIO[(Unit, A)] =
     msg match {
-      case DoubleCommand(value) => IO.effectTotal(((), value * 2))
+      case DoubleCommand(value) => UIO(((), value * 2))
     }
 }
 ```

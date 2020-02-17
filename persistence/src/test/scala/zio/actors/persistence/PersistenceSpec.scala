@@ -23,7 +23,7 @@ object CounterUtils {
 
 object SpecUtils {
 
-  val ESCounterHandler = new EventSourcedStateful[Any, Int, Nothing, Message, CounterEvent](PersistenceId("id1")) {
+  val ESCounterHandler = new EventSourcedStateful[Any, Int, Message, CounterEvent](PersistenceId("id1")) {
     override def receive[A](
       state: Int,
       msg: Message[A],

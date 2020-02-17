@@ -3,7 +3,7 @@ package zio.actors.persistence
 import scala.reflect._
 
 import zio.actors.{ Actor, Context, Supervisor }
-import zio.{ IO, Queue, RIO, Ref, Task, ZIO }
+import zio.{ IO, Queue, RIO, Ref, Task }
 import zio.actors.Actor._
 import zio.actors.persistence.journal.Journal
 import PersistenceId._
@@ -35,25 +35,23 @@ object PersistenceId {
  *
  * @param persistenceId unique id used in a datastore for identifying the entity
  * @tparam S state type
- * @tparam E type of errors that might be produced while processing messages
  * @tparam F type of messages that actor receives
  * @tparam Ev events that will be persisted
  */
-abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persistenceId: PersistenceId)
-    extends AbstractStateful[R, S, E, F] {
+abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: PersistenceId) extends AbstractStateful[R, S, F] {
 
-  def receive[A](state: S, msg: F[A], context: Context): ZIO[R, E, (Command[Ev], S => A)]
+  def receive[A](state: S, msg: F[A], context: Context): RIO[R, (Command[Ev], S => A)]
 
   def sourceEvent(state: S, event: Ev): S
 
   /* INTERNAL API */
 
   override final def makeActor(
-    supervisor: Supervisor[R, E],
+    supervisor: Supervisor[R],
     context: Context,
     optOutActorSystem: () => Task[Unit],
     mailboxSize: Int = DefaultActorMailboxSize
-  )(initial: S): RIO[R, Actor[E, F]] = {
+  )(initial: S): RIO[R, Actor[F]] = {
 
     val ctString = classTag[String]
 
@@ -72,7 +70,7 @@ abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persisten
 
     def applyEvents(events: Seq[Ev], state: S): S = events.foldLeft(state)(sourceEvent)
 
-    def process[A](msg: PendingMessage[E, F, A], state: Ref[S], journal: Journal[Ev]): RIO[R, Unit] =
+    def process[A](msg: PendingMessage[F, A], state: Ref[S], journal: Journal[Ev]): RIO[R, Unit] =
       for {
         s                   <- state.get
         (fa, promise)       = msg
@@ -108,12 +106,12 @@ abstract class EventSourcedStateful[R, S, +E <: Throwable, -F[+_], Ev](persisten
       events       <- journal.getEvents(persistenceId)
       sourcedState = applyEvents(events, initial)
       state        <- Ref.make(sourcedState)
-      queue        <- Queue.bounded[PendingMessage[E, F, _]](mailboxSize)
+      queue        <- Queue.bounded[PendingMessage[F, _]](mailboxSize)
       _ <- (for {
             t <- queue.take
             _ <- process(t, state, journal)
           } yield ()).forever.fork
-    } yield new Actor[E, F](queue)(optOutActorSystem)
+    } yield new Actor[F](queue)(optOutActorSystem)
   }
 
 }
