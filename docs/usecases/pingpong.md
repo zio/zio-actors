@@ -23,37 +23,36 @@ testSystemTwo.zio.actors.remoting {
 ```scala mdoc:silent
 import zio.actors.Actor.Stateful
 import zio.actors._
-import zio.IO
-import zio.{ console, random }
-import zio.console.Console.Live
+import zio.RIO
+import zio.console._
 
 sealed trait PingPong[+_]
-case class Ping(sender: ActorRef[Throwable, PingPong])        extends PingPong[Unit]
-case object Pong                                              extends PingPong[Unit]
-case class GameInit(recipient: ActorRef[Throwable, PingPong]) extends PingPong[Unit]
+case class Ping(sender: ActorRef[PingPong])        extends PingPong[Unit]
+case object Pong                                   extends PingPong[Unit]
+case class GameInit(recipient: ActorRef[PingPong]) extends PingPong[Unit]
 
-val protoHandler = new Stateful[Any, Unit, Throwable, PingPong] {
+val protoHandler = new Stateful[Console, Unit, PingPong] {
     override def receive[A](
       state: Unit,
       msg: PingPong[A],
       context: Context
-    ): IO[Throwable, (Unit, A)] =
+    ): RIO[Console, (Unit, A)] =
       msg match {
         case Ping(sender) =>
           for {
-            _ <- console.putStrLn("Ping!").provide(Live)
+            _    <- putStrLn("Ping!")
             path <- sender.path
             _    <- sender ! Pong
           } yield ((), ())
 
         case Pong =>
           for {
-            _ <- console.putStrLn("Pong!").provide(Live)
+            _ <- putStrLn("Pong!")
           } yield ((), ())
 
         case GameInit(to) =>
           for {
-            self <- context.self[Throwable, PingPong]
+            self <- context.self[PingPong]
             _    <- to ! Ping(self)
           } yield ((), ())
       }
@@ -66,7 +65,7 @@ val program = for {
   actorSystem <- ActorSystem("testSystemTwo")
   _           <- actorSystem.make("actorTwo", Supervisor.none, (), protoHandler)
 
-  remoteActor <- actorSystemRoot.select[Throwable, PingPong](
+  remoteActor <- actorSystemRoot.select[PingPong](
     "zio://testSystemTwo@127.0.0.1:8056/actorTwo"
   )
 
