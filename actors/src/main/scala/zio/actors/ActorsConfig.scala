@@ -32,8 +32,8 @@ private[actors] object ActorsConfig {
     configDescriptor: ConfigDescriptor[String, String, T]
   ): Task[T] =
     for {
-      config          <- TypesafeConfig.fromHocconString(configStr, selectiveSystemConfig(systemName, configDescriptor))
-      unwrappedConfig <- config.config.config
+      config          <- TypesafeConfig.fromHoconString(configStr, selectiveSystemConfig(systemName, configDescriptor))
+      unwrappedConfig <- Task(config.config.config)
     } yield unwrappedConfig
 
   def getRemoteConfig(systemName: String, configStr: String): Task[Option[RemoteConfig]] =
