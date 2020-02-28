@@ -39,7 +39,7 @@ lazy val root =
   project
     .in(file("."))
     .settings(skip in publish := true)
-    .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC)
+    .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC, examples)
 
 lazy val zioActors = module("zio-actors", "actors")
   .enablePlugins(BuildInfoPlugin)
@@ -79,9 +79,21 @@ lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persi
       "org.tpolecat" %% "doobie-hikari"    % "0.8.8",
       "org.tpolecat" %% "doobie-postgres"  % "0.8.8"
     ),
-    testFrameworks := Seq(new TestFramework(""))
+    testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
   .dependsOn(zioActorsPersistence)
+
+lazy val examples = module("zio-actors-examples", "examples")
+  .settings(
+    skip in publish := true,
+    fork := true,
+    libraryDependencies ++= Seq(
+      "dev.zio" %% "zio-test"     % zioVersion % "test",
+      "dev.zio" %% "zio-test-sbt" % zioVersion % "test"
+    ),
+    testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+  )
+  .dependsOn(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC)
 
 def module(moduleName: String, fileName: String): Project =
   Project(moduleName, file(fileName))
