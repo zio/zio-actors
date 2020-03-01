@@ -12,8 +12,10 @@ import zio.{ Task, UIO, ZIO }
  *
  * @tparam F wrapper type constructing DSL
  */
-private[actors] final class AkkaTypedActorRefLocal[-F[+_]](actorName: String, akkaActor: typed.ActorRef[F[_]])
-    extends Serializable {
+final class AkkaTypedActorRefLocal[-F[+_]] private[actors] (
+  private val actorName: String,
+  private val akkaActor: typed.ActorRef[F[_]]
+) extends Serializable {
 
   /**
    *
@@ -22,10 +24,7 @@ private[actors] final class AkkaTypedActorRefLocal[-F[+_]](actorName: String, ak
    * @param fa message
    * @return lifted unit
    */
-  def !(fa: F[_]): Task[Unit] =
-    for {
-      _ <- UIO(akkaActor ! fa)
-    } yield ()
+  def !(fa: F[_]): Task[Unit] = UIO(akkaActor ! fa)
 
   /**
    *
@@ -37,9 +36,7 @@ private[actors] final class AkkaTypedActorRefLocal[-F[+_]](actorName: String, ak
    * @return effectful response
    */
   def ?[A](fa: typed.ActorRef[A] => F[A])(implicit timeout: Timeout, scheduler: Scheduler): Task[A] =
-    for {
-      value <- ZIO.fromFuture(_ => akkaActor.ask[A](hiddenAkkaRef => fa(hiddenAkkaRef)))
-    } yield value
+    ZIO.fromFuture(_ => akkaActor.ask[A](hiddenAkkaRef => fa(hiddenAkkaRef)))
 
   /**
    * Get referential absolute actor path

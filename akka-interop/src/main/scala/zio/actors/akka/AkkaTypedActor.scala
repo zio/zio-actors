@@ -13,7 +13,5 @@ object AkkaTypedActor {
    * @return reference to the created proxy actor in effect that can't fail
    */
   def make[F[+_]](actorRef: typed.ActorRef[F[_]]): UIO[AkkaTypedActorRefLocal[F]] =
-    for {
-      akkaActorRef <- UIO(actorRef)
-    } yield new AkkaTypedActorRefLocal[F](akkaActorRef.path.toString, akkaActorRef)
+    UIO(new AkkaTypedActorRefLocal[F](actorRef.path.toString, actorRef))
 }
