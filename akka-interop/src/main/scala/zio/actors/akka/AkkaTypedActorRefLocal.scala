@@ -47,9 +47,4 @@ private[actors] final class AkkaTypedActorRefLocal[-F[+_]](actorName: String, ak
    * @return
    */
   val path: UIO[String] = UIO(actorName)
-
-  /**
-   * Stops actor
-   */
-  val stop: Task[List[_]] = UIO(List.empty)
 }

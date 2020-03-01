@@ -95,7 +95,6 @@ lazy val examples = module("zio-actors-examples", "examples")
   )
   .dependsOn(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC)
 
-
 lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop")
   .settings(
     libraryDependencies ++= Seq(
@@ -106,6 +105,7 @@ lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop"
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
   .dependsOn(zioActors)
+
 def module(moduleName: String, fileName: String): Project =
   Project(moduleName, file(fileName))
     .settings(stdSettings(moduleName))
