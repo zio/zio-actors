@@ -39,7 +39,7 @@ lazy val root =
   project
     .in(file("."))
     .settings(skip in publish := true)
-    .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC, examples)
+    .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC, examples, zioActorsAkkaInterop)
 
 lazy val zioActors = module("zio-actors", "actors")
   .enablePlugins(BuildInfoPlugin)
@@ -95,6 +95,17 @@ lazy val examples = module("zio-actors-examples", "examples")
   )
   .dependsOn(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC)
 
+lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop")
+  .settings(
+    libraryDependencies ++= Seq(
+      "dev.zio"           %% "zio-test"         % zioVersion % "test",
+      "dev.zio"           %% "zio-test-sbt"     % zioVersion % "test",
+      "com.typesafe.akka" %% "akka-actor-typed" % "2.6.3"
+    ),
+    testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+  )
+  .dependsOn(zioActors)
+
 def module(moduleName: String, fileName: String): Project =
   Project(moduleName, file(fileName))
     .settings(stdSettings(moduleName))
@@ -120,5 +131,5 @@ lazy val docs = project
     docusaurusCreateSite := docusaurusCreateSite.dependsOn(unidoc in Compile).value,
     docusaurusPublishGhpages := docusaurusPublishGhpages.dependsOn(unidoc in Compile).value
   )
-  .dependsOn(zioActors, zioActorsPersistence)
+  .dependsOn(zioActors, zioActorsPersistence, zioActorsAkkaInterop)
   .enablePlugins(MdocPlugin, DocusaurusPlugin, ScalaUnidocPlugin)

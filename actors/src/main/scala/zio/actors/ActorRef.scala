@@ -82,7 +82,7 @@ private[actors] sealed abstract class ActorRefSerial[-F[+_]](private var actorPa
     ActorRefSerial.runtimeForResolve.unsafeRun(remoteRef)
   }
 
-  override val path: UIO[String] = UIO.effectTotal(actorPath)
+  override val path: UIO[String] = UIO(actorPath)
 }
 
 private[actors] final class ActorRefLocal[-F[+_]](
