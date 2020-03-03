@@ -1,6 +1,6 @@
 package zio.actors.persistence.journal
 
-import zio.{ DefaultRuntime, Ref, Task, UIO }
+import zio.{ Ref, Runtime, Task, UIO }
 import zio.actors.persistence.PersistenceId.PersistenceId
 import zio.actors.persistence.PersistenceConfig
 import InMemJournal.JournalRow
@@ -27,7 +27,7 @@ private[actors] object InMemJournal {
 
   private case class JournalRow[Ev](persistenceId: PersistenceId, seqNum: Int, event: Ev)
 
-  private lazy val runtime = new DefaultRuntime {}
+  private lazy val runtime = Runtime.default
   lazy val journalMap = {
     val journalEff =
       for {

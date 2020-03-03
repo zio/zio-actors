@@ -6,6 +6,7 @@ import zio.UIO
 import zio.actors.persistence.PersistenceId.PersistenceId
 import zio.actors.{ persistence, Context }
 import zio.actors.persistence._
+import zio.clock.Clock
 
 /**
  *
@@ -67,8 +68,8 @@ object ShoppingCart {
   final case class ItemQuantityAdjusted(cartId: String, itemId: String, newQuantity: Int) extends Event
   final case class CheckedOut(cartId: String, eventTime: Instant)                         extends Event
 
-  def apply(cartId: String): EventSourcedStateful[Any, State, Command, Event] =
-    new EventSourcedStateful[Any, State, Command, Event](PersistenceId(cartId)) {
+  def apply(cartId: String): EventSourcedStateful[Clock, State, Command, Event] =
+    new EventSourcedStateful[Clock, State, Command, Event](PersistenceId(cartId)) {
       override def receive[A](
         state: State,
         msg: Command[A],

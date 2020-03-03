@@ -4,7 +4,7 @@ import java.io.{ IOException, ObjectInputStream, ObjectOutputStream, ObjectStrea
 
 import zio.nio.core.{ InetAddress, InetSocketAddress, SocketAddress }
 import zio.nio.core.channels.AsynchronousSocketChannel
-import zio.{ DefaultRuntime, IO, Task, UIO }
+import zio.{ IO, Runtime, Task, UIO }
 
 /**
  *
@@ -51,7 +51,7 @@ sealed trait ActorRef[-F[+_]] extends Serializable {
 /* INTERNAL API */
 
 private[actors] object ActorRefSerial {
-  private[actors] val runtimeForResolve = new DefaultRuntime {}
+  private[actors] val runtimeForResolve = Runtime.default
 }
 
 private[actors] sealed abstract class ActorRefSerial[-F[+_]](private var actorPath: String)
