@@ -96,7 +96,7 @@ object RemoteSpec
                            "zio://testSystem11@127.0.0.1:9665/actorOne"
                          )
               result <- actorRef ? Str("ZIO-Actor response... ")
-            } yield assert(result, equalTo("ZIO-Actor response... received plus 01"))
+            } yield assert(result)(equalTo("ZIO-Actor response... received plus 01"))
           },
           testM("ActorRef serialization case") {
             for {
@@ -116,13 +116,10 @@ object RemoteSpec
 
               outputVector <- TestConsole.output
             } yield {
-              assert(outputVector.size, equalTo(3)) &&
-              assert(outputVector(0), equalTo("The game starts...\n")) &&
-              assert(
-                outputVector(1),
-                equalTo("Ping from: zio://testSystem21@127.0.0.1:9667/actorOne, sending pong\n")
-              ) &&
-              assert(outputVector(2), equalTo("Received pong\n"))
+              assert(outputVector.size)(equalTo(3)) &&
+              assert(outputVector(0))(equalTo("The game starts...\n")) &&
+              assert(outputVector(1))(equalTo("Ping from: zio://testSystem21@127.0.0.1:9667/actorOne, sending pong\n")) &&
+              assert(outputVector(2))(equalTo("Received pong\n"))
             }
           }
         ),
@@ -133,17 +130,14 @@ object RemoteSpec
               _           <- actorSystem.select[PingPongProto]("zio://testSystem31@127.0.0.1:9669/actorTwo")
             } yield ()
 
-            assertM(
-              program.run,
-              fails(isSubtype[Throwable](anything)) &&
+            assertM(program.run)(fails(isSubtype[Throwable](anything)) &&
                 fails(
                   hasField[Throwable, String](
                     "message",
                     _.getMessage,
                     equalTo("No such actor /actorTwo in local ActorSystem.")
                   )
-                )
-            )
+                ))
           },
           testM("Remote system does not exist") {
             val program = for {
@@ -154,11 +148,8 @@ object RemoteSpec
               _ <- actorRef ! GameInit(actorRef)
             } yield ()
 
-            assertM(
-              program.run,
-              fails(isSubtype[ConnectException](anything)) &&
-                fails(hasField[Throwable, String]("message", _.getMessage, equalTo("Connection refused")))
-            )
+            assertM(program.run)(fails(isSubtype[ConnectException](anything)) &&
+                fails(hasField[Throwable, String]("message", _.getMessage, equalTo("Connection refused"))))
           },
           testM("Remote actor does not exist") {
             val program = for {
@@ -170,11 +161,8 @@ object RemoteSpec
               _ <- actorRef ? GameInit(actorRef)
             } yield ()
 
-            assertM(
-              program.run,
-              fails(isSubtype[Throwable](anything)) &&
-                fails(hasField[Throwable, String]("message", _.getMessage, equalTo("No such remote actor")))
-            )
+            assertM(program.run)(fails(isSubtype[Throwable](anything)) &&
+                fails(hasField[Throwable, String]("message", _.getMessage, equalTo("No such remote actor"))))
           },
           testM("On remote side error message processing error") {
             val program = for {
@@ -187,11 +175,8 @@ object RemoteSpec
               _ <- actorRef ? UnsafeMessage
             } yield ()
 
-            assertM(
-              program.run,
-              fails(isSubtype[Throwable](anything)) &&
-                fails(hasField[Throwable, String]("message", _.getMessage, equalTo("Error on remote side")))
-            )
+            assertM(program.run)(fails(isSubtype[Throwable](anything)) &&
+                fails(hasField[Throwable, String]("message", _.getMessage, equalTo("Error on remote side"))))
           },
           testM("remote test select actor with special symbols") {
             for {
@@ -202,7 +187,7 @@ object RemoteSpec
                            "zio://testSystem71@127.0.0.1:9677/actor-One-;_&"
                          )
               result <- actorRef ? Str("ZIO-Actor response... ")
-            } yield assert(result, equalTo("ZIO-Actor response... received plus 01"))
+            } yield assert(result)(equalTo("ZIO-Actor response... received plus 01"))
           }
         )
       )

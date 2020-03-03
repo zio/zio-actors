@@ -94,7 +94,7 @@ object ActorsAkkaSpec
             akkaActor        <- AkkaTypedActor.make(typedActorSystem)
             _                <- zioActor ! Ping(akkaActor)
           } yield ()
-          assertM(program.run, succeeds(anything))
+          assertM(program.run)(succeeds(anything))
         },
         testM("Send message from akkaActor to zioActor") {
           import AkkaBehaviorsUtils._
@@ -116,7 +116,7 @@ object ActorsAkkaSpec
             zioActor         <- system.make("actor2", Supervisor.none, "", handler)
             _                <- akkaActor ! PingToZio(zioActor, "Ping from Akka")
           } yield ()
-          assertM(program.run, succeeds(anything))
+          assertM(program.run)(succeeds(anything))
         },
         testM("ZioActor send message to akkaActor and then replyTo to zioActor") {
           val handler =
@@ -143,7 +143,7 @@ object ActorsAkkaSpec
             akkaActor        <- AkkaTypedActor.make(typedActorSystem)
             _                <- zioActor ! Ping(akkaActor)
           } yield ()
-          assertM(program.run, succeeds(anything))
+          assertM(program.run)(succeeds(anything))
         },
         testM("send ask message to akkaActor and get response") {
 
@@ -160,7 +160,7 @@ object ActorsAkkaSpec
           for {
             akkaActor <- AkkaTypedActor.make(typedActorSystem)
             result    <- akkaActor ? PingAskDeferred(1000)
-          } yield assert(result, equalTo(1000))
+          } yield assert(result)(equalTo(1000))
         },
         testM("send message to zioActor and ask akkaActor for the response") {
 
@@ -189,7 +189,7 @@ object ActorsAkkaSpec
             zioActor  <- system.make("actor3", Supervisor.none, 0, handler)
             akkaActor <- AkkaTypedActor.make(typedActorSystem)
             result    <- zioActor ? GetState(akkaActor)
-          } yield assert(result, equalTo(1000))
+          } yield assert(result)(equalTo(1000))
         }
       )
     )
