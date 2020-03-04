@@ -51,7 +51,7 @@ object ActorsSpec
             c1     <- actor ? Get
             _      <- actor ! Reset
             c2     <- actor ? Get
-          } yield assert(c1, equalTo(2)) && assert(c2, equalTo(0))
+          } yield assert(c1)(equalTo(2)) && assert(c2)(equalTo(0))
         },
         testM("Error recovery by retrying") {
           import TickUtils._
@@ -85,7 +85,7 @@ object ActorsSpec
             actor    <- system.make("actor1", policy, (), handler)
             _        <- actor ? Tick
             count    <- ref.get
-          } yield assert(count, equalTo(maxRetries))
+          } yield assert(count)(equalTo(maxRetries))
         },
         testM("Error recovery by fallback action") {
           import TickUtils._
@@ -115,7 +115,7 @@ object ActorsSpec
             _      <- actor ? Tick
           } yield ()
 
-          assertM(program.run, fails(anything)).andThen(assertM(IO.effectTotal(called.get), isTrue))
+          assertM(program.run)(fails(anything)).andThen(assertM(IO.effectTotal(called.get))(isTrue))
         },
         testM("Stopping actors") {
           import StopUtils._
@@ -136,11 +136,8 @@ object ActorsSpec
             _      <- actor ! Letter
             _      <- actor ? Letter
             dump   <- actor.stop
-          } yield assert(
-            dump,
-            isSubtype[List[_]](anything) &&
-              hasField[List[_], Int]("size", _.size, equalTo(0))
-          )
+          } yield assert(dump)(isSubtype[List[_]](anything) &&
+              hasField[List[_], Int]("size", _.size, equalTo(0)))
         },
         testM("Select local actor") {
           import TickUtils._
@@ -161,7 +158,7 @@ object ActorsSpec
             actor     <- system.select[Message]("zio://test5@0.0.0.0:0000/actor1-1")
             _         <- actor ! Tick
             actorPath <- actor.path
-          } yield assert(actorPath, equalTo("zio://test5@0.0.0.0:0000/actor1-1"))
+          } yield assert(actorPath)(equalTo("zio://test5@0.0.0.0:0000/actor1-1"))
         },
         testM("Local actor does not exist") {
           import TickUtils._
@@ -184,17 +181,14 @@ object ActorsSpec
             _      <- actor ! Tick
           } yield ()
 
-          assertM(
-            program.run,
-            fails(isSubtype[Throwable](anything)) &&
+          assertM(program.run)(fails(isSubtype[Throwable](anything)) &&
               fails(
                 hasField[Throwable, String](
                   "message",
                   _.getMessage,
                   equalTo("No such actor /actorTwo in local ActorSystem.")
                 )
-              )
-          )
+              ))
         }
       )
     )

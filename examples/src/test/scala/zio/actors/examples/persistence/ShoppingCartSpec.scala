@@ -31,7 +31,7 @@ object ShoppingCartSpec
             for {
               cart <- as.make("cart1", recoverPolicy, State.empty, ShoppingCart("cart1"))
               conf <- cart ? AddItem("foo", 42)
-            } yield assert(conf, equalTo(Accepted(Summary(Map("foo" -> 42), checkedOut = false))))
+            } yield assert(conf)(equalTo(Accepted(Summary(Map("foo" -> 42), checkedOut = false))))
           }
         },
         testM("reject already added item") {
@@ -40,7 +40,7 @@ object ShoppingCartSpec
               cart  <- as.make("cart2", recoverPolicy, State.empty, ShoppingCart("cart2"))
               conf1 <- cart ? AddItem("foo", 42)
               conf2 <- cart ? AddItem("foo", 13)
-            } yield assert(conf1, isSubtype[Accepted](anything)) && assert(conf2, isSubtype[Rejected](anything))
+            } yield assert(conf1)(isSubtype[Accepted](anything)) && assert(conf2)(isSubtype[Rejected](anything))
           }
         },
         testM("remove item") {
@@ -49,10 +49,7 @@ object ShoppingCartSpec
               cart  <- as.make("cart3", recoverPolicy, State.empty, ShoppingCart("cart3"))
               conf1 <- cart ? AddItem("foo", 42)
               conf2 <- cart ? RemoveItem("foo")
-            } yield assert(conf1, isSubtype[Accepted](anything)) && assert(
-              conf2,
-              equalTo(Accepted(Summary(Map.empty, checkedOut = false)))
-            )
+            } yield assert(conf1)(isSubtype[Accepted](anything)) && assert(conf2)(equalTo(Accepted(Summary(Map.empty, checkedOut = false))))
           }
         },
         testM("adjust quantity") {
@@ -61,10 +58,7 @@ object ShoppingCartSpec
               cart  <- as.make("cart4", recoverPolicy, State.empty, ShoppingCart("cart4"))
               conf1 <- cart ? AddItem("foo", 42)
               conf2 <- cart ? AdjustItemQuantity("foo", 43)
-            } yield assert(conf1, isSubtype[Accepted](anything)) && assert(
-              conf2,
-              equalTo(Accepted(Summary(Map("foo" -> 43), checkedOut = false)))
-            )
+            } yield assert(conf1)(isSubtype[Accepted](anything)) && assert(conf2)(equalTo(Accepted(Summary(Map("foo" -> 43), checkedOut = false))))
           }
         },
         testM("checkout") {
@@ -73,10 +67,7 @@ object ShoppingCartSpec
               cart  <- as.make("cart5", recoverPolicy, State.empty, ShoppingCart("cart5"))
               conf1 <- cart ? AddItem("foo", 42)
               conf2 <- cart ? Checkout
-            } yield assert(conf1, isSubtype[Accepted](anything)) && assert(
-              conf2,
-              equalTo(Accepted(Summary(Map("foo" -> 42), checkedOut = true)))
-            )
+            } yield assert(conf1)(isSubtype[Accepted](anything)) && assert(conf2)(equalTo(Accepted(Summary(Map("foo" -> 42), checkedOut = true))))
           }
         },
         testM("keep its state") {
@@ -87,8 +78,8 @@ object ShoppingCartSpec
               _      <- cart.stop
               cart   <- as.make("cart6", recoverPolicy, State.empty, ShoppingCart("cart6"))
               status <- cart ? Get
-            } yield assert(conf1, equalTo(Accepted(Summary(Map("foo" -> 42), checkedOut = false)))) &&
-              assert(status, equalTo(Summary(Map("foo" -> 42), checkedOut = false)))
+            } yield assert(conf1)(equalTo(Accepted(Summary(Map("foo" -> 42), checkedOut = false)))) &&
+              assert(status)(equalTo(Summary(Map("foo" -> 42), checkedOut = false)))
           }
         }
       ).provideManagedShared(actorSystem)

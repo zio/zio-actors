@@ -59,7 +59,7 @@ object PersistenceSpec
               actor       <- actorSystem.make("actor1", Supervisor.none, 0, ESCounterHandler)
               _           <- actor ! Increase
               counter     <- actor ? Get
-            } yield assert(counter, equalTo(3))
+            } yield assert(counter)(equalTo(3))
           },
           testM("Corrupt plugin config name") {
             val program = for {
@@ -67,17 +67,14 @@ object PersistenceSpec
               _  <- as.make("actor1", Supervisor.none, 0, ESCounterHandler)
             } yield ()
 
-            assertM(
-              program.run,
-              fails(isSubtype[Throwable](anything)) &&
+            assertM(program.run)(fails(isSubtype[Throwable](anything)) &&
                 fails(
                   hasField[Throwable, Boolean](
                     "message",
                     _.getMessage.contains("No configuration setting found for key 'corrupt-plugin'"),
                     isTrue
                   )
-                )
-            )
+                ))
           }
         )
       )
