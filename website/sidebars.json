@@ -5,7 +5,8 @@
       "overview/overview_basics",
       "overview/overview_supervision",
       "overview/overview_remoting",
-      "overview/overview_persistence"
+      "overview/overview_persistence",
+      "overview/overview_akkainterop"
     ]
   },
   "usecases-sidebar": {

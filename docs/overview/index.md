@@ -10,7 +10,8 @@ Here's list of contents available:
  - **[Supervision](supervision.md)** — Short description of supervision functionality usage
  - **[Remoting](remoting.md)** — Defining remoting configuration, usage example, restrictions
  - **[Persistence](persistence.md)** - Event sourcing mechanism, datastore configuration
-
+ - **[Akka Interop](akkainterop.md)** - Integration with akka typed actors.
+ 
 ## Installation
 
 Include ZIO Actors in your project by adding the following to your `build.sbt`:
