@@ -37,7 +37,7 @@ object AkkaBehaviorsUtils {
     def apply(): Behavior[TypedMessage[_]] =
       Behaviors.receiveMessage { message =>
         message match {
-          case HelloFromZio                         => println("Hello akkaActor")
+          case HelloFromZio                         => ()
           case PingFromZio(zioSenderActor)          => runtime.unsafeRun(zioSenderActor ! PongFromAkka("Pong from Akka"))
           case PingToZio(zioReplyToActor, msgToZio) => runtime.unsafeRun(zioReplyToActor ! PongFromAkka(msgToZio))
         }

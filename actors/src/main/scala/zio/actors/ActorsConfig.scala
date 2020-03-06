@@ -1,9 +1,10 @@
 package zio.actors
 
-import zio.Task
-import zio.config.ConfigDescriptor
+import zio.{ Task, ZIO }
+import zio.config.{ Config, ConfigDescriptor }
 import zio.config.ConfigDescriptor._
 import zio.config.typesafe.TypesafeConfig
+import zio.Tagged
 
 private[actors] object ActorsConfig {
 
@@ -30,11 +31,10 @@ private[actors] object ActorsConfig {
     systemName: String,
     configStr: String,
     configDescriptor: ConfigDescriptor[String, String, T]
-  ): Task[T] =
-    for {
-      config          <- TypesafeConfig.fromHoconString(configStr, selectiveSystemConfig(systemName, configDescriptor))
-      unwrappedConfig <- Task(config.config.config)
-    } yield unwrappedConfig
+  )(implicit tag: Tagged[Config.Service[T]]): Task[T] =
+    ZIO
+      .access[Config[T]](_.get.config)
+      .provideLayer(TypesafeConfig.fromHoconString[T](configStr, selectiveSystemConfig(systemName, configDescriptor)))
 
   def getRemoteConfig(systemName: String, configStr: String): Task[Option[RemoteConfig]] =
     getConfig(systemName, configStr, remoteConfig)
