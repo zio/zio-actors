@@ -1,13 +1,13 @@
 package zio.actors.persistence
 
-import zio.{ DefaultRuntime, IO, Managed, Promise, Task, UIO }
+import zio.{ IO, Managed, Promise, Runtime, Task, UIO }
 import zio.config.ConfigDescriptor
 import zio.config.ConfigDescriptor._
 import zio.actors.ActorsConfig._
 
 private[actors] object PersistenceConfig {
 
-  private lazy val runtime = new DefaultRuntime {}
+  private lazy val runtime = Runtime.default
   private lazy val promise = runtime.unsafeRun(Promise.make[Exception, String])
 
   final case class JournalPluginRaw(value: String)   extends AnyVal

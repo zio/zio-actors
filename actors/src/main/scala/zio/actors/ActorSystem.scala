@@ -201,7 +201,7 @@ final class ActorSystem private[actors] (
   def shutdown: Task[List[_]] =
     for {
       systemActors <- refActorMap.get
-      actorsDump   <- ZIO.traverse(systemActors.values)(_.asInstanceOf[Actor[Any]].stop)
+      actorsDump   <- ZIO.foreach(systemActors.values)(_.asInstanceOf[Actor[Any]].stop)
     } yield actorsDump.flatten
 
   /* INTERNAL API */

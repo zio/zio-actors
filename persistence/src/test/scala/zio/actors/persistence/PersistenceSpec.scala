@@ -45,40 +45,38 @@ object SpecUtils {
   val configFile = Some(new File("./persistence/src/test/resources/application.conf"))
 }
 
-object PersistenceSpec
-    extends DefaultRunnableSpec(
-      suite("PersistenceSpec")(
-        suite("Basic persistence operation")(
-          testM("Restarting persisted actor") {
-            for {
-              actorSystem <- ActorSystem("testSystem1", configFile)
-              actor       <- actorSystem.make("actor1", Supervisor.none, 0, ESCounterHandler)
-              _           <- actor ! Increase
-              _           <- actor ? Increase
-              _           <- actor.stop
-              actor       <- actorSystem.make("actor1", Supervisor.none, 0, ESCounterHandler)
-              _           <- actor ! Increase
-              counter     <- actor ? Get
-            } yield assert(counter, equalTo(3))
-          },
-          testM("Corrupt plugin config name") {
-            val program = for {
-              as <- ActorSystem("testSystem3", configFile)
-              _  <- as.make("actor1", Supervisor.none, 0, ESCounterHandler)
-            } yield ()
+object PersistenceSpec extends DefaultRunnableSpec {
+  def spec = suite("PersistenceSpec")(
+    suite("Basic persistence operation")(
+      testM("Restarting persisted actor") {
+        for {
+          actorSystem <- ActorSystem("testSystem1", configFile)
+          actor       <- actorSystem.make("actor1", Supervisor.none, 0, ESCounterHandler)
+          _           <- actor ! Increase
+          _           <- actor ? Increase
+          _           <- actor.stop
+          actor       <- actorSystem.make("actor1", Supervisor.none, 0, ESCounterHandler)
+          _           <- actor ! Increase
+          counter     <- actor ? Get
+        } yield assert(counter)(equalTo(3))
+      },
+      testM("Corrupt plugin config name") {
+        val program = for {
+          as <- ActorSystem("testSystem3", configFile)
+          _  <- as.make("actor1", Supervisor.none, 0, ESCounterHandler)
+        } yield ()
 
-            assertM(
-              program.run,
-              fails(isSubtype[Throwable](anything)) &&
-                fails(
-                  hasField[Throwable, Boolean](
-                    "message",
-                    _.getMessage.contains("No configuration setting found for key 'corrupt-plugin'"),
-                    isTrue
-                  )
-                )
+        assertM(program.run)(
+          fails(isSubtype[Throwable](anything)) &&
+            fails(
+              hasField[Throwable, Boolean](
+                "message",
+                _.getMessage.contains("No configuration setting found for key 'corrupt-plugin'"),
+                isTrue
+              )
             )
-          }
         )
-      )
+      }
     )
+  )
+}
