@@ -21,16 +21,15 @@ Imports required for example:
 
 ```scala mdoc:silent
 import zio.actors.Actor.Stateful
-import zio.actors._
-import zio.actors.akka.AkkaTypedActor
-import zio.actors.akka.AkkaTypedActorRefLocal
-import zio.{IO,DefaultRuntime}
+import zio.actors.{ ActorSystem, ActorRef, Context, Supervisor }
+import zio.actors.akka.{ AkkaTypedActor, AkkaTypedActorRefLocal }
+import zio.{ IO, Runtime }
 
-import _root_.akka.actor.typed
-import _root_.akka.actor.typed.Behavior
-import _root_.akka.actor.typed.scaladsl.Behaviors
-import _root_.akka.actor.typed.Scheduler
-import _root_.akka.util.Timeout
+import akka.actor.typed
+import akka.actor.typed.Behavior
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.Scheduler
+import akka.util.Timeout
 
 import scala.concurrent.duration._
 ```
@@ -68,7 +67,7 @@ Akka actors ([Creation akka actors](https://doc.akka.io/docs/akka/current/typed/
 need a behavior, to define the messages to be handled, in this case send and receive messages to zio actor:
 ```scala mdoc:silent
 object TestBehavior {
-    lazy val zioRuntime = new DefaultRuntime {}
+    lazy val zioRuntime = Runtime.default
     def apply(): Behavior[TypedMessage[_]] =
       Behaviors.receiveMessage { message =>
         message match {                  
