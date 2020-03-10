@@ -1,0 +1,163 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Persistence · ZIO Actors</title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="Persistence gives you ability to store events that occur in your system with defined datastore. "/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Persistence · ZIO Actors"/><meta property="og:type" content="website"/><meta property="og:url" content="https://zio.github.io/zio-actors/"/><meta property="og:description" content="Persistence gives you ability to store events that occur in your system with defined datastore. "/><meta property="og:image" content="https://zio.github.io/zio-actors/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://zio.github.io/zio-actors/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/zio-actors/img/favicon.png"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.css"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="https://unpkg.com/vanilla-back-to-top@7.1.14/dist/vanilla-back-to-top.min.js"></script><script>
+        document.addEventListener('DOMContentLoaded', function() {
+          addBackToTop(
+            {"zIndex":100,"cornerOffset":100}
+          )
+        });
+        </script><script src="/zio-actors/js/scrollSpy.js"></script><link rel="stylesheet" href="/zio-actors/css/main.css"/><script src="/zio-actors/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/zio-actors/"><img class="logo" src="/zio-actors/img/navbar_brand2x.png" alt="ZIO Actors"/><h2 class="headerTitleWithLogo">ZIO Actors</h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/zio-actors/docs/overview/overview_index" target="_self">Overview</a></li><li class=""><a href="/zio-actors/docs/usecases/usecases_index" target="_self">Use Cases</a></li><li class=""><a href="api/index.html" target="_self">API</a></li><li class=""><a href="/zio-actors/docs/about/about_index" target="_self">About</a></li><li class="navSearchWrapper reactNavSearchWrapper"><input type="text" id="search_input_react" placeholder="Search" title="Search"/></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Overview</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Overview</h3><ul class=""><li class="navListItem"><a class="navItem" href="/zio-actors/docs/overview/overview_index">Contents</a></li><li class="navListItem"><a class="navItem" href="/zio-actors/docs/overview/overview_basics">Basics</a></li><li class="navListItem"><a class="navItem" href="/zio-actors/docs/overview/overview_supervision">Supervision</a></li><li class="navListItem"><a class="navItem" href="/zio-actors/docs/overview/overview_remoting">Remoting</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/zio-actors/docs/overview/overview_persistence">Persistence</a></li><li class="navListItem"><a class="navItem" href="/zio-actors/docs/overview/overview_akkainterop">Akka Interop</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Persistence</h1></header><article><div><span><p>Persistence gives you ability to store events that occur in your system with defined datastore.</p>
+<p>To use Persistence you need in your <code>build.sbt</code>:</p>
+<pre><code class="hljs">libraryDependencies += <span class="hljs-string">"dev.zio"</span> %% <span class="hljs-string">"zio-actors-persistence"</span> % <span class="hljs-string">"0.0.6"</span>
+</code></pre>
+<p>For current version the only datastore available is <code>postgresql</code> and in-memory datastore for testing purposes.
+For <code>postgresql</code> you need a configuration in (by default) <code>resources/application.conf</code>:</p>
+<pre><code class="hljs css language-hocon">ActorSystemName.zio.actors.persistence {
+  plugin = <span class="hljs-string">"jdbc-journal"</span>
+  url = <span class="hljs-string">"jdbc:postgresql://localhost:5432/postgres"</span>
+ <span class="hljs-built_in"> user </span>= <span class="hljs-string">"user"</span>
+  pass = <span class="hljs-string">"pass"</span>
+}
+</code></pre>
+<p>and also use <code>postgresql</code> plugin for that purpose:</p>
+<pre><code class="hljs">libraryDependencies += <span class="hljs-string">"dev.zio"</span> %% <span class="hljs-string">"zio-actors-persistence-jdbc"</span> % <span class="hljs-string">"0.0.6"</span>
+</code></pre>
+<p>Currently the table that needs to be present in database has such schema:</p>
+<pre><code class="hljs css language-sql"><span class="hljs-keyword">create</span> <span class="hljs-keyword">table</span> <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-keyword">exists</span> journal_zio
+(
+    persistence_id <span class="hljs-built_in">varchar</span> <span class="hljs-keyword">not</span> <span class="hljs-literal">null</span>,
+    sequence_number <span class="hljs-built_in">serial</span> <span class="hljs-keyword">not</span> <span class="hljs-literal">null</span>,
+    message bytea,
+    <span class="hljs-keyword">constraint</span> journal_zio_pk
+        primary <span class="hljs-keyword">key</span> (persistence_id, sequence_number)
+);
+</code></pre>
+<p>After successful setup you can create persisted actors by implementing <code>EventSourcedStateful</code>.
+First method is <code>receive</code> which is similar to <code>receive</code> from basic actors: Here you can perform an
+effectful computations with possible failures and side effects. Here you must also decide whether
+processed message should result in an event that will be persisted or no state update.</p>
+<p>The second method is <code>sourceEvent</code> which must be a pure function that performs state updates.
+This method is used when restoring an actor after startup.</p>
+<p>The imports we need for simple example:</p>
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">import</span> zio.actors._
+<span class="hljs-keyword">import</span> zio.actors.{ <span class="hljs-type">ActorSystem</span>, <span class="hljs-type">Context</span>, <span class="hljs-type">Supervisor</span> }
+<span class="hljs-keyword">import</span> zio.actors.persistence._
+<span class="hljs-keyword">import</span> zio.<span class="hljs-type">UIO</span>
+</code></pre>
+<p>Case objects for messages that our actor can process and persisted events:</p>
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">sealed</span> <span class="hljs-class"><span class="hljs-keyword">trait</span> <span class="hljs-title">Message</span>[+_]</span>
+<span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">object</span> <span class="hljs-title">Reset</span>    <span class="hljs-keyword">extends</span> <span class="hljs-title">Message</span>[<span class="hljs-type">Unit</span>]</span>
+<span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">object</span> <span class="hljs-title">Increase</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Message</span>[<span class="hljs-type">Unit</span>]</span>
+<span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">object</span> <span class="hljs-title">Get</span>      <span class="hljs-keyword">extends</span> <span class="hljs-title">Message</span>[<span class="hljs-type">Int</span>]</span>
+
+<span class="hljs-keyword">sealed</span> <span class="hljs-class"><span class="hljs-keyword">trait</span> <span class="hljs-title">CounterEvent</span></span>
+<span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">object</span> <span class="hljs-title">ResetEvent</span>    <span class="hljs-keyword">extends</span> <span class="hljs-title">CounterEvent</span></span>
+<span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">object</span> <span class="hljs-title">IncreaseEvent</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">CounterEvent</span></span>
+</code></pre>
+<p><code>EventSourcedStateful</code> implementation with persisted and idempotent receive patterns:</p>
+<pre><code class="hljs css language-scala">  <span class="hljs-keyword">val</span> <span class="hljs-type">ESCounterHandler</span> = <span class="hljs-keyword">new</span> <span class="hljs-type">EventSourcedStateful</span>[<span class="hljs-type">Any</span>, <span class="hljs-type">Int</span>, <span class="hljs-type">Message</span>, <span class="hljs-type">CounterEvent</span>](<span class="hljs-type">PersistenceId</span>(<span class="hljs-string">"id1"</span>)) {
+    <span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">receive</span></span>[<span class="hljs-type">A</span>](
+      state: <span class="hljs-type">Int</span>,
+      msg: <span class="hljs-type">Message</span>[<span class="hljs-type">A</span>],
+      context: <span class="hljs-type">Context</span>
+    ): <span class="hljs-type">UIO</span>[(<span class="hljs-type">Command</span>[<span class="hljs-type">CounterEvent</span>], <span class="hljs-type">Int</span> =&gt; <span class="hljs-type">A</span>)] =
+      msg <span class="hljs-keyword">match</span> {
+        <span class="hljs-keyword">case</span> <span class="hljs-type">Reset</span>    =&gt; <span class="hljs-type">UIO</span>((<span class="hljs-type">Command</span>.persist(<span class="hljs-type">ResetEvent</span>), _ =&gt; ()))
+        <span class="hljs-keyword">case</span> <span class="hljs-type">Increase</span> =&gt; <span class="hljs-type">UIO</span>((<span class="hljs-type">Command</span>.persist(<span class="hljs-type">IncreaseEvent</span>), _ =&gt; ()))
+        <span class="hljs-keyword">case</span> <span class="hljs-type">Get</span>      =&gt; <span class="hljs-type">UIO</span>((<span class="hljs-type">Command</span>.ignore, _ =&gt; state))
+      }
+
+    <span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">sourceEvent</span></span>(state: <span class="hljs-type">Int</span>, event: <span class="hljs-type">CounterEvent</span>): <span class="hljs-type">Int</span> =
+      event <span class="hljs-keyword">match</span> {
+        <span class="hljs-keyword">case</span> <span class="hljs-type">ResetEvent</span>    =&gt; <span class="hljs-number">0</span>
+        <span class="hljs-keyword">case</span> <span class="hljs-type">IncreaseEvent</span> =&gt; state + <span class="hljs-number">1</span>
+      }
+  }
+</code></pre>
+<p>After defining datastore configuration and actor's behavior we can firmly stop an actor, respawn it
+and expect it's state to be restored to the last event:</p>
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">for</span> {
+  actorSystem &lt;- <span class="hljs-type">ActorSystem</span>(<span class="hljs-string">"testSystem1"</span>)
+  actor       &lt;- actorSystem.make(<span class="hljs-string">"actor1"</span>, <span class="hljs-type">Supervisor</span>.none, <span class="hljs-number">0</span>, <span class="hljs-type">ESCounterHandler</span>)
+  _           &lt;- actor ! <span class="hljs-type">Increase</span>
+  _           &lt;- actor ? <span class="hljs-type">Increase</span>
+  _           &lt;- actor.stop
+  actor       &lt;- actorSystem.make(<span class="hljs-string">"actor1"</span>, <span class="hljs-type">Supervisor</span>.none, <span class="hljs-number">0</span>, <span class="hljs-type">ESCounterHandler</span>)
+  _           &lt;- actor ! <span class="hljs-type">Increase</span>
+  counter     &lt;- actor ? <span class="hljs-type">Get</span>
+} <span class="hljs-keyword">yield</span> counter == <span class="hljs-number">3</span>
+</code></pre>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/zio-actors/docs/overview/overview_remoting"><span class="arrow-prev">← </span><span>Remoting</span></a><a class="docs-next button" href="/zio-actors/docs/overview/overview_akkainterop"><span>Akka Interop</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/zio-actors/" class="nav-home"><img src="/zio-actors/img/sidebar_brand2x.png" alt="ZIO Actors"/></a><div><h5>GitHub</h5><a class="github-button" href="https://github.com/zio/zio-actors" data-icon="octicon-star" data-count-href="/zio/zio-actors/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div><div><h5>Chat with us on Discord</h5><a href="https://discord.gg/2ccFBr4"><img src="/zio-actors//img/discord.png" width="120" alt="discord"/></a></div><div><h5>Additional resources</h5><a href="/zio-actors/api/index.html">Scaladoc of zio-actors</a></div></section><section class="copyright">Copyright © 2020 ZIO Maintainers</section></footer></div><script type="text/javascript" src="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.js"></script><script>
+                document.addEventListener('keyup', function(e) {
+                  if (e.target !== document.body) {
+                    return;
+                  }
+                  // keyCode for '/' (slash)
+                  if (e.keyCode === 191) {
+                    const search = document.getElementById('search_input_react');
+                    search && search.focus();
+                  }
+                });
+              </script><script>
+              var search = docsearch({
+                
+                apiKey: 'b7978c4d7d28a5a9181d2eea975b0e99',
+                indexName: 'zio-actors',
+                inputSelector: '#search_input_react',
+                algoliaOptions: {}
+              });
+            </script></body></html>

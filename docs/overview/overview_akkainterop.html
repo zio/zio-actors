@@ -1,0 +1,176 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Akka Interop · ZIO Actors</title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="Akka Interop gives you the ability to send and receive messages between zio actors and akka typed actors."/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Akka Interop · ZIO Actors"/><meta property="og:type" content="website"/><meta property="og:url" content="https://zio.github.io/zio-actors/"/><meta property="og:description" content="Akka Interop gives you the ability to send and receive messages between zio actors and akka typed actors."/><meta property="og:image" content="https://zio.github.io/zio-actors/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://zio.github.io/zio-actors/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/zio-actors/img/favicon.png"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.css"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="https://unpkg.com/vanilla-back-to-top@7.1.14/dist/vanilla-back-to-top.min.js"></script><script>
+        document.addEventListener('DOMContentLoaded', function() {
+          addBackToTop(
+            {"zIndex":100,"cornerOffset":100}
+          )
+        });
+        </script><script src="/zio-actors/js/scrollSpy.js"></script><link rel="stylesheet" href="/zio-actors/css/main.css"/><script src="/zio-actors/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/zio-actors/"><img class="logo" src="/zio-actors/img/navbar_brand2x.png" alt="ZIO Actors"/><h2 class="headerTitleWithLogo">ZIO Actors</h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/zio-actors/docs/overview/overview_index" target="_self">Overview</a></li><li class=""><a href="/zio-actors/docs/usecases/usecases_index" target="_self">Use Cases</a></li><li class=""><a href="api/index.html" target="_self">API</a></li><li class=""><a href="/zio-actors/docs/about/about_index" target="_self">About</a></li><li class="navSearchWrapper reactNavSearchWrapper"><input type="text" id="search_input_react" placeholder="Search" title="Search"/></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Overview</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Overview</h3><ul class=""><li class="navListItem"><a class="navItem" href="/zio-actors/docs/overview/overview_index">Contents</a></li><li class="navListItem"><a class="navItem" href="/zio-actors/docs/overview/overview_basics">Basics</a></li><li class="navListItem"><a class="navItem" href="/zio-actors/docs/overview/overview_supervision">Supervision</a></li><li class="navListItem"><a class="navItem" href="/zio-actors/docs/overview/overview_remoting">Remoting</a></li><li class="navListItem"><a class="navItem" href="/zio-actors/docs/overview/overview_persistence">Persistence</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/zio-actors/docs/overview/overview_akkainterop">Akka Interop</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Akka Interop</h1></header><article><div><span><p>Akka Interop gives you the ability to send and receive messages between zio actors and akka typed actors.</p>
+<p>To use Akka Interops you need in your <code>build.sbt</code>:</p>
+<pre><code class="hljs">libraryDependencies += <span class="hljs-string">"dev.zio"</span> %% <span class="hljs-string">"zio-actors-akka-interop"</span> % <span class="hljs-string">"0.0.6"</span>
+</code></pre>
+<p>Imports required for example:</p>
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">import</span> zio.actors.<span class="hljs-type">Actor</span>.<span class="hljs-type">Stateful</span>
+<span class="hljs-keyword">import</span> zio.actors.{ <span class="hljs-type">ActorSystem</span>, <span class="hljs-type">ActorRef</span>, <span class="hljs-type">Context</span>, <span class="hljs-type">Supervisor</span> }
+<span class="hljs-keyword">import</span> zio.actors.akka.{ <span class="hljs-type">AkkaTypedActor</span>, <span class="hljs-type">AkkaTypedActorRefLocal</span> }
+<span class="hljs-keyword">import</span> zio.{ <span class="hljs-type">IO</span>, <span class="hljs-type">Runtime</span> }
+
+<span class="hljs-keyword">import</span> akka.actor.typed
+<span class="hljs-keyword">import</span> akka.actor.typed.<span class="hljs-type">Behavior</span>
+<span class="hljs-keyword">import</span> akka.actor.typed.scaladsl.<span class="hljs-type">Behaviors</span>
+<span class="hljs-keyword">import</span> akka.actor.typed.<span class="hljs-type">Scheduler</span>
+<span class="hljs-keyword">import</span> akka.util.<span class="hljs-type">Timeout</span>
+
+<span class="hljs-keyword">import</span> scala.concurrent.duration._
+</code></pre>
+<p>Case class for messages that zio actor send and receive from akka actor:</p>
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">sealed</span> <span class="hljs-class"><span class="hljs-keyword">trait</span> <span class="hljs-title">TypedMessage</span>[+_]</span>
+<span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">PingToZio</span>(<span class="hljs-params">zioReplyToActor: <span class="hljs-type">ActorRef</span>[<span class="hljs-type">ZioMessage</span>], msg: <span class="hljs-type">String</span></span>) <span class="hljs-keyword">extends</span> <span class="hljs-title">TypedMessage</span>[<span class="hljs-type">Unit</span>]</span>
+<span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">PingFromZio</span>(<span class="hljs-params">zioSenderActor: <span class="hljs-type">ActorRef</span>[<span class="hljs-type">ZioMessage</span>]</span>) <span class="hljs-keyword">extends</span> <span class="hljs-title">TypedMessage</span>[<span class="hljs-type">Unit</span>]</span>
+
+<span class="hljs-keyword">sealed</span> <span class="hljs-class"><span class="hljs-keyword">trait</span> <span class="hljs-title">ZioMessage</span>[+_]</span>
+<span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">PongFromAkka</span>(<span class="hljs-params">msg: <span class="hljs-type">String</span></span>) <span class="hljs-keyword">extends</span> <span class="hljs-title">ZioMessage</span>[<span class="hljs-type">Unit</span>]</span>
+<span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Ping</span>(<span class="hljs-params">akkaActor: <span class="hljs-type">AkkaTypedActorRefLocal</span>[<span class="hljs-type">TypedMessage</span>]</span>) <span class="hljs-keyword">extends</span> <span class="hljs-title">ZioMessage</span>[<span class="hljs-type">Unit</span>]</span>
+</code></pre>
+<p>For zio actor basics, (<a href="/zio-actors/docs/overview/overview_basics#usage">Basics section</a>).
+Here's the <code>Stateful</code> implementation for our zio actor:</p>
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">val</span> handler = <span class="hljs-keyword">new</span> <span class="hljs-type">Stateful</span>[<span class="hljs-type">Any</span>, <span class="hljs-type">String</span>, <span class="hljs-type">ZioMessage</span>] {
+  <span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">receive</span></span>[<span class="hljs-type">A</span>](state: <span class="hljs-type">String</span>, msg: <span class="hljs-type">ZioMessage</span>[<span class="hljs-type">A</span>], context: <span class="hljs-type">Context</span>): <span class="hljs-type">IO</span>[<span class="hljs-type">Throwable</span>, (<span class="hljs-type">String</span>, <span class="hljs-type">A</span>)] =
+    msg <span class="hljs-keyword">match</span> {             
+      <span class="hljs-keyword">case</span> <span class="hljs-type">PongFromAkka</span>(msg) =&gt; <span class="hljs-type">IO</span>.succeed((msg, ()))
+      <span class="hljs-keyword">case</span> <span class="hljs-type">Ping</span>(akkaActor) =&gt;
+              <span class="hljs-keyword">for</span> {
+                 self &lt;- context.self[<span class="hljs-type">ZioMessage</span>]
+                 _    &lt;- akkaActor ! <span class="hljs-type">PingFromZio</span>(self)
+               } <span class="hljs-keyword">yield</span> (state, ())
+      <span class="hljs-keyword">case</span> _=&gt; <span class="hljs-type">IO</span>.fail(<span class="hljs-keyword">new</span> <span class="hljs-type">Exception</span>(<span class="hljs-string">"fail"</span>))
+    }
+}
+</code></pre>
+<p>Akka actors (<a href="https://doc.akka.io/docs/akka/current/typed/actor-lifecycle.html#creating-actors">Creation akka actors</a>),
+need a behavior, to define the messages to be handled, in this case send and receive messages to zio actor:</p>
+<pre><code class="hljs css language-scala"><span class="hljs-class"><span class="hljs-keyword">object</span> <span class="hljs-title">TestBehavior</span> </span>{
+    <span class="hljs-keyword">lazy</span> <span class="hljs-keyword">val</span> zioRuntime = <span class="hljs-type">Runtime</span>.<span class="hljs-keyword">default</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">apply</span></span>(): <span class="hljs-type">Behavior</span>[<span class="hljs-type">TypedMessage</span>[_]] =
+      <span class="hljs-type">Behaviors</span>.receiveMessage { message =&gt;
+        message <span class="hljs-keyword">match</span> {                  
+          <span class="hljs-keyword">case</span> <span class="hljs-type">PingToZio</span>(zioReplyToActor, msgToZio) =&gt; zioRuntime.unsafeRun(zioReplyToActor ! <span class="hljs-type">PongFromAkka</span>(msgToZio))
+          <span class="hljs-keyword">case</span> <span class="hljs-type">PingFromZio</span>(zioSenderActor)          =&gt; zioRuntime.unsafeRun(zioSenderActor ! <span class="hljs-type">PongFromAkka</span>(<span class="hljs-string">"Pong from Akka"</span>))
+        }
+        <span class="hljs-type">Behaviors</span>.same
+      }
+  } 
+</code></pre>
+<p>We are ready to start sending messages from zio to akka, or vice versa via <code>fire-and-forget</code> interaction pattern,
+but first we need to create a ZIO value with the created akka ActorRef(or ActorSystem), using <code>AkkaTypedActor.make</code>:</p>
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">for</span> {
+  akkaSystem &lt;- <span class="hljs-type">IO</span>(typed.<span class="hljs-type">ActorSystem</span>(<span class="hljs-type">TestBehavior</span>(), <span class="hljs-string">"akkaSystem"</span>))
+  system     &lt;- <span class="hljs-type">ActorSystem</span>(<span class="hljs-string">"zioSystem"</span>)
+  akkaActor  &lt;- <span class="hljs-type">AkkaTypedActor</span>.make(akkaSystem)
+  zioActor   &lt;- system.make(<span class="hljs-string">"zioActor"</span>, <span class="hljs-type">Supervisor</span>.none, <span class="hljs-string">""</span>, handler)
+  _          &lt;- akkaActor ! <span class="hljs-type">PingToZio</span>(zioActor, <span class="hljs-string">"Ping from Akka"</span>)
+  _          &lt;- zioActor ! <span class="hljs-type">Ping</span>(akkaActor)
+} <span class="hljs-keyword">yield</span> ()
+</code></pre>
+<p>There's also <code>ask</code> interaction pattern, that provides a way to send a message to an akka actor and expect a response.
+It's performed via <code>?</code> method, and needs a parameter of type <code>typed.ActorRef[R] =&gt; T</code> (<code>R</code> represents the response type,
+<code>T</code> is the message type), with implicit values for <code>akka.util.Timeout</code>  and <code>akka.actor.typed.Scheduler</code>:</p>
+<pre><code class="hljs css language-scala"><span class="hljs-keyword">sealed</span> <span class="hljs-class"><span class="hljs-keyword">trait</span> <span class="hljs-title">AskMessage</span>[+_]</span>
+<span class="hljs-keyword">case</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">PingAsk</span>(<span class="hljs-params">value: <span class="hljs-type">Int</span>, replyTo: typed.<span class="hljs-type">ActorRef</span>[<span class="hljs-type">Int</span>]</span>) <span class="hljs-keyword">extends</span> <span class="hljs-title">AskMessage</span>[<span class="hljs-type">Int</span>]</span>
+
+<span class="hljs-class"><span class="hljs-keyword">object</span> <span class="hljs-title">AskTestBehavior</span> </span>{
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">apply</span></span>(): <span class="hljs-type">Behavior</span>[<span class="hljs-type">AskMessage</span>[_]] =
+      <span class="hljs-type">Behaviors</span>.receiveMessage { message =&gt;
+        message <span class="hljs-keyword">match</span> {
+          <span class="hljs-keyword">case</span> <span class="hljs-type">PingAsk</span>(value, replyTo) =&gt; replyTo ! (value * <span class="hljs-number">2</span>)
+        }
+        <span class="hljs-type">Behaviors</span>.same
+      }
+  }
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">PingAskDeferred</span></span>(value: <span class="hljs-type">Int</span>): typed.<span class="hljs-type">ActorRef</span>[<span class="hljs-type">Int</span>] =&gt; <span class="hljs-type">PingAsk</span> 
+       = (hiddenRef: typed.<span class="hljs-type">ActorRef</span>[<span class="hljs-type">Int</span>]) =&gt; <span class="hljs-type">PingAsk</span>(value, hiddenRef)
+
+<span class="hljs-keyword">implicit</span> <span class="hljs-keyword">val</span> timeout: <span class="hljs-type">Timeout</span> = <span class="hljs-number">3.</span>seconds
+         
+<span class="hljs-keyword">for</span> {
+  akkaAskSystem &lt;- <span class="hljs-type">IO</span>(typed.<span class="hljs-type">ActorSystem</span>(<span class="hljs-type">AskTestBehavior</span>(), <span class="hljs-string">"akkaSystem"</span>))
+  akkaActor &lt;- <span class="hljs-type">AkkaTypedActor</span>.make(akkaAskSystem)
+  result    &lt;- (akkaActor ? <span class="hljs-type">PingAskDeferred</span>(<span class="hljs-number">1000</span>)) (timeout, akkaAskSystem.scheduler)
+} <span class="hljs-keyword">yield</span> result == <span class="hljs-number">2000</span>
+</code></pre>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/zio-actors/docs/overview/overview_persistence"><span class="arrow-prev">← </span><span>Persistence</span></a></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/zio-actors/" class="nav-home"><img src="/zio-actors/img/sidebar_brand2x.png" alt="ZIO Actors"/></a><div><h5>GitHub</h5><a class="github-button" href="https://github.com/zio/zio-actors" data-icon="octicon-star" data-count-href="/zio/zio-actors/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div><div><h5>Chat with us on Discord</h5><a href="https://discord.gg/2ccFBr4"><img src="/zio-actors//img/discord.png" width="120" alt="discord"/></a></div><div><h5>Additional resources</h5><a href="/zio-actors/api/index.html">Scaladoc of zio-actors</a></div></section><section class="copyright">Copyright © 2020 ZIO Maintainers</section></footer></div><script type="text/javascript" src="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.js"></script><script>
+                document.addEventListener('keyup', function(e) {
+                  if (e.target !== document.body) {
+                    return;
+                  }
+                  // keyCode for '/' (slash)
+                  if (e.keyCode === 191) {
+                    const search = document.getElementById('search_input_react');
+                    search && search.focus();
+                  }
+                });
+              </script><script>
+              var search = docsearch({
+                
+                apiKey: 'b7978c4d7d28a5a9181d2eea975b0e99',
+                indexName: 'zio-actors',
+                inputSelector: '#search_input_react',
+                algoliaOptions: {}
+              });
+            </script></body></html>
