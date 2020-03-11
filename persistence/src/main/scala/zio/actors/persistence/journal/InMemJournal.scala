@@ -8,12 +8,11 @@ import InMemJournal.JournalRow
 private[actors] final class InMemJournal[Ev](journalRef: Ref[List[JournalRow[Ev]]]) extends Journal[Ev] {
 
   override def persistEvent(persistenceId: PersistenceId, event: Ev): Task[Unit] =
-    for {
-      journal <- journalRef.get
-      maxSeq  = journal.collect { case row if row.persistenceId == persistenceId => row.seqNum }
-      max     = if (maxSeq.isEmpty) 0 else maxSeq.max
-      _       <- journalRef.set(journal :+ JournalRow(persistenceId, max + 1, event))
-    } yield ()
+    journalRef.update { journal =>
+      val maxSeq = journal.collect { case row if row.persistenceId == persistenceId => row.seqNum }
+      val max    = if (maxSeq.isEmpty) 0 else maxSeq.max
+      journal :+ JournalRow(persistenceId, max + 1, event)
+    }
 
   override def getEvents(persistenceId: PersistenceId): Task[Seq[Ev]] =
     for {
