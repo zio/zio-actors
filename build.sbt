@@ -74,10 +74,10 @@ lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persi
     libraryDependencies ++= Seq(
       "dev.zio"      %% "zio-test"         % zioVersion % "test",
       "dev.zio"      %% "zio-test-sbt"     % zioVersion % "test",
-      "dev.zio"      %% "zio-interop-cats" % "2.0.0.0-RC12",
-      "org.tpolecat" %% "doobie-core"      % "0.8.8",
-      "org.tpolecat" %% "doobie-hikari"    % "0.8.8",
-      "org.tpolecat" %% "doobie-postgres"  % "0.8.8"
+      "dev.zio"      %% "zio-interop-cats" % "2.0.0.0-RC11",
+      "org.tpolecat" %% "doobie-core"      % "0.9.0",
+      "org.tpolecat" %% "doobie-hikari"    % "0.9.0",
+      "org.tpolecat" %% "doobie-postgres"  % "0.9.0"
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
@@ -100,7 +100,7 @@ lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop"
     libraryDependencies ++= Seq(
       "dev.zio"           %% "zio-test"         % zioVersion % "test",
       "dev.zio"           %% "zio-test-sbt"     % zioVersion % "test",
-      "com.typesafe.akka" %% "akka-actor-typed" % "2.6.3"
+      "com.typesafe.akka" %% "akka-actor-typed" % "2.6.4"
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
