@@ -31,9 +31,9 @@ inThisBuild(
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
-val zioVersion       = "1.0.0-RC18"
-val zioNioVersion    = "1.0.0-RC4"
-val zioConfigVersion = "1.0.0-RC12"
+val zioVersion       = "1.0.0-RC18-2"
+val zioNioVersion    = "1.0.0-RC6"
+val zioConfigVersion = "1.0.0-RC16-2"
 
 lazy val root =
   project
@@ -74,7 +74,7 @@ lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persi
     libraryDependencies ++= Seq(
       "dev.zio"      %% "zio-test"         % zioVersion % "test",
       "dev.zio"      %% "zio-test-sbt"     % zioVersion % "test",
-      "dev.zio"      %% "zio-interop-cats" % "2.0.0.0-RC11",
+      "dev.zio"      %% "zio-interop-cats" % "2.0.0.0-RC12",
       "org.tpolecat" %% "doobie-core"      % "0.9.0",
       "org.tpolecat" %% "doobie-hikari"    % "0.9.0",
       "org.tpolecat" %% "doobie-postgres"  % "0.9.0"

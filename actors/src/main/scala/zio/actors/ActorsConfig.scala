@@ -14,8 +14,8 @@ private[actors] object ActorsConfig {
 
   val remoteConfig: ConfigDescriptor[String, String, Option[RemoteConfig]] =
     nested("remoting") {
-      (string("hostname").xmap(Addr)(_.value) |@|
-        int("port").xmap(Port)(_.value))(RemoteConfig.apply, RemoteConfig.unapply)
+      (string("hostname").xmap[Addr](Addr, _.value) |@|
+        int("port").xmap[Port](Port, _.value))(RemoteConfig.apply, RemoteConfig.unapply)
     }.optional
 
   private def selectiveSystemConfig[T](systemName: String, configT: ConfigDescriptor[String, String, T]) =
@@ -31,9 +31,9 @@ private[actors] object ActorsConfig {
     systemName: String,
     configStr: String,
     configDescriptor: ConfigDescriptor[String, String, T]
-  )(implicit tag: Tagged[Config.Service[T]]): Task[T] =
+  )(implicit tag: Tagged[T]): Task[T] =
     ZIO
-      .access[Config[T]](_.get.config)
+      .access[Config[T]](_.get)
       .provideLayer(TypesafeConfig.fromHoconString[T](configStr, selectiveSystemConfig(systemName, configDescriptor)))
 
   def getRemoteConfig(systemName: String, configStr: String): Task[Option[RemoteConfig]] =
