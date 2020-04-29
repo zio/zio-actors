@@ -71,7 +71,7 @@ object PersistenceSpec extends DefaultRunnableSpec {
             fails(
               hasField[Throwable, Boolean](
                 "message",
-                _.getMessage.contains("No configuration setting found for key 'corrupt-plugin'"),
+                _.toString.contains("corrupt-plugin"),
                 isTrue
               )
             )

@@ -17,19 +17,19 @@ private[actors] object PersistenceConfig {
 
   val pluginConfig: ConfigDescriptor[String, String, JournalPluginRaw] =
     nested("persistence") {
-      string("plugin").xmap(JournalPluginRaw)(_.value)
+      string("plugin").xmap(JournalPluginRaw, _.value)
     }
 
-  def classPathConfig(xd: String): ConfigDescriptor[String, String, JournalPluginClass] =
+  def classPathConfig(pluginClass: String): ConfigDescriptor[String, String, JournalPluginClass] =
     nested("persistence") {
       nested("datastores") {
-        string(xd).xmap(JournalPluginClass)(_.value)
+        string(pluginClass).xmap(JournalPluginClass, _.value)
       }
     }
 
   val inMemConfig: ConfigDescriptor[String, String, InMemConfig] =
     nested("persistence") {
-      string("key").xmap(InMemConfig)(_.key)
+      string("key").xmap(InMemConfig, _.key)
     }
 
   def getPluginClass(systemName: String, configStr: String): Task[JournalPluginClass] =

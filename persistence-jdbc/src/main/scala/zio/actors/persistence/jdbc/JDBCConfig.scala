@@ -14,9 +14,9 @@ private[actors] object JDBCConfig {
 
   val dbConfig: ConfigDescriptor[String, String, DbConfig] =
     nested("persistence") {
-      (string("url").xmap(DbURL)(_.value) |@|
-        string("user").xmap(DbUser)(_.value) |@|
-        string("pass").xmap(DbPass)(_.value))(DbConfig.apply, DbConfig.unapply)
+      (string("url").xmap[DbURL](DbURL, _.value) |@|
+        string("user").xmap[DbUser](DbUser, _.value) |@|
+        string("pass").xmap[DbPass](DbPass, _.value))(DbConfig.apply, DbConfig.unapply)
     }
 
   def getDbConfig(systemName: String, configStr: String): Task[DbConfig] =

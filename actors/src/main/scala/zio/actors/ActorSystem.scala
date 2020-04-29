@@ -92,11 +92,10 @@ final class Context private[actors] (
    * Otherwise it will always create remote actor stub internally and return ActorRef as if it was found.   *
    *
    * @param path - absolute path to the actor
-   * @tparam E1 - actor's custom error type
    * @tparam F1 - actor's DSL type
    * @return task if actor reference. Selection process might fail with "Actor not found error"
    */
-  def select[E1 <: Throwable, F1[+_]](path: String): Task[ActorRef[F1]] =
+  def select[F1[+_]](path: String): Task[ActorRef[F1]] =
     actorSystem.select(path)
 
   /* INTERNAL API */
