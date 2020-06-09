@@ -100,7 +100,7 @@ lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop"
     libraryDependencies ++= Seq(
       "dev.zio"           %% "zio-test"         % zioVersion % "test",
       "dev.zio"           %% "zio-test-sbt"     % zioVersion % "test",
-      "com.typesafe.akka" %% "akka-actor-typed" % "2.6.5"
+      "com.typesafe.akka" %% "akka-actor-typed" % "2.6.6"
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
