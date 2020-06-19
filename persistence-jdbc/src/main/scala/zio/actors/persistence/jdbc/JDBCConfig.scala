@@ -12,7 +12,7 @@ private[actors] object JDBCConfig {
   final case class DbPass(value: String) extends AnyVal
   final case class DbConfig(dbURL: DbURL, dbUser: DbUser, dbPass: DbPass)
 
-  val dbConfig: ConfigDescriptor[String, String, DbConfig] =
+  val dbConfig: ConfigDescriptor[DbConfig] =
     nested("persistence") {
       (string("url").xmap[DbURL](DbURL, _.value) |@|
         string("user").xmap[DbUser](DbUser, _.value) |@|

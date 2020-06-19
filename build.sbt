@@ -31,9 +31,12 @@ inThisBuild(
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
-val zioVersion       = "1.0.0-RC18-2"
-val zioNioVersion    = "1.0.0-RC6"
-val zioConfigVersion = "1.0.0-RC16-2"
+val zioVersion            = "1.0.0-RC20"
+val zioNioVersion         = "1.0.0-RC7"
+val zioConfigVersion      = "1.0.0-RC20"
+val zioInteropCatsVersion = "2.0.0.0-RC14"
+val akkaActorTypedVersion = "2.6.6"
+val doobieVersion         = "0.9.0"
 
 lazy val root =
   project
@@ -74,10 +77,10 @@ lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persi
     libraryDependencies ++= Seq(
       "dev.zio"      %% "zio-test"         % zioVersion % "test",
       "dev.zio"      %% "zio-test-sbt"     % zioVersion % "test",
-      "dev.zio"      %% "zio-interop-cats" % "2.0.0.0-RC13",
-      "org.tpolecat" %% "doobie-core"      % "0.9.0",
-      "org.tpolecat" %% "doobie-hikari"    % "0.9.0",
-      "org.tpolecat" %% "doobie-postgres"  % "0.9.0"
+      "dev.zio"      %% "zio-interop-cats" % zioInteropCatsVersion,
+      "org.tpolecat" %% "doobie-core"      % doobieVersion,
+      "org.tpolecat" %% "doobie-hikari"    % doobieVersion,
+      "org.tpolecat" %% "doobie-postgres"  % doobieVersion
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
@@ -100,7 +103,7 @@ lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop"
     libraryDependencies ++= Seq(
       "dev.zio"           %% "zio-test"         % zioVersion % "test",
       "dev.zio"           %% "zio-test-sbt"     % zioVersion % "test",
-      "com.typesafe.akka" %% "akka-actor-typed" % "2.6.6"
+      "com.typesafe.akka" %% "akka-actor-typed" % akkaActorTypedVersion
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )

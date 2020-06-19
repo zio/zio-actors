@@ -15,19 +15,19 @@ private[actors] object PersistenceConfig {
 
   final case class InMemConfig(key: String) extends AnyVal
 
-  val pluginConfig: ConfigDescriptor[String, String, JournalPluginRaw] =
+  val pluginConfig: ConfigDescriptor[JournalPluginRaw] =
     nested("persistence") {
       string("plugin").xmap(JournalPluginRaw, _.value)
     }
 
-  def classPathConfig(pluginClass: String): ConfigDescriptor[String, String, JournalPluginClass] =
+  def classPathConfig(pluginClass: String): ConfigDescriptor[JournalPluginClass] =
     nested("persistence") {
       nested("datastores") {
         string(pluginClass).xmap(JournalPluginClass, _.value)
       }
     }
 
-  val inMemConfig: ConfigDescriptor[String, String, InMemConfig] =
+  val inMemConfig: ConfigDescriptor[InMemConfig] =
     nested("persistence") {
       string("key").xmap(InMemConfig, _.key)
     }
