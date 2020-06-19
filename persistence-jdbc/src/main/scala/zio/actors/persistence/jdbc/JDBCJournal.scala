@@ -44,11 +44,11 @@ private[actors] object JDBCJournal {
     ZIO.runtime[Blocking].flatMap { implicit rt =>
       for {
         transactEC <- UIO(rt.environment.get.blockingExecutor.asEC)
-        connectEC  = rt.platform.executor.asEC
-        ds         = new HikariDataSource()
-        _          = ds.setJdbcUrl(dbConfig.dbURL.value)
-        _          = ds.setUsername(dbConfig.dbUser.value)
-        _          = ds.setPassword(dbConfig.dbPass.value)
+        connectEC   = rt.platform.executor.asEC
+        ds          = new HikariDataSource()
+        _           = ds.setJdbcUrl(dbConfig.dbURL.value)
+        _           = ds.setUsername(dbConfig.dbUser.value)
+        _           = ds.setPassword(dbConfig.dbPass.value)
         transactor <- IO.effect(HikariTransactor.apply[Task](ds, connectEC, Blocker.liftExecutionContext(transactEC)))
       } yield transactor
     }
@@ -56,7 +56,7 @@ private[actors] object JDBCJournal {
   private def getTransactor(dbConfig: DbConfig): Task[HikariTransactor[Task]] =
     transactorPromise.poll.flatMap {
       case Some(value) => value
-      case None =>
+      case None        =>
         for {
           newTnx <- makeTransactor(dbConfig).provideLayer(Blocking.live)
           _      <- transactorPromise.succeed(newTnx)

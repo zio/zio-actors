@@ -17,7 +17,7 @@ private[actors] final class InMemJournal[Ev](journalRef: Ref[List[JournalRow[Ev]
   override def getEvents(persistenceId: PersistenceId): Task[Seq[Ev]] =
     for {
       journal <- journalRef.get
-      events  = journal.filter(_.persistenceId == persistenceId).sortBy(_.seqNum).map(_.event)
+      events   = journal.filter(_.persistenceId == persistenceId).sortBy(_.seqNum).map(_.event)
     } yield events
 
 }
@@ -39,17 +39,17 @@ private[actors] object InMemJournal {
   def getJournal[Ev](actorSystemName: String, configStr: String): Task[InMemJournal[Ev]] =
     for {
       inMemConfig <- PersistenceConfig.getInMemConfig(actorSystemName, configStr)
-      key         = inMemConfig.key
+      key          = inMemConfig.key
       map         <- journalMap.get
-      journal <- map.get(key) match {
-                  case Some(j) =>
-                    UIO.effectTotal(j.asInstanceOf[InMemJournal[Ev]])
-                  case None =>
-                    for {
-                      j <- InMemJournal.make[Ev]()
-                      _ <- journalMap.set(map + (key -> j))
-                    } yield j
-                }
+      journal     <- map.get(key) match {
+                       case Some(j) =>
+                         UIO.effectTotal(j.asInstanceOf[InMemJournal[Ev]])
+                       case None    =>
+                         for {
+                           j <- InMemJournal.make[Ev]()
+                           _ <- journalMap.set(map + (key -> j))
+                         } yield j
+                     }
     } yield journal
 
   def make[Ev](): UIO[InMemJournal[Ev]] =

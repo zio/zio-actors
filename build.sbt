@@ -46,12 +46,12 @@ lazy val zioActors = module("zio-actors", "actors")
   .settings(buildInfoSettings("zio.actors"))
   .settings(
     libraryDependencies ++= Seq(
-      "dev.zio"        %% "zio"                 % zioVersion,
-      "dev.zio"        %% "zio-test"            % zioVersion % "test",
-      "dev.zio"        %% "zio-test-sbt"        % zioVersion % "test",
-      "dev.zio"        %% "zio-nio"             % zioNioVersion,
-      "dev.zio"        %% "zio-config-typesafe" % zioConfigVersion,
-      "org.scala-lang" % "scala-reflect"        % scalaVersion.value
+      "dev.zio"       %% "zio"                 % zioVersion,
+      "dev.zio"       %% "zio-test"            % zioVersion % "test",
+      "dev.zio"       %% "zio-test-sbt"        % zioVersion % "test",
+      "dev.zio"       %% "zio-nio"             % zioNioVersion,
+      "dev.zio"       %% "zio-config-typesafe" % zioConfigVersion,
+      "org.scala-lang" % "scala-reflect"       % scalaVersion.value
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )

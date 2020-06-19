@@ -7,7 +7,6 @@ import zio.nio.core.channels.AsynchronousSocketChannel
 import zio.{ IO, Runtime, Task, UIO }
 
 /**
- *
  * Reference to actor that might reside on local JVM instance or be available via remote communication
  *
  * @tparam F wrapper type constructing DSL
@@ -15,7 +14,6 @@ import zio.{ IO, Runtime, Task, UIO }
 sealed trait ActorRef[-F[+_]] extends Serializable {
 
   /**
-   *
    * Send a message to an actor as `ask` interaction pattern -
    * caller is blocked until the response is received
    *
@@ -26,7 +24,6 @@ sealed trait ActorRef[-F[+_]] extends Serializable {
   def ?[A](fa: F[A]): Task[A]
 
   /**
-   *
    * Send message to an actor as `fire-and-forget` -
    * caller is blocked until message is enqueued in stub's mailbox
    *
@@ -72,11 +69,11 @@ private[actors] sealed abstract class ActorRefSerial[-F[+_]](private var actorPa
   @throws[ObjectStreamException]
   protected def readResolve1(): Object = {
     val remoteRef = for {
-      resolved           <- resolvePath(actorPath)
+      resolved          <- resolvePath(actorPath)
       (_, addr, port, _) = resolved
-      address <- InetAddress
-                  .byName(addr.value)
-                  .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port.value))
+      address           <- InetAddress
+                             .byName(addr.value)
+                             .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port.value))
     } yield new ActorRefRemote[F](actorPath, address)
 
     ActorRefSerial.runtimeForResolve.unsafeRun(remoteRef)
@@ -122,14 +119,14 @@ private[actors] final class ActorRefRemote[-F[+_]](
 
   private def sendEnvelope[A](command: Command): Task[A] =
     for {
-      client <- AsynchronousSocketChannel()
+      client   <- AsynchronousSocketChannel()
       response <- for {
-                   _         <- client.connect(address)
-                   actorPath <- path
-                   _         <- writeToWire(client, new Envelope(command, actorPath))
-                   response  <- readFromWire(client)
-                 } yield response.asInstanceOf[Either[Throwable, A]]
-      result <- IO.fromEither(response)
+                    _         <- client.connect(address)
+                    actorPath <- path
+                    _         <- writeToWire(client, new Envelope(command, actorPath))
+                    response  <- readFromWire(client)
+                  } yield response.asInstanceOf[Either[Throwable, A]]
+      result   <- IO.fromEither(response)
     } yield result
 
   @throws[IOException]

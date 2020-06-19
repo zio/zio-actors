@@ -13,14 +13,11 @@ import zio.nio.core.channels.{ AsynchronousServerSocketChannel, AsynchronousSock
 import scala.io.Source
 
 /**
- *
  * Object providing constructor for Actor System with optional remoting module.
- *
  */
 object ActorSystem {
 
   /**
-   *
    * Constructor for Actor System
    *
    * @param sysName    - Identifier for Actor System
@@ -35,16 +32,14 @@ object ActorSystem {
       config          <- retrieveConfig(configFile)
       remoteConfig    <- retrieveRemoteConfig(sysName, config)
       actorSystem     <- IO.effect(new ActorSystem(sysName, config, remoteConfig, initActorRefMap, parentActor = None))
-      _ <- IO
-            .effectTotal(remoteConfig)
-            .flatMap(_.fold[Task[Unit]](IO.unit)(c => actorSystem.receiveLoop(c.addr, c.port)))
+      _               <- IO
+                           .effectTotal(remoteConfig)
+                           .flatMap(_.fold[Task[Unit]](IO.unit)(c => actorSystem.receiveLoop(c.addr, c.port)))
     } yield actorSystem
 }
 
 /**
- *
  * Context for actor used inside Stateful which provides self actor reference and actor creation/selection API
- *
  */
 final class Context private[actors] (
   private val path: String,
@@ -53,7 +48,6 @@ final class Context private[actors] (
 ) {
 
   /**
-   *
    * Accessor for self actor reference
    *
    * @return actor reference in a task
@@ -61,7 +55,6 @@ final class Context private[actors] (
   def self[F[+_]]: Task[ActorRef[F]] = actorSystem.select(path)
 
   /**
-   *
    * Creates actor and registers it to dependent actor system
    *
    * @param actorName name of the actor
@@ -85,7 +78,6 @@ final class Context private[actors] (
     } yield actorRef
 
   /**
-   *
    * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module.
    * If remote configuration was not provided for ActorSystem (so the remoting is disabled) the search will
    * fail with ActorNotFoundException.
@@ -107,10 +99,8 @@ final class Context private[actors] (
 }
 
 /**
- *
  * Type representing running instance of actor system provisioning actor herding,
  * remoting and actor creation and selection.
- *
  */
 final class ActorSystem private[actors] (
   private[actors] val actorSystemName: String,
@@ -121,7 +111,6 @@ final class ActorSystem private[actors] (
 ) {
 
   /**
-   *
    * Creates actor and registers it to dependent actor system
    *
    * @param actorName name of the actor
@@ -139,22 +128,21 @@ final class ActorSystem private[actors] (
     stateful: AbstractStateful[R, S, F]
   ): RIO[R, ActorRef[F]] =
     for {
-      map           <- refActorMap.get
-      finalName     <- buildFinalName(parentActor.getOrElse(""), actorName)
-      _             <- if (map.contains(finalName)) IO.fail(new Exception(s"Actor $finalName already exists")) else IO.unit
+      map          <- refActorMap.get
+      finalName    <- buildFinalName(parentActor.getOrElse(""), actorName)
+      _            <- if (map.contains(finalName)) IO.fail(new Exception(s"Actor $finalName already exists")) else IO.unit
       path          = buildPath(actorSystemName, finalName, remoteConfig)
       derivedSystem = new ActorSystem(actorSystemName, config, remoteConfig, refActorMap, Some(finalName))
-      childrenSet   <- Ref.make(Set.empty[ActorRef[Any]])
-      actor <- stateful.makeActor(
-                sup,
-                new Context(path, derivedSystem, childrenSet),
-                () => dropFromActorMap(path, childrenSet)
-              )(init)
-      _ <- refActorMap.set(map + (finalName -> actor))
+      childrenSet  <- Ref.make(Set.empty[ActorRef[Any]])
+      actor        <- stateful.makeActor(
+                        sup,
+                        new Context(path, derivedSystem, childrenSet),
+                        () => dropFromActorMap(path, childrenSet)
+                      )(init)
+      _            <- refActorMap.set(map + (finalName -> actor))
     } yield new ActorRefLocal[F](path, actor)
 
   /**
-   *
    * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module.
    * If remote configuration was not provided for ActorSystem (so the remoting is disabled) the search will
    * fail with ActorNotFoundException.
@@ -166,33 +154,31 @@ final class ActorSystem private[actors] (
    */
   def select[F[+_]](path: String): Task[ActorRef[F]] =
     for {
-      solvedPath                              <- resolvePath(path)
+      solvedPath                             <- resolvePath(path)
       (pathActSysName, addr, port, actorName) = solvedPath
 
       actorMap <- refActorMap.get
 
-      actorRef <- if (pathActSysName == actorSystemName) {
-                   for {
-                     actorRef <- actorMap.get(actorName) match {
-                                  case Some(value) =>
-                                    for {
-                                      actor <- IO.effectTotal(value.asInstanceOf[Actor[F]])
-                                    } yield new ActorRefLocal(path, actor)
-                                  case None =>
-                                    IO.fail(new Exception(s"No such actor $actorName in local ActorSystem."))
-                                }
-                   } yield actorRef
-                 } else {
-                   for {
-                     address <- InetAddress
-                                 .byName(addr.value)
-                                 .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port.value))
-                   } yield new ActorRefRemote[F](path, address)
-                 }
+      actorRef <- if (pathActSysName == actorSystemName)
+                    for {
+                      actorRef <- actorMap.get(actorName) match {
+                                    case Some(value) =>
+                                      for {
+                                        actor <- IO.effectTotal(value.asInstanceOf[Actor[F]])
+                                      } yield new ActorRefLocal(path, actor)
+                                    case None        =>
+                                      IO.fail(new Exception(s"No such actor $actorName in local ActorSystem."))
+                                  }
+                    } yield actorRef
+                  else
+                    for {
+                      address  <- InetAddress
+                                    .byName(addr.value)
+                                    .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port.value))
+                    } yield new ActorRefRemote[F](path, address)
     } yield actorRef
 
   /**
-   *
    * Stops all actors within this ActorSystem.
    *
    * @return all actors' unprocessed messages
@@ -207,53 +193,54 @@ final class ActorSystem private[actors] (
 
   private[actors] def dropFromActorMap(path: String, childrenRef: Ref[Set[ActorRef[Any]]]): Task[Unit] =
     for {
-      solvedPath           <- resolvePath(path)
+      solvedPath          <- resolvePath(path)
       (_, _, _, actorName) = solvedPath
-      _                    <- refActorMap.update(_ - actorName)
-      children             <- childrenRef.get
-      _                    <- ZIO.foreach_(children)(_.stop)
-      _                    <- childrenRef.set(Set.empty)
+      _                   <- refActorMap.update(_ - actorName)
+      children            <- childrenRef.get
+      _                   <- ZIO.foreach_(children)(_.stop)
+      _                   <- childrenRef.set(Set.empty)
     } yield ()
 
   private def receiveLoop(address: ActorsConfig.Addr, port: ActorsConfig.Port): Task[Unit] =
     for {
-      addr    <- InetAddress.byName(address.value)
-      address <- SocketAddress.inetSocketAddress(addr, port.value)
-      p       <- Promise.make[Nothing, Unit]
-      channel <- AsynchronousServerSocketChannel()
+      addr      <- InetAddress.byName(address.value)
+      address   <- SocketAddress.inetSocketAddress(addr, port.value)
+      p         <- Promise.make[Nothing, Unit]
+      channel   <- AsynchronousServerSocketChannel()
       loopEffect = for {
-        _ <- channel.bind(address)
+                     _ <- channel.bind(address)
 
-        _ <- p.succeed(())
+                     _ <- p.succeed(())
 
-        loop = for {
-          worker          <- channel.accept
-          obj             <- readFromWire(worker)
-          envelope        = obj.asInstanceOf[Envelope]
-          actorMap        <- refActorMap.get
-          remoteActorPath <- resolvePath(envelope.recipient).map(_._4)
-          _ <- actorMap.get(remoteActorPath) match {
-                case Some(value) =>
-                  for {
-                    actor <- IO
-                              .effect(value.asInstanceOf[Actor[Any]])
-                              .mapError(throwable =>
-                                new Exception(s"System internal exception - ${throwable.getMessage}")
-                              )
-                    response <- actor.unsafeOp(envelope.command).either
-                    _        <- writeToWire(worker, response)
-                  } yield ()
-                case None =>
-                  for {
-                    responseError <- IO.fail(new Exception("No such remote actor")).either
-                    _             <- writeToWire(worker, responseError)
-                  } yield ()
-              }
-        } yield ()
-        _ <- loop.forever
-      } yield ()
-      _ <- loopEffect.onTermination(_ => channel.close.catchAll(_ => ZIO.unit)).fork
-      _ <- p.await
+                     loop = for {
+                              worker          <- channel.accept
+                              obj             <- readFromWire(worker)
+                              envelope         = obj.asInstanceOf[Envelope]
+                              actorMap        <- refActorMap.get
+                              remoteActorPath <- resolvePath(envelope.recipient).map(_._4)
+                              _               <- actorMap.get(remoteActorPath) match {
+                                                   case Some(value) =>
+                                                     for {
+                                                       actor    <-
+                                                         IO
+                                                           .effect(value.asInstanceOf[Actor[Any]])
+                                                           .mapError(throwable =>
+                                                             new Exception(s"System internal exception - ${throwable.getMessage}")
+                                                           )
+                                                       response <- actor.unsafeOp(envelope.command).either
+                                                       _        <- writeToWire(worker, response)
+                                                     } yield ()
+                                                   case None        =>
+                                                     for {
+                                                       responseError <- IO.fail(new Exception("No such remote actor")).either
+                                                       _             <- writeToWire(worker, responseError)
+                                                     } yield ()
+                                                 }
+                            } yield ()
+                     _   <- loop.forever
+                   } yield ()
+      _         <- loopEffect.onTermination(_ => channel.close.catchAll(_ => ZIO.unit)).fork
+      _         <- p.await
     } yield ()
 }
 
@@ -274,7 +261,7 @@ private[actors] object ActorSystemUtils {
         val port            = Port(value.group(3).toInt)
         val actorName       = "/" + value.group(4)
         IO.succeed((actorSystemName, address, port, actorName))
-      case None =>
+      case None                                 =>
         IO.fail(
           new Exception(
             "Invalid path provided. The pattern is zio://YOUR_ACTOR_SYSTEM_NAME@ADDRES:PORT/RELATIVE_ACTOR_PATH"
@@ -313,16 +300,16 @@ private[actors] object ActorSystemUtils {
       intBuffer <- buffer.asIntBuffer
       toRead    <- intBuffer.get(0)
       content   <- socket.read(toRead)
-      bytes     = content.toArray
+      bytes      = content.toArray
       obj       <- objFromByteArray(bytes)
     } yield obj
 
   def objToByteArray(obj: Any): Task[Array[Byte]] =
     for {
       stream <- UIO(new ByteArrayOutputStream())
-      bytes <- Task(new ObjectOutputStream(stream)).toManaged(s => UIO(s.close())).use { s =>
-                Task(s.writeObject(obj)) *> UIO(stream.toByteArray)
-              }
+      bytes  <- Task(new ObjectOutputStream(stream)).toManaged(s => UIO(s.close())).use { s =>
+                  Task(s.writeObject(obj)) *> UIO(stream.toByteArray)
+                }
     } yield bytes
 
   def writeToWire(socket: AsynchronousSocketChannel, obj: Any): Task[Unit] =

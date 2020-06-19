@@ -8,7 +8,6 @@ object Actor {
   private[actors] type PendingMessage[F[_], A] = (F[A], Promise[Throwable, A])
 
   /**
-   *
    * Description of actor behavior (can act as FSM)
    *
    * @tparam R environment type
@@ -18,7 +17,6 @@ object Actor {
   trait Stateful[R, S, -F[+_]] extends AbstractStateful[R, S, F] {
 
     /**
-     *
      * Override method triggered on message received
      *
      * @param state available for this method
@@ -40,26 +38,26 @@ object Actor {
 
       def process[A](msg: PendingMessage[F, A], state: Ref[S]): URIO[R, Unit] =
         for {
-          s             <- state.get
+          s            <- state.get
           (fa, promise) = msg
           receiver      = receive(s, fa, context)
           completer     = ((s: S, a: A) => state.set(s) *> promise.succeed(a)).tupled
-          _ <- receiver.foldM(
-                e =>
-                  supervisor
-                    .supervise(receiver, e)
-                    .foldM(_ => promise.fail(e), completer),
-                completer
-              )
+          _            <- receiver.foldM(
+                            e =>
+                              supervisor
+                                .supervise(receiver, e)
+                                .foldM(_ => promise.fail(e), completer),
+                            completer
+                          )
         } yield ()
 
       for {
         state <- Ref.make(initial)
         queue <- Queue.bounded[PendingMessage[F, _]](mailboxSize)
-        _ <- (for {
-              t <- queue.take
-              _ <- process(t, state)
-            } yield ()).forever.fork
+        _     <- (for {
+                     t <- queue.take
+                     _ <- process(t, state)
+                   } yield ()).forever.fork
       } yield new Actor[F](queue)(optOutActorSystem)
     }
   }
@@ -97,11 +95,11 @@ private[actors] final class Actor[-F[+_]](
 
   def unsafeOp(command: Command): Task[Any] =
     command match {
-      case Command.Ask(msg) =>
+      case Command.Ask(msg)  =>
         this ? msg.asInstanceOf[F[_]]
       case Command.Tell(msg) =>
         this ! msg.asInstanceOf[F[_]]
-      case Command.Stop =>
+      case Command.Stop      =>
         this.stop
     }
 

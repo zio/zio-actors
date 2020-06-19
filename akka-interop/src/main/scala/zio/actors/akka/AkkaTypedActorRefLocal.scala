@@ -7,7 +7,6 @@ import akka.util.Timeout
 import zio.{ Task, UIO, ZIO }
 
 /**
- *
  * Reference to proxy actor that contains an akka typed actor ref
  *
  * @tparam F wrapper type constructing DSL
@@ -18,7 +17,6 @@ final class AkkaTypedActorRefLocal[-F[+_]] private[actors] (
 ) extends Serializable {
 
   /**
-   *
    * Send message to an actor as fire-and-forget
    *
    * @param fa message
@@ -27,7 +25,6 @@ final class AkkaTypedActorRefLocal[-F[+_]] private[actors] (
   def !(fa: F[_]): Task[Unit] = UIO(akkaActor ! fa)
 
   /**
-   *
    * Send a message to an actor as `ask` interaction pattern -
    * caller is blocked until the response is received
    *

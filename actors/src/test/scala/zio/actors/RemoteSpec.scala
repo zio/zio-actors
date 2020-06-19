@@ -50,7 +50,7 @@ object SpecUtils {
             _    <- sender ! Pong
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
 
-        case Pong =>
+        case Pong         =>
           (for {
             _ <- console.putStrLn("Received pong")
             _ <- IO.succeed(1)
@@ -91,10 +91,10 @@ object RemoteSpec extends DefaultRunnableSpec {
             actorSystemOne <- ActorSystem("testSystem11", configFile)
             _              <- actorSystemOne.make("actorOne", Supervisor.none, 0, handlerMessageTrait)
             actorSystemTwo <- ActorSystem("testSystem12", configFile)
-            actorRef <- actorSystemTwo.select[Message](
-                         "zio://testSystem11@127.0.0.1:9665/actorOne"
-                       )
-            result <- actorRef ? Str("ZIO-Actor response... ")
+            actorRef       <- actorSystemTwo.select[Message](
+                                "zio://testSystem11@127.0.0.1:9665/actorOne"
+                              )
+            result         <- actorRef ? Str("ZIO-Actor response... ")
           } yield assert(result)(equalTo("ZIO-Actor response... received plus 01"))
         },
         testM("ActorRef serialization case") {
@@ -106,22 +106,20 @@ object RemoteSpec extends DefaultRunnableSpec {
             _           <- actorSystem.make("actorTwo", Supervisor.none, (), protoHandler)
 
             remoteActor <- actorSystemRoot.select[PingPongProto](
-                            "zio://testSystem22@127.0.0.1:9668/actorTwo"
-                          )
+                             "zio://testSystem22@127.0.0.1:9668/actorTwo"
+                           )
 
-            _ <- one ! GameInit(remoteActor)
+            _           <- one ! GameInit(remoteActor)
 
             _ <- clock.sleep(2.seconds)
 
             outputVector <- TestConsole.output
-          } yield {
-            assert(outputVector.size)(equalTo(3)) &&
+          } yield assert(outputVector.size)(equalTo(3)) &&
             assert(outputVector(0))(equalTo("The game starts...\n")) &&
             assert(outputVector(1))(
               equalTo("Ping from: zio://testSystem21@127.0.0.1:9667/actorOne, sending pong\n")
             ) &&
             assert(outputVector(2))(equalTo("Received pong\n"))
-          }
         }
       ),
       suite("Error handling suite")(
@@ -145,10 +143,10 @@ object RemoteSpec extends DefaultRunnableSpec {
         testM("Remote system does not exist") {
           val program = for {
             actorSystem <- ActorSystem("testSystem41", configFile)
-            actorRef <- actorSystem.select[PingPongProto](
-                         "zio://testSystem42@127.0.0.1:9672/actorTwo"
-                       )
-            _ <- actorRef ! GameInit(actorRef)
+            actorRef    <- actorSystem.select[PingPongProto](
+                             "zio://testSystem42@127.0.0.1:9672/actorTwo"
+                           )
+            _           <- actorRef ! GameInit(actorRef)
           } yield ()
 
           assertM(program.run)(
@@ -160,10 +158,10 @@ object RemoteSpec extends DefaultRunnableSpec {
           val program = for {
             actorSystemOne <- ActorSystem("testSystem51", configFile)
             _              <- ActorSystem("testSystem52", configFile)
-            actorRef <- actorSystemOne.select[PingPongProto](
-                         "zio://testSystem52@127.0.0.1:9674/actorTwo"
-                       )
-            _ <- actorRef ? GameInit(actorRef)
+            actorRef       <- actorSystemOne.select[PingPongProto](
+                                "zio://testSystem52@127.0.0.1:9674/actorTwo"
+                              )
+            _              <- actorRef ? GameInit(actorRef)
           } yield ()
 
           assertM(program.run)(
@@ -176,10 +174,10 @@ object RemoteSpec extends DefaultRunnableSpec {
             actorSystemOne <- ActorSystem("testSystem61", configFile)
             _              <- actorSystemOne.make("actorOne", Supervisor.none, (), errorHandler)
             actorSystemTwo <- ActorSystem("testSystem62", configFile)
-            actorRef <- actorSystemTwo.select[ErrorProto](
-                         "zio://testSystem61@127.0.0.1:9675/actorOne"
-                       )
-            _ <- actorRef ? UnsafeMessage
+            actorRef       <- actorSystemTwo.select[ErrorProto](
+                                "zio://testSystem61@127.0.0.1:9675/actorOne"
+                              )
+            _              <- actorRef ? UnsafeMessage
           } yield ()
 
           assertM(program.run)(
@@ -192,10 +190,10 @@ object RemoteSpec extends DefaultRunnableSpec {
             actorSystemOne <- ActorSystem("testSystem71", configFile)
             _              <- actorSystemOne.make("actor-One-;_&", Supervisor.none, 0, handlerMessageTrait)
             actorSystemTwo <- ActorSystem("testSystem72", configFile)
-            actorRef <- actorSystemTwo.select[Message](
-                         "zio://testSystem71@127.0.0.1:9677/actor-One-;_&"
-                       )
-            result <- actorRef ? Str("ZIO-Actor response... ")
+            actorRef       <- actorSystemTwo.select[Message](
+                                "zio://testSystem71@127.0.0.1:9677/actor-One-;_&"
+                              )
+            result         <- actorRef ? Str("ZIO-Actor response... ")
           } yield assert(result)(equalTo("ZIO-Actor response... received plus 01"))
         }
       )
