@@ -37,18 +37,18 @@ private[actors] object PersistenceConfig {
 
   def getPluginClassMapping(journalPluginRaw: JournalPluginRaw): Task[JournalPluginClass] =
     for {
-      p <- promise.poll
-      configStr <- p match {
-                    case Some(value) =>
-                      value
-                    case None =>
-                      for {
-                        inputStream <- IO(getClass.getResourceAsStream("/datastores.conf"))
-                        source      <- IO(scala.io.Source.fromInputStream(inputStream))
-                        str         <- Managed.make(IO(source))(s => UIO(s.close())).use(s => IO(s.mkString))
-                        _           <- promise.succeed(str)
-                      } yield str
-                  }
+      p           <- promise.poll
+      configStr   <- p match {
+                       case Some(value) =>
+                         value
+                       case None        =>
+                         for {
+                           inputStream <- IO(getClass.getResourceAsStream("/datastores.conf"))
+                           source      <- IO(scala.io.Source.fromInputStream(inputStream))
+                           str         <- Managed.make(IO(source))(s => UIO(s.close())).use(s => IO(s.mkString))
+                           _           <- promise.succeed(str)
+                         } yield str
+                     }
       pluginClass <- getConfig("internals", configStr, classPathConfig(journalPluginRaw.value))
     } yield pluginClass
 
