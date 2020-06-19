@@ -4,7 +4,7 @@ import zio.{ Task, ZIO }
 import zio.config.{ Config, ConfigDescriptor }
 import zio.config.ConfigDescriptor._
 import zio.config.typesafe.TypesafeConfig
-import zio.Tagged
+import zio.Tag
 
 private[actors] object ActorsConfig {
 
@@ -12,13 +12,13 @@ private[actors] object ActorsConfig {
   final case class Port(value: Int)    extends AnyVal
   final case class RemoteConfig(addr: Addr, port: Port)
 
-  val remoteConfig: ConfigDescriptor[String, String, Option[RemoteConfig]] =
+  val remoteConfig: ConfigDescriptor[Option[RemoteConfig]] =
     nested("remoting") {
       (string("hostname").xmap[Addr](Addr, _.value) |@|
         int("port").xmap[Port](Port, _.value))(RemoteConfig.apply, RemoteConfig.unapply)
     }.optional
 
-  private def selectiveSystemConfig[T](systemName: String, configT: ConfigDescriptor[String, String, T]) =
+  private def selectiveSystemConfig[T](systemName: String, configT: ConfigDescriptor[T]) =
     nested(systemName) {
       nested("zio") {
         nested("actors") {
@@ -30,8 +30,8 @@ private[actors] object ActorsConfig {
   def getConfig[T](
     systemName: String,
     configStr: String,
-    configDescriptor: ConfigDescriptor[String, String, T]
-  )(implicit tag: Tagged[T]): Task[T] =
+    configDescriptor: ConfigDescriptor[T]
+  )(implicit tag: Tag[T]): Task[T] =
     ZIO
       .access[Config[T]](_.get)
       .provideLayer(TypesafeConfig.fromHoconString[T](configStr, selectiveSystemConfig(systemName, configDescriptor)))
