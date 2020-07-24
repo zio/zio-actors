@@ -1,7 +1,7 @@
 package zio.actors
 
 import zio.actors.Actor.PendingMessage
-import zio._
+import zio.{ Supervisor => _, _ }
 
 object Actor {
 

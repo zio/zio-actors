@@ -31,11 +31,11 @@ inThisBuild(
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
-val zioVersion            = "1.0.0-RC20"
-val zioNioVersion         = "1.0.0-RC7"
-val zioConfigVersion      = "1.0.0-RC20"
-val zioInteropCatsVersion = "2.0.0.0-RC14"
-val akkaActorTypedVersion = "2.6.8"
+val zioVersion            = "1.0.0-RC21-2"
+val zioNioVersion         = "1.0.0-RC8"
+val zioConfigVersion      = "1.0.0-RC24"
+val zioInteropCatsVersion = "2.1.4.0-RC17"
+val akkaActorTypedVersion = "2.6.7"
 val doobieVersion         = "0.9.0"
 
 lazy val root =
