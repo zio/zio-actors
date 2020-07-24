@@ -12,7 +12,7 @@ First do the imports:
 
 ```scala mdoc:silent
 import zio.actors._
-import zio._
+import zio.{ Supervisor => _, _ }
 import zio.console._
 import zio.duration._
 import java.util.concurrent.TimeUnit
