@@ -104,7 +104,7 @@ object ActorsSpec extends DefaultRunnableSpec {
         val called   = new AtomicBoolean(false)
         val schedule = Schedule.recurs(10)
         val policy   =
-          Supervisor.retryOrElse[Any, Int](
+          Supervisor.retryOrElse[Any, Long](
             schedule,
             (_, _) => IO.effectTotal(called.set(true))
           )

@@ -1,9 +1,10 @@
 package zio.actors
 
+import zio.clock.Clock
 import zio.{ IO, RIO, Schedule, URIO, ZIO }
 
 private[actors] trait Supervisor[-R] {
-  def supervise[R0 <: R, A](zio: RIO[R0, A], error: Throwable): ZIO[R0, Unit, A]
+  def supervise[R0 <: R, A](zio: RIO[R0, A], error: Throwable): ZIO[R0 with Clock, Unit, A]
 }
 
 /**
@@ -21,7 +22,7 @@ object Supervisor {
     orElse: (Throwable, A) => URIO[R, Unit]
   ): Supervisor[R] =
     new Supervisor[R] {
-      override def supervise[R0 <: R, A0](zio: RIO[R0, A0], error: Throwable): ZIO[R0, Unit, A0] =
+      override def supervise[R0 <: R, A0](zio: RIO[R0, A0], error: Throwable): ZIO[R0 with Clock, Unit, A0] =
         zio
           .retryOrElse(policy, (e: Throwable, a: A) => orElse(e, a) *> ZIO.fail(error))
           .mapError(_ => ())

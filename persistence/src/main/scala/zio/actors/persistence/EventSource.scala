@@ -1,12 +1,12 @@
 package zio.actors.persistence
 
 import scala.reflect._
-
 import zio.actors.{ Actor, Context, Supervisor }
 import zio.{ IO, Queue, RIO, Ref, Task }
 import zio.actors.Actor._
 import zio.actors.persistence.journal.Journal
 import PersistenceId._
+import zio.clock.Clock
 
 /**
  * Each message can result in either an event that will be persisted or idempotent action.
@@ -49,7 +49,7 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
     context: Context,
     optOutActorSystem: () => Task[Unit],
     mailboxSize: Int = DefaultActorMailboxSize
-  )(initial: S): RIO[R, Actor[F]] = {
+  )(initial: S): RIO[R with Clock, Actor[F]] = {
 
     val ctString = classTag[String]
 
@@ -68,7 +68,7 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
 
     def applyEvents(events: Seq[Ev], state: S): S = events.foldLeft(state)(sourceEvent)
 
-    def process[A](msg: PendingMessage[F, A], state: Ref[S], journal: Journal[Ev]): RIO[R, Unit] =
+    def process[A](msg: PendingMessage[F, A], state: Ref[S], journal: Journal[Ev]): RIO[R with Clock, Unit] =
       for {
         s                  <- state.get
         (fa, promise)       = msg

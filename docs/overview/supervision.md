@@ -33,5 +33,5 @@ Supervisor.retry(Schedule.recurs(10))
 The general method also requires effect that will be executed on `Schedule` end:
 
 ```scala mdoc:silent
-Supervisor.retryOrElse[Any, Int](Schedule.recurs(10), (e, a) => putStrLn("nothing can be done").provideLayer(Console.live))
+Supervisor.retryOrElse[Any, Long](Schedule.recurs(10), (e, a) => putStrLn("nothing can be done").provideLayer(Console.live))
 ```

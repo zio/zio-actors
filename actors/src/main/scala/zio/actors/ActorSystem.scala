@@ -7,6 +7,7 @@ import zio.{ Chunk, IO, Promise, RIO, Ref, Task, UIO, ZIO }
 import zio.actors.Actor.{ AbstractStateful, Stateful }
 import zio.actors.ActorSystemUtils._
 import zio.actors.ActorsConfig._
+import zio.clock.Clock
 import zio.nio.core.{ Buffer, InetAddress, SocketAddress }
 import zio.nio.core.channels.{ AsynchronousServerSocketChannel, AsynchronousSocketChannel }
 
@@ -70,7 +71,7 @@ final class Context private[actors] (
     sup: Supervisor[R],
     init: S,
     stateful: Stateful[R, S, F1]
-  ): ZIO[R, Throwable, ActorRef[F1]] =
+  ): ZIO[R with Clock, Throwable, ActorRef[F1]] =
     for {
       actorRef <- actorSystem.make(actorName, sup, init, stateful)
       children <- childrenRef.get
@@ -126,7 +127,7 @@ final class ActorSystem private[actors] (
     sup: Supervisor[R],
     init: S,
     stateful: AbstractStateful[R, S, F]
-  ): RIO[R, ActorRef[F]] =
+  ): RIO[R with Clock, ActorRef[F]] =
     for {
       map          <- refActorMap.get
       finalName    <- buildFinalName(parentActor.getOrElse(""), actorName)
@@ -186,7 +187,7 @@ final class ActorSystem private[actors] (
   def shutdown: Task[List[_]] =
     for {
       systemActors <- refActorMap.get
-      actorsDump   <- ZIO.foreach(systemActors.values)(_.asInstanceOf[Actor[Any]].stop)
+      actorsDump   <- ZIO.foreach(systemActors.values.toList)(_.asInstanceOf[Actor[Any]].stop)
     } yield actorsDump.flatten
 
   /* INTERNAL API */
