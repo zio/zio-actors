@@ -1,6 +1,7 @@
 package zio.actors
 
 import zio.actors.Actor.PendingMessage
+import zio.clock.Clock
 import zio.{ Supervisor => _, _ }
 
 object Actor {
@@ -34,9 +35,9 @@ object Actor {
       context: Context,
       optOutActorSystem: () => Task[Unit],
       mailboxSize: Int = DefaultActorMailboxSize
-    )(initial: S): URIO[R, Actor[F]] = {
+    )(initial: S): URIO[R with Clock, Actor[F]] = {
 
-      def process[A](msg: PendingMessage[F, A], state: Ref[S]): URIO[R, Unit] =
+      def process[A](msg: PendingMessage[F, A], state: Ref[S]): URIO[R with Clock, Unit] =
         for {
           s            <- state.get
           (fa, promise) = msg
@@ -69,7 +70,7 @@ object Actor {
       context: Context,
       optOutActorSystem: () => Task[Unit],
       mailboxSize: Int = DefaultActorMailboxSize
-    )(initial: S): RIO[R, Actor[F]]
+    )(initial: S): RIO[R with Clock, Actor[F]]
 
   }
 
