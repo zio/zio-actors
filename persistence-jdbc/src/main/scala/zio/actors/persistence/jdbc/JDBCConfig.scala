@@ -7,14 +7,16 @@ import zio.config.ConfigDescriptor.{ nested, string }
 
 private[actors] object JDBCConfig {
 
-  final case class DbURL(value: String)  extends AnyVal
-  final case class DbUser(value: String) extends AnyVal
-  final case class DbPass(value: String) extends AnyVal
-  final case class DbConfig(dbURL: DbURL, dbUser: DbUser, dbPass: DbPass)
+  final case class DbDriver(value: String) extends AnyVal
+  final case class DbURL(value: String)    extends AnyVal
+  final case class DbUser(value: String)   extends AnyVal
+  final case class DbPass(value: String)   extends AnyVal
+  final case class DbConfig(dbDriver: DbDriver, dbURL: DbURL, dbUser: DbUser, dbPass: DbPass)
 
   val dbConfig: ConfigDescriptor[DbConfig] =
     nested("persistence") {
-      (string("url").xmap[DbURL](DbURL, _.value) |@|
+      (string("driver").xmap[DbDriver](DbDriver, _.value) |@|
+        string("url").xmap[DbURL](DbURL, _.value) |@|
         string("user").xmap[DbUser](DbUser, _.value) |@|
         string("pass").xmap[DbPass](DbPass, _.value))(DbConfig.apply, DbConfig.unapply)
     }

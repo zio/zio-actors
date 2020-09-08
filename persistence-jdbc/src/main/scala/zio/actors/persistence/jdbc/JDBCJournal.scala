@@ -24,7 +24,7 @@ private[actors] final class JDBCJournal[Ev](tnx: Transactor[Task]) extends Journ
   override def getEvents(persistenceId: PersistenceId): Task[Seq[Ev]] =
     for {
       bytes  <- SqlEvents.getEventsById(persistenceId).to[Seq].transact(tnx)
-      events <- IO.collectAll(bytes.map(ActorSystemUtils.objFromByteArray(_).map(_.asInstanceOf[Ev])))
+      events <- ZIO.foreach(bytes)(ActorSystemUtils.objFromByteArray(_).map(_.asInstanceOf[Ev]))
     } yield events
 
 }
@@ -46,6 +46,7 @@ private[actors] object JDBCJournal {
         transactEC <- UIO(rt.environment.get.blockingExecutor.asEC)
         connectEC   = rt.platform.executor.asEC
         ds          = new HikariDataSource()
+        _           = ds.setDriverClassName(dbConfig.dbDriver.value)
         _           = ds.setJdbcUrl(dbConfig.dbURL.value)
         _           = ds.setUsername(dbConfig.dbUser.value)
         _           = ds.setPassword(dbConfig.dbPass.value)
