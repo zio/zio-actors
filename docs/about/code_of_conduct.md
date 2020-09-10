@@ -15,7 +15,7 @@ members are expected to follow the Scala Code of Conduct when discussing the pro
 communication channels. If you are being harassed, please contact us immediately so that we can support you.
 
 ## Moderation and Steering Committee
- 
+
 The ZIO project is moderated by the Steering Committee team members:
 
 - Itamar Ravid [@iravid](https://github.com/iravid)

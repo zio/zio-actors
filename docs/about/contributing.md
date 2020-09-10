@@ -1,13 +1,13 @@
 ---
 id: about_contributing
-title:  "ZIO Contributor Guidelines"
+title:  "ZIO-Actors Contributor Guidelines"
 ---
 
-Thank you for your interest in contributing to ZIO, which is a small, zero-dependency library for doing type-safe, composable concurrent and asynchronous programming!
+Thank you for your interest in contributing to ZIO-Actors, which is a small, zero-dependency library for doing type-safe, composable concurrent and asynchronous programming!
 
-We welcome contributions from all people! You will learn about functional programming, and you will add your own unique touch to the ZIO project. We are happy to help you to get started and to hear your suggestions and answer your questions.
+We welcome contributions from all people! You will learn about functional programming, and you will add your own unique touch to the ZIO-Actors project. We are happy to help you to get started and to hear your suggestions and answer your questions.
 
-_You too can contribute to ZIO, we believe in you!_
+_You too can contribute to ZIO-Actors, we believe in you!_
 
 # Contributing
 
@@ -19,7 +19,7 @@ To begin contributing, please follow these steps:
 
 If you don't already have one, sign up for a free [GitHub Account](https://github.com/join?source=header-home).
 
-After you [log into](https://github.com/login) GitHub using your account, go to the [ZIO Project Page](https://github.com/zio/zio), and click on [Fork](https://github.com/zio/zio/fork) to fork the ZIO repository into your own account.
+After you [log into](https://github.com/login) GitHub using your account, go to the [ZIO-Actors Project Page](https://github.com/zio/zio-actors), and click on [Fork](https://github.com/zio/zio-actors/fork) to fork the ZIO-Actors repository into your own account.
 
 You will make _all_ contributions from your own account. No one contributes _directly_ to the main repository. Contributors only ever merge code from other people's forks into the main repository.
 
@@ -28,12 +28,10 @@ Once you have forked the repository, you can now clone your forked repository to
 To clone your forked repository, first make sure you have installed [Git](https://git-scm.com/downloads), the version control system used by GitHub. Then open a Terminal and type the following commands:
 
 ```bash
-mkdir zio
-cd zio
-git clone git@github.com:your-user-name/zio.git .
+git clone git@github.com:your-user-name/zio-actors.git .
 ```
 
-If these steps were successful, then congratulations, you now have a complete copy of the ZIO project!
+If these steps were successful, then congratulations, you now have a complete copy of the ZIO Actors project!
 
 The next step is to build the project on your machine, to ensure you know how to compile the project and run tests.
 
@@ -65,50 +63,27 @@ test:compile
 
 [Learn more](https://www.scala-sbt.org) about sbt to understand how you can list projects, switch projects, and otherwise manage an sbt project.
 
-The main project in ZIO is `coreJVM` (the core project on the JVM; there is also `coreJS` for the core project on Scala.js), which you can focus on using sbt by issuing the following command:
-
-```bash
-project coreJVM
-```
-
-### Build the microsite locally
-
-In order to build the microsite locally use the following commands:
-```bash
-sbt docs/mdoc 
-cd website
-yarn install
-yarn run build
-```
-
-Now to run the microsite, use 
-```bash
-yarn start
-```
-
-You should be able to visit `localhost:3000/zio-actors` on your browser and view the microsite locally
-
 ### Find an Issue
 
-You may have your own idea about what contributions to make to ZIO, which is great! If you want to make sure the ZIO contributors are open to your idea, you can [open an issue](https://github.com/zio/zio/issues/new) first on the ZIO project site.
+You may have your own idea about what contributions to make to ZIO-Actors, which is great! If you want to make sure the ZIO contributors are open to your idea, you can [open an issue](https://github.com/zio/zio-actors/issues/new) first on the ZIO project site.
 
-Otherwise, if you have no ideas about what to contribute, you can find a large supply of feature requests and bugs on the project's [issue tracker](https://github.com/zio/zio/issues).
+Otherwise, if you have no ideas about what to contribute, you can find a large supply of feature requests and bugs on the project's [issue tracker](https://github.com/zio/zio-actors/issues).
 
 Issues are tagged with various labels, such as `good first issue`, which help you find issues that are a fit for you.
 
-If some issue is confusing or you think you might need help, then just post a comment on the issue asking for help. Typically, the author of the issue will provide as much help as you need, and if the issue is critical, leading ZIO contributors will probably step in to mentor you and give you a hand, making sure you understand the issue thoroughly.
+If some issue is confusing or you think you might need help, then just post a comment on the issue asking for help. Typically, the author of the issue will provide as much help as you need, and if the issue is critical, leading ZIO-Actors contributors will probably step in to mentor you and give you a hand, making sure you understand the issue thoroughly.
 
 Once you've decided on an issue and understand what is necessary to complete the issue, then it's a good idea to post a comment on the issue saying that you intend to work on it. Otherwise, someone else might work on it too!
 
 ### Fix an Issue
 
-Once you have an issue, the next step is to fix the bug or implement the feature. Since ZIO is an open source project, there are no deadlines. Take your time!
+Once you have an issue, the next step is to fix the bug or implement the feature. Since ZIO-Actors is an open source project, there are no deadlines. Take your time!
 
 The only thing you have to worry about is if you take too long, especially for a critical issue, eventually someone else will come along and work on the issue.
 
 If you shoot for 2-3 weeks for most issues, this should give you plenty of time without having to worry about having your issue stolen.
 
-If you get stuck, please consider [opening a pull request](https://github.com/zio/zio/compare) for your incomplete work, and asking for help (just prefix the pull request by _WIP_). In addition, you can comment on the original issue, pointing people to your own fork. Both of these are great ways to get outside help from people more familiar with the project.
+If you get stuck, please consider [opening a pull request](https://github.com/zio/zio-actors/compare) for your incomplete work, and asking for help (just prefix the pull request by _WIP_). In addition, you can comment on the original issue, pointing people to your own fork. Both of these are great ways to get outside help from people more familiar with the project.
 
 ### Prepare Your Code
 
@@ -123,7 +98,7 @@ git status
 If you see new files, you will have to tell `git` to add them to the repository using `git add`:
 
 ```bash
-git add core/src/shared/zio/zio/NewFile.scala
+git add src/main/zio/zmx/NewFile.scala
 ```
 
 Then you can commit all your changes at once with the following command:
@@ -138,12 +113,12 @@ At this point, you have saved your work locally, to your machine, but you still 
 git push
 ```
 
-Now while you were working on this great improvement, it's quite likely that other ZIO contributors were making their own improvements. You need to pull all those improvements into your own code base to resolve any conflicts and make sure the changes all work well together.
+Now while you were working on this great improvement, it's quite likely that other ZIO-Actors contributors were making their own improvements. You need to pull all those improvements into your own code base to resolve any conflicts and make sure the changes all work well together.
 
 To do that, use the `git pull` command:
 
 ```bash
-git pull git@github.com:zio/zio.git master
+git pull git@github.com:zio/zio-actors.git master
 ```
 
 You may get a warning from Git that some files conflicted. Don't worry! That just means you and another contributor edited the same parts of the same files.
@@ -180,8 +155,6 @@ If your changes altered an API, then you may need to rebuild the microsite to ma
 sbt docs/docusaurusCreateSite
 ```
 
-(If you get an error about _Jekyll_, that means all the code examples work and you can ignore the rest.)
-
 Finally, if you are up-to-date with master, all your tests are passing, you have properly formatted your code, and the microsite builds properly, then it's time to submit your work for review!
 
 ### Create a Pull Request
@@ -192,7 +165,7 @@ To create a pull request, first push all your changes to your fork of the projec
 git push
 ```
 
-Next, [open a new pull request](https://github.com/zio/zio/compare) on GitHub, and select _Compare Across Forks_. On the right hand side, choose your own fork of the ZIO repository, in which you've been making your contribution.
+Next, [open a new pull request](https://github.com/zio/zio-actors/compare) on GitHub, and select _Compare Across Forks_. On the right hand side, choose your own fork of the ZIO-Actors repository, in which you've been making your contribution.
 
 Provide a description for the pull request, which details the issue it is fixing, and has other information that may be helpful to developers reviewing the pull request.
 
@@ -200,23 +173,23 @@ Finally, click _Create Pull Request_!
 
 ### Get Your Pull Request Merged
 
-Once you have a pull request open, it's still your job to get it merged! To get it merged, you need at least one core ZIO contributor to approve the code.
+Once you have a pull request open, it's still your job to get it merged! To get it merged, you need at least one core ZIO-Actors contributor to approve the code.
 
 If you know someone who would be qualified to review your code, you can request that person, either in the comments of the pull request, or on the right-hand side, if you have appropriate permissions.
 
 Code reviews can sometimes take a few days, because open source projects are largely done outside of work, in people's leisure time. Be patient, but don't wait forever. If you haven't gotten a review within a few days, then consider gently reminding people that you need a review.
 
-Once you receive a review, you will probably have to go back and make minor changes that improve your contribution and make it follow existing conventions in the code base. This is normal, even for experienced contributors, and the rigorous reviews help ensure ZIO's code base stays high quality.
+Once you receive a review, you will probably have to go back and make minor changes that improve your contribution and make it follow existing conventions in the code base. This is normal, even for experienced contributors, and the rigorous reviews help ensure ZIO-Actors' code base stays high quality.
 
 After you make changes, you may need to remind reviewers to check out the code again. If they give a final approval, it means your code is ready for merge! Usually this will happen at the same time, though for controversial changes, a contributor may wait for someone more senior to merge.
 
 If you don't get a merge in a day after your review is successful, then please gently remind folks that your code is ready to be merged.
 
-Sit back, relax, and enjoy being a ZIO contributor!
+Sit back, relax, and enjoy being a ZIO-Actors contributor!
 
-# ZIO Contributor License Agreement
+# ZIO-Actors Contributor License Agreement
 
-Thank you for your interest in contributing to the ZIO open source project.
+Thank you for your interest in contributing to the ZIO-Actors open source project.
 
 This contributor agreement ("Agreement") describes the terms and conditions under which you may Submit a Contribution to Us. By Submitting a Contribution to Us, you accept the terms and conditions in the Agreement. If you do not accept the terms and conditions in the Agreement, you must not Submit any Contribution to Us.
 
