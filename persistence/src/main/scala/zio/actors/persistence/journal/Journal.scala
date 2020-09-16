@@ -10,3 +10,7 @@ private[actors] trait Journal[Ev] {
   def getEvents(persistenceId: PersistenceId): Task[Seq[Ev]]
 
 }
+
+trait JournalFactory {
+  def getJournal[Ev](actorSystemName: String, configStr: String): Task[Journal[Ev]]
+}

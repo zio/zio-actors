@@ -1,10 +1,10 @@
 package zio.actors.persistence
 
-import scala.reflect._
+import scala.reflect.runtime.universe
 import zio.actors.{ Actor, Context, Supervisor }
 import zio.{ IO, Queue, RIO, Ref, Task }
 import zio.actors.Actor._
-import zio.actors.persistence.journal.Journal
+import zio.actors.persistence.journal.{ Journal, JournalFactory }
 import PersistenceId._
 import zio.clock.Clock
 
@@ -51,19 +51,26 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
     mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S): RIO[R with Clock, Actor[F]] = {
 
-    val ctString = classTag[String]
+    val mirror = universe.runtimeMirror(getClass.getClassLoader)
 
     def retrieveJournal: Task[Journal[Ev]] =
       for {
-        configStr   <- IO
-                         .fromOption(context.actorSystemConfig)
-                         .mapError(_ => new Exception("Couldn't retrieve persistence config"))
-        systemName   = context.actorSystemName
-        pluginClass <- PersistenceConfig.getPluginClass(systemName, configStr)
-        clazz        = Class.forName(pluginClass.value)
-        declMeth     = clazz.getDeclaredMethod("getJournal", ctString.runtimeClass, ctString.runtimeClass)
-        getJournal   = (s: String, f: String) => declMeth.invoke(null, s, f)
-        journal     <- getJournal(systemName, configStr).asInstanceOf[Task[Journal[Ev]]]
+        configStr    <- IO
+                          .fromOption(context.actorSystemConfig)
+                          .mapError(_ => new Exception("Couldn't retrieve persistence config"))
+        systemName    = context.actorSystemName
+        pluginClass  <- PersistenceConfig.getPluginClass(systemName, configStr)
+        maybeFactory <- Task(mirror.reflectModule(mirror.staticModule(pluginClass.value)).instance).mapError(e =>
+                          new IllegalArgumentException(s"Could not load plugin class $pluginClass from $configStr", e)
+                        )
+        factory      <-
+          Task(maybeFactory.asInstanceOf[JournalFactory]).mapError(e =>
+            new IllegalArgumentException(
+              s"Plugin class $maybeFactory from $configStr is not a ${classOf[JournalFactory].getCanonicalName}",
+              e
+            )
+          )
+        journal      <- factory.getJournal[Ev](systemName, configStr)
       } yield journal
 
     def applyEvents(events: Seq[Ev], state: S): S = events.foldLeft(state)(sourceEvent)

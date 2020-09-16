@@ -8,7 +8,7 @@ import doobie.implicits._
 import zio.{ IO, Promise, Runtime, Task, UIO, ZIO }
 import zio.actors.ActorSystemUtils
 import zio.actors.persistence.PersistenceId.PersistenceId
-import zio.actors.persistence.journal.Journal
+import zio.actors.persistence.journal.{ Journal, JournalFactory }
 import zio.actors.persistence.jdbc.JDBCConfig.DbConfig
 import zio.blocking.Blocking
 import zio.interop.catz._
@@ -29,7 +29,7 @@ private[actors] final class JDBCJournal[Ev](tnx: Transactor[Task]) extends Journ
 
 }
 
-private[actors] object JDBCJournal {
+object JDBCJournal extends JournalFactory {
 
   private lazy val runtime           = Runtime.default
   private lazy val transactorPromise = runtime.unsafeRun(Promise.make[Exception, HikariTransactor[Task]])
