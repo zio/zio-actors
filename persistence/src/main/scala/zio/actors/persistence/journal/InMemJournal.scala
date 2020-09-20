@@ -22,7 +22,7 @@ private[actors] final class InMemJournal[Ev](journalRef: Ref[List[JournalRow[Ev]
 
 }
 
-private[actors] object InMemJournal {
+object InMemJournal extends JournalFactory {
 
   private case class JournalRow[Ev](persistenceId: PersistenceId, seqNum: Int, event: Ev)
 

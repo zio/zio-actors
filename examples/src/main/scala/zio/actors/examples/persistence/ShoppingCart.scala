@@ -74,7 +74,7 @@ object ShoppingCart {
         context: Context
       ): UIO[(persistence.Command[Event], State => A)] =
         if (state.isCheckedOut) checkedOutShoppingCart[A](cartId, state, msg)
-        else openShoppingCard[A](cartId, state, msg)
+        else openShoppingCart[A](cartId, state, msg)
 
       override def sourceEvent(state: State, event: Event): State =
         event match {
@@ -86,7 +86,7 @@ object ShoppingCart {
         }
     }
 
-  private def openShoppingCard[A](
+  private def openShoppingCart[A](
     cartId: String,
     state: State,
     command: Command[A]

@@ -77,6 +77,40 @@ object PersistenceSpec extends DefaultRunnableSpec {
                 )
               )
           )
+        },
+        testM("Plugin with a non-existing factory class") {
+          val program = for {
+            as <- ActorSystem("testSystem4", configFile)
+            _  <- as.make("actor1", Supervisor.none, 0, ESCounterHandler)
+          } yield ()
+
+          assertM(program.run)(
+            fails(isSubtype[Throwable](anything)) &&
+              fails(
+                hasField[Throwable, Boolean](
+                  "message",
+                  e => e.toString.contains("non-existent") && e.toString.contains("NonExistent"),
+                  isTrue
+                )
+              )
+          )
+        },
+        testM("Plugin with an incorrect factory") {
+          val program = for {
+            as <- ActorSystem("testSystem5", configFile)
+            _  <- as.make("actor1", Supervisor.none, 0, ESCounterHandler)
+          } yield ()
+
+          assertM(program.run)(
+            fails(isSubtype[Throwable](anything)) &&
+              fails(
+                hasField[Throwable, Boolean](
+                  "message",
+                  _.toString.contains("incorrect-factory"),
+                  isTrue
+                )
+              )
+          )
         }
       )
     )
