@@ -3,15 +3,17 @@ package zio.actors
 import java.util.concurrent.atomic.AtomicBoolean
 
 import zio.actors.Actor.Stateful
-import zio.{ IO, Ref, Schedule, Task, UIO }
+import zio.stream.Stream
+import zio.{ Chunk, IO, Ref, Schedule, Task, UIO }
 import zio.test._
 import zio.test.Assertion._
 
 object CounterUtils {
   sealed trait Message[+_]
-  case object Reset    extends Message[Unit]
-  case object Increase extends Message[Unit]
-  case object Get      extends Message[Int]
+  case object Reset                   extends Message[Unit]
+  case object Increase                extends Message[Unit]
+  case object Get                     extends Message[Int]
+  case class IncreaseUpTo(upper: Int) extends Message[Stream[Nothing, Int]]
 }
 
 object TickUtils {
@@ -37,9 +39,10 @@ object ActorsSpec extends DefaultRunnableSpec {
             context: Context
           ): UIO[(Int, A)] =
             msg match {
-              case Reset    => UIO((0, ()))
-              case Increase => UIO((state + 1, ()))
-              case Get      => UIO((state, state))
+              case Reset               => UIO((0, ()))
+              case Increase            => UIO((state + 1, ()))
+              case Get                 => UIO((state, state))
+              case IncreaseUpTo(upper) => UIO((upper, Stream.fromIterable(state until upper)))
             }
         }
 
@@ -51,7 +54,13 @@ object ActorsSpec extends DefaultRunnableSpec {
           c1     <- actor ? Get
           _      <- actor ! Reset
           c2     <- actor ? Get
-        } yield assert(c1)(equalTo(2)) && assert(c2)(equalTo(0))
+          c3     <- actor ? IncreaseUpTo(20)
+          vals   <- c3.runCollect
+          c4     <- actor ? Get
+        } yield assert(c1)(equalTo(2)) &&
+          assert(c2)(equalTo(0)) &&
+          assert(vals)(equalTo(Chunk.apply(0 until 20: _*))) &&
+          assert(c4)(equalTo(20))
       },
       testM("Error recovery by retrying") {
         import TickUtils._

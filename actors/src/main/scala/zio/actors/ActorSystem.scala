@@ -229,7 +229,17 @@ final class ActorSystem private[actors] (
                                                              new Exception(s"System internal exception - ${throwable.getMessage}")
                                                            )
                                                        response <- actor.unsafeOp(envelope.command).either
-                                                       _        <- writeToWire(worker, response)
+                                                       _        <- response match {
+                                                                     case Right(
+                                                                           stream: zio.stream.ZStream[
+                                                                             Any @unchecked,
+                                                                             Throwable @unchecked,
+                                                                             Any @unchecked
+                                                                           ]
+                                                                         ) =>
+                                                                       stream.foreach(writeToWire(worker, _))
+                                                                     case _ => writeToWire(worker, response)
+                                                                   }
                                                      } yield ()
                                                    case None        =>
                                                      for {
