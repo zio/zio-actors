@@ -3,14 +3,15 @@ package zio.actors
 import java.io.File
 import java.net.ConnectException
 
-import zio.actors.Actor.Stateful
-import zio.{ clock, console, IO }
+import zio.actors.Actor.{ActorResponse, Stateful}
+import zio.{IO, clock, console}
 import zio.test.DefaultRunnableSpec
 import zio.test._
 import zio.test.Assertion._
 import zio.duration._
 import zio.test.environment.TestConsole
 import SpecUtils._
+import zio.actors.Actor.ActorResponse.oneTimeResponse
 
 object SpecUtils {
   sealed trait Message[+A]
@@ -24,10 +25,10 @@ object SpecUtils {
       state: Int,
       msg: Message[A],
       context: Context
-    ): IO[MyErrorDomain, (Int, A)] =
+    ): ActorResponse[Any, Int, A] =
       msg match {
         case Str(value) =>
-          IO.effectTotal((state + 1, value + "received plus " + state + 1))
+          oneTimeResponse(IO.effectTotal((state + 1, value + "received plus " + state + 1)))
       }
   }
 
@@ -41,27 +42,27 @@ object SpecUtils {
       state: Unit,
       msg: PingPongProto[A],
       context: Context
-    ): IO[Throwable, (Unit, A)] =
+    ): ActorResponse[Any, Unit, A] =
       msg match {
         case Ping(sender) =>
-          (for {
+          ActorResponse.oneTimeResponse((for {
             path <- sender.path
             _    <- console.putStrLn(s"Ping from: $path, sending pong")
             _    <- sender ! Pong
-          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
+          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]])
 
         case Pong         =>
-          (for {
+          ActorResponse.oneTimeResponse((for {
             _ <- console.putStrLn("Received pong")
             _ <- IO.succeed(1)
-          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
+          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]])
 
         case GameInit(to) =>
-          (for {
+          ActorResponse.oneTimeResponse((for {
             _    <- console.putStrLn("The game starts...")
             self <- context.self[PingPongProto]
             _    <- to ! Ping(self)
-          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
+          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]])
       }
   }
 
@@ -73,9 +74,9 @@ object SpecUtils {
       state: Unit,
       msg: ErrorProto[A],
       context: Context
-    ): IO[Throwable, (Unit, A)] =
+    ): ActorResponse[Any, Unit, A] =
       msg match {
-        case UnsafeMessage => IO.fail(new Exception("Error on remote side"))
+        case UnsafeMessage => oneTimeResponse(IO.fail(new Exception("Error on remote side")))
       }
   }
 

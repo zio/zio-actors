@@ -2,9 +2,10 @@ package zio.actors
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-import zio.actors.Actor.Stateful
-import zio.stream.Stream
-import zio.{ Chunk, IO, Ref, Schedule, Task, UIO }
+import zio.actors.Actor.ActorResponse._
+import zio.actors.Actor.{ActorResponse, Stateful}
+import zio.stream.{Stream, ZStream}
+import zio.{Chunk, IO, Ref, Schedule, UIO}
 import zio.test._
 import zio.test.Assertion._
 
@@ -13,7 +14,7 @@ object CounterUtils {
   case object Reset                   extends Message[Unit]
   case object Increase                extends Message[Unit]
   case object Get                     extends Message[Int]
-  case class IncreaseUpTo(upper: Int) extends Message[Stream[Nothing, Int]]
+  case class IncreaseUpTo(upper: Int) extends Message[ZStream[Any, Throwable, Int]]
 }
 
 object TickUtils {
@@ -37,12 +38,12 @@ object ActorsSpec extends DefaultRunnableSpec {
             state: Int,
             msg: Message[A],
             context: Context
-          ): UIO[(Int, A)] =
+          ): ActorResponse[Any, Int, A] =
             msg match {
-              case Reset               => UIO((0, ()))
-              case Increase            => UIO((state + 1, ()))
-              case Get                 => UIO((state, state))
-              case IncreaseUpTo(upper) => UIO((upper, Stream.fromIterable(state until upper)))
+              case Reset               => oneTimeResponse(UIO((0, ())))
+              case Increase            => oneTimeResponse(UIO((state + 1, ())))
+              case Get                 => oneTimeResponse(UIO((state, state)))
+              case IncreaseUpTo(upper) => streamingResponse[Any, Int, Int](Stream.fromIterable((state to upper).map(i => (i, i)))).asInstanceOf[ActorResponse[Any, Int, A]]
             }
         }
 
@@ -55,11 +56,11 @@ object ActorsSpec extends DefaultRunnableSpec {
           _      <- actor ! Reset
           c2     <- actor ? Get
           c3     <- actor ? IncreaseUpTo(20)
-          vals   <- c3.runCollect
+          vals   <- c3.mapM(i => (actor ? Get).map(i2 => (i, i2))).runCollect
           c4     <- actor ? Get
         } yield assert(c1)(equalTo(2)) &&
           assert(c2)(equalTo(0)) &&
-          assert(vals)(equalTo(Chunk.apply(0 until 20: _*))) &&
+          assert(vals)(equalTo(Chunk.apply((0 to 20).map(i => (i, i)): _*))) &&
           assert(c4)(equalTo(20))
       },
       testM("Error recovery by retrying") {
@@ -73,15 +74,15 @@ object ActorsSpec extends DefaultRunnableSpec {
               state: Unit,
               msg: Message[A],
               context: Context
-            ): Task[(Unit, A)] =
+            ): ActorResponse[Any, Unit, A] =
               msg match {
                 case Tick =>
-                  ref
+                  oneTimeResponse(ref
                     .updateAndGet(_ + 1)
                     .flatMap { v =>
                       if (v < maxRetries) IO.fail(new Exception("fail"))
                       else IO.succeed((state, state))
-                    }
+                    })
               }
           }
 
@@ -104,9 +105,9 @@ object ActorsSpec extends DefaultRunnableSpec {
             state: Unit,
             msg: Message[A],
             context: Context
-          ): IO[Throwable, (Unit, A)] =
+          ): ActorResponse[Any, Unit, A] =
             msg match {
-              case Tick => IO.fail(new Exception("fail"))
+              case Tick => oneTimeResponse(IO.fail(new Exception("fail")))
             }
         }
 
@@ -134,9 +135,9 @@ object ActorsSpec extends DefaultRunnableSpec {
             state: Unit,
             msg: Msg[A],
             context: Context
-          ): IO[Throwable, (Unit, A)] =
+          ): ActorResponse[Any, Unit, A] =
             msg match {
-              case Letter => IO.succeed(((), ()))
+              case Letter => oneTimeResponse(IO.succeed(((), ())))
             }
         }
         for {
@@ -158,9 +159,9 @@ object ActorsSpec extends DefaultRunnableSpec {
             state: Unit,
             msg: Message[A],
             context: Context
-          ): IO[Throwable, (Unit, A)] =
+          ): ActorResponse[Any, Unit, A] =
             msg match {
-              case Tick => IO.succeed(((), ()))
+              case Tick => oneTimeResponse(IO.succeed(((), ())))
             }
         }
         for {
@@ -179,9 +180,9 @@ object ActorsSpec extends DefaultRunnableSpec {
             state: Unit,
             msg: Message[A],
             context: Context
-          ): IO[Throwable, (Unit, A)] =
+          ): ActorResponse[Any, Unit, A] =
             msg match {
-              case Tick => IO.succeed(((), ()))
+              case Tick => oneTimeResponse(IO.succeed(((), ())))
             }
         }
 

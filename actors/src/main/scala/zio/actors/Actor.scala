@@ -2,11 +2,45 @@ package zio.actors
 
 import zio.actors.Actor.PendingMessage
 import zio.clock.Clock
-import zio.{ Supervisor => _, _ }
+import zio.stream.ZStream
+import zio.{Supervisor => _, _}
 
 object Actor {
 
   private[actors] type PendingMessage[F[_], A] = (F[A], Promise[Throwable, A])
+  trait ActorResponse[R, S, A] {
+    type ResponseType
+
+    def materialize(state: Ref[S], promise: Promise[Throwable, A], supervisor: Supervisor[R]): URIO[R with Clock, Unit]
+  }
+
+  object ActorResponse {
+    def oneTimeResponse[R, S, A](response: RIO[R, (S, A)]): ActorResponse[R, S, A] =
+      new ActorResponse[R, S, A] {
+        override type ResponseType = RIO[R, (S, A)]
+
+        override def materialize(state: Ref[S], promise: Promise[Throwable, A], supervisor: Supervisor[R]): URIO[R with Clock, Unit] = {
+          val completer = ((s: S, a: A) => (state.set(s) *> promise.succeed(a)).ignore).tupled
+          response.foldM(
+            e =>
+              supervisor
+                .supervise[R, (S, A)](response, e)
+                .foldM(_ => promise.fail(e).ignore, completer),
+            completer
+          )
+        }
+      }
+    def streamingResponse[R, S, A](response: ZStream[R, Throwable, (S, A)]): ActorResponse[R, S, ZStream[R, Throwable, A]] =
+      new ActorResponse[R, S, ZStream[R, Throwable, A]] {
+        override type ResponseType = ZStream[R, Throwable, (S, A)]
+
+        override def materialize(state: Ref[S], promise: Promise[Throwable, ZStream[R, Throwable, A]], supervisor: Supervisor[R]): URIO[R with Clock, Unit] = {
+          // TODO: Supervision
+          val outputStream = response.mapM { case (s, a) => state.set(s) *> UIO(a) }
+          promise.succeed(outputStream).ignore
+        }
+      }
+  }
 
   /**
    * Description of actor behavior (can act as FSM)
@@ -26,7 +60,7 @@ object Actor {
      * @tparam A - domain of return entities
      * @return effectful result
      */
-    def receive[A](state: S, msg: F[A], context: Context): RIO[R, (S, A)]
+    def receive[A](state: S, msg: F[A], context: Context): ActorResponse[R, S, A]
 
     /* INTERNAL API */
 
@@ -42,14 +76,7 @@ object Actor {
           s            <- state.get
           (fa, promise) = msg
           receiver      = receive(s, fa, context)
-          completer     = ((s: S, a: A) => state.set(s) *> promise.succeed(a)).tupled
-          _            <- receiver.foldM(
-                            e =>
-                              supervisor
-                                .supervise(receiver, e)
-                                .foldM(_ => promise.fail(e), completer),
-                            completer
-                          )
+          _            <- receiver.materialize(state, promise, supervisor)
         } yield ()
 
       for {
