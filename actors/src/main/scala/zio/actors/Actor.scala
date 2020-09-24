@@ -3,23 +3,33 @@ package zio.actors
 import zio.actors.Actor.PendingMessage
 import zio.clock.Clock
 import zio.stream.ZStream
-import zio.{Supervisor => _, _}
+import zio.{ Supervisor => _, _ }
+
+import scala.language.implicitConversions
 
 object Actor {
 
   private[actors] type PendingMessage[F[_], A] = (F[A], Promise[Throwable, A])
-  trait ActorResponse[R, S, A] {
+  trait ActorResponse[R, S, +A] {
     type ResponseType
 
-    def materialize(state: Ref[S], promise: Promise[Throwable, A], supervisor: Supervisor[R]): URIO[R with Clock, Unit]
+    def materialize[AA >: A](
+      state: Ref[S],
+      promise: Promise[Throwable, AA],
+      supervisor: Supervisor[R]
+    ): URIO[R with Clock, Unit]
   }
 
   object ActorResponse {
-    def oneTimeResponse[R, S, A](response: RIO[R, (S, A)]): ActorResponse[R, S, A] =
+    implicit def oneTime[R, S, A](response: RIO[R, (S, A)]): ActorResponse[R, S, A]                         =
       new ActorResponse[R, S, A] {
         override type ResponseType = RIO[R, (S, A)]
 
-        override def materialize(state: Ref[S], promise: Promise[Throwable, A], supervisor: Supervisor[R]): URIO[R with Clock, Unit] = {
+        override def materialize[AA >: A](
+          state: Ref[S],
+          promise: Promise[Throwable, AA],
+          supervisor: Supervisor[R]
+        ): URIO[R with Clock, Unit] = {
           val completer = ((s: S, a: A) => (state.set(s) *> promise.succeed(a)).ignore).tupled
           response.foldM(
             e =>
@@ -30,11 +40,15 @@ object Actor {
           )
         }
       }
-    def streamingResponse[R, S, A](response: ZStream[R, Throwable, (S, A)]): ActorResponse[R, S, ZStream[R, Throwable, A]] =
-      new ActorResponse[R, S, ZStream[R, Throwable, A]] {
-        override type ResponseType = ZStream[R, Throwable, (S, A)]
+    implicit def stream[R, S, E, I](response: ZStream[R, E, (S, I)]): ActorResponse[R, S, ZStream[R, E, I]] =
+      new ActorResponse[R, S, ZStream[R, E, I]] {
+        override type ResponseType = ZStream[R, E, (S, I)]
 
-        override def materialize(state: Ref[S], promise: Promise[Throwable, ZStream[R, Throwable, A]], supervisor: Supervisor[R]): URIO[R with Clock, Unit] = {
+        override def materialize[AA >: ZStream[R, E, I]](
+          state: Ref[S],
+          promise: Promise[Throwable, AA],
+          supervisor: Supervisor[R]
+        ): URIO[R with Clock, Unit] = {
           // TODO: Supervision
           val outputStream = response.mapM { case (s, a) => state.set(s) *> UIO(a) }
           promise.succeed(outputStream).ignore
@@ -60,7 +74,9 @@ object Actor {
      * @tparam A - domain of return entities
      * @return effectful result
      */
-    def receive[A](state: S, msg: F[A], context: Context): ActorResponse[R, S, A]
+    def receive[A](state: S, msg: F[A], context: Context): RIO[R, (S, A)]          = ???
+    def receiveS[A](state: S, msg: F[A], context: Context): ActorResponse[R, S, A] =
+      ActorResponse.oneTime(receive(state, msg, context))
 
     /* INTERNAL API */
 
@@ -75,7 +91,7 @@ object Actor {
         for {
           s            <- state.get
           (fa, promise) = msg
-          receiver      = receive(s, fa, context)
+          receiver      = receiveS(s, fa, context)
           _            <- receiver.materialize(state, promise, supervisor)
         } yield ()
 

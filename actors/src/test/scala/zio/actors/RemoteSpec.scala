@@ -3,32 +3,36 @@ package zio.actors
 import java.io.File
 import java.net.ConnectException
 
-import zio.actors.Actor.{ActorResponse, Stateful}
-import zio.{IO, clock, console}
+import zio.actors.Actor.{ ActorResponse, Stateful }
+import zio.{ clock, console, Chunk, IO }
 import zio.test.DefaultRunnableSpec
 import zio.test._
 import zio.test.Assertion._
 import zio.duration._
 import zio.test.environment.TestConsole
 import SpecUtils._
-import zio.actors.Actor.ActorResponse.oneTimeResponse
+import zio.actors.Actor.ActorResponse.{ oneTime, stream }
+import zio.stream.ZStream
 
 object SpecUtils {
   sealed trait Message[+A]
-  case class Str(value: String) extends Message[String]
+  case class Str(value: String)        extends Message[String]
+  case class Strs(values: Seq[String]) extends Message[ZStream[Any, Nothing, String]]
 
   sealed trait MyErrorDomain extends Throwable
   case object DomainError    extends MyErrorDomain
 
   val handlerMessageTrait = new Stateful[Any, Int, Message] {
-    override def receive[A](
+    override def receiveS[A](
       state: Int,
       msg: Message[A],
       context: Context
     ): ActorResponse[Any, Int, A] =
       msg match {
-        case Str(value) =>
-          oneTimeResponse(IO.effectTotal((state + 1, value + "received plus " + state + 1)))
+        case Str(value)   =>
+          oneTime(IO.effectTotal((state + 1, value + "received plus " + state + 1)))
+        case Strs(values) =>
+          stream(ZStream(values: _*).zipWithIndex.map { case (v, i) => (state + i.toInt, v) })
       }
   }
 
@@ -38,27 +42,27 @@ object SpecUtils {
   case class GameInit(recipient: ActorRef[PingPongProto]) extends PingPongProto[Unit]
 
   val protoHandler = new Stateful[Any, Unit, PingPongProto] {
-    override def receive[A](
+    override def receiveS[A](
       state: Unit,
       msg: PingPongProto[A],
       context: Context
     ): ActorResponse[Any, Unit, A] =
       msg match {
         case Ping(sender) =>
-          ActorResponse.oneTimeResponse((for {
+          ActorResponse.oneTime((for {
             path <- sender.path
             _    <- console.putStrLn(s"Ping from: $path, sending pong")
             _    <- sender ! Pong
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]])
 
         case Pong         =>
-          ActorResponse.oneTimeResponse((for {
+          (for {
             _ <- console.putStrLn("Received pong")
             _ <- IO.succeed(1)
-          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]])
+          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]: ActorResponse[Any, Unit, A]
 
         case GameInit(to) =>
-          ActorResponse.oneTimeResponse((for {
+          ActorResponse.oneTime((for {
             _    <- console.putStrLn("The game starts...")
             self <- context.self[PingPongProto]
             _    <- to ! Ping(self)
@@ -74,9 +78,9 @@ object SpecUtils {
       state: Unit,
       msg: ErrorProto[A],
       context: Context
-    ): ActorResponse[Any, Unit, A] =
+    ): IO[Throwable, (Unit, A)] =
       msg match {
-        case UnsafeMessage => oneTimeResponse(IO.fail(new Exception("Error on remote side")))
+        case UnsafeMessage => IO.fail(new Exception("Error on remote side"))
       }
   }
 
@@ -96,7 +100,10 @@ object RemoteSpec extends DefaultRunnableSpec {
                                 "zio://testSystem11@127.0.0.1:9665/actorOne"
                               )
             result         <- actorRef ? Str("ZIO-Actor response... ")
-          } yield assert(result)(equalTo("ZIO-Actor response... received plus 01"))
+            resultStream   <- actorRef ? Strs(Seq("ZIO-Actor response... 1", "ZIO-Actor response... 2"))
+            streamVals     <- resultStream.runCollect
+          } yield assert(result)(equalTo("ZIO-Actor response... received plus 01")) &&
+            assert(streamVals)(equalTo(Chunk("ZIO-Actor response... 1", "ZIO-Actor response... 2")))
         },
         testM("ActorRef serialization case") {
           for {
