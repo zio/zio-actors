@@ -5,7 +5,7 @@ import java.io.{ IOException, ObjectInputStream, ObjectOutputStream, ObjectStrea
 import zio.nio.core.{ InetAddress, InetSocketAddress, SocketAddress }
 import zio.nio.core.channels.AsynchronousSocketChannel
 import zio.stream.ZStream
-import zio.{ IO, Runtime, Task, UIO }
+import zio.{ IO, Runtime, Schedule, Task, UIO }
 
 import scala.reflect.runtime.universe._
 
@@ -122,17 +122,20 @@ private[actors] final class ActorRefRemote[-F[+_]](
 
   private def sendEnvelope[A](command: Command)(implicit typeTag: TypeTag[A]): Task[A] = {
     val baseClassNames = typeTag.tpe.baseClasses.map(_.name.decodedName.toString)
-    println(baseClassNames)
     val isZStream      = baseClassNames.contains("ZStream")
     for {
       client   <- AsynchronousSocketChannel()
-      tt        = implicitly[TypeTag[A]]
       response <- for {
                     _         <- client.connect(address)
                     actorPath <- path
                     _         <- writeToWire(client, new Envelope(command, actorPath))
                     response  <- if (isZStream)
-                                   Task(ZStream.fromEffect(readFromWire(client)).takeWhile(_ != StreamEnd)).either
+                                   Task(
+                                     ZStream
+                                       .fromEffect(readFromWire(client))
+                                       .repeat(Schedule.forever)
+                                       .takeWhile(e => e != StreamEnd)
+                                   ).either
                                  else
                                    readFromWire(client)
                   } yield response.asInstanceOf[Either[Throwable, A]]
