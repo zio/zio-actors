@@ -55,7 +55,7 @@ object SpecUtils {
             _    <- sender ! Pong
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]])
 
-        case Pong         =>
+        case Pong =>
           (for {
             _ <- console.putStrLn("Received pong")
             _ <- IO.succeed(1)
@@ -92,7 +92,7 @@ object RemoteSpec extends DefaultRunnableSpec {
     suite("RemoteSpec")(
       suite("Remote communication suite")(
         testM("Remote test send message") {
-          val messages = (1 until 10).map(i => s"ZIO-Actor response... $i").toList
+          val messages  = (1 until 10).map(i => s"ZIO-Actor response... $i").toList
           val messages2 = (11 until 20).map(i => s"ZIO-Actor response... $i").toList
           for {
             actorSystemOne <- ActorSystem("testSystem11", configFile)
@@ -123,7 +123,7 @@ object RemoteSpec extends DefaultRunnableSpec {
                              "zio://testSystem22@127.0.0.1:9668/actorTwo"
                            )
 
-            _           <- one ! GameInit(remoteActor)
+            _ <- one ! GameInit(remoteActor)
 
             _ <- clock.sleep(2.seconds)
 

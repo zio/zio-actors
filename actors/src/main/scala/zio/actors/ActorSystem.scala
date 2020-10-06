@@ -174,9 +174,9 @@ final class ActorSystem private[actors] (
                     } yield actorRef
                   else
                     for {
-                      address  <- InetAddress
-                                    .byName(addr.value)
-                                    .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port.value))
+                      address <- InetAddress
+                                   .byName(addr.value)
+                                   .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port.value))
                     } yield new ActorRefRemote[F](path, address)
     } yield actorRef
 
@@ -238,7 +238,9 @@ final class ActorSystem private[actors] (
                                                                              Any @unchecked
                                                                            ]
                                                                          ) =>
-                                                                       (stream.map(StreamMsg) ++ ZStream(StreamEnd)).foreach(e => writeToWire(worker, e))
+                                                                       (stream.map(StreamMsg) ++ ZStream(StreamEnd)).foreach(e =>
+                                                                         writeToWire(worker, e)
+                                                                       )
                                                                      case _ => writeToWire(worker, response)
                                                                    }
                                                      } yield ()
@@ -334,4 +336,4 @@ private[actors] object ActorSystemUtils {
 
 sealed trait StreamProtocol
 case class StreamMsg(obj: Any) extends StreamProtocol
-case object StreamEnd extends StreamProtocol
+case object StreamEnd          extends StreamProtocol
