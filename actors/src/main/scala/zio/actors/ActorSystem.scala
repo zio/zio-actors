@@ -238,7 +238,7 @@ final class ActorSystem private[actors] (
                                                                              Any @unchecked
                                                                            ]
                                                                          ) =>
-                                                                       (stream ++ ZStream(StreamEnd)).foreach(e => writeToWire(worker, e))
+                                                                       (stream.map(StreamMsg) ++ ZStream(StreamEnd)).foreach(e => writeToWire(worker, e))
                                                                      case _ => writeToWire(worker, response)
                                                                    }
                                                      } yield ()
@@ -332,4 +332,6 @@ private[actors] object ActorSystemUtils {
     } yield ()
 }
 
-object StreamEnd
+sealed trait StreamProtocol
+case class StreamMsg(obj: Any) extends StreamProtocol
+case object StreamEnd extends StreamProtocol

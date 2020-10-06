@@ -93,6 +93,7 @@ object RemoteSpec extends DefaultRunnableSpec {
       suite("Remote communication suite")(
         testM("Remote test send message") {
           val messages = (1 until 10).map(i => s"ZIO-Actor response... $i").toList
+          val messages2 = (11 until 20).map(i => s"ZIO-Actor response... $i").toList
           for {
             actorSystemOne <- ActorSystem("testSystem11", configFile)
             _              <- actorSystemOne.make("actorOne", Supervisor.none, 0, handlerMessageTrait)
@@ -102,9 +103,13 @@ object RemoteSpec extends DefaultRunnableSpec {
                               )
             result         <- actorRef ? Str("ZIO-Actor response... ")
             resultStream   <- actorRef ? Strs(messages)
+            resultStream2  <- actorRef ? Strs(messages2)
+            streamVals2    <- resultStream2.runCollect
             streamVals     <- resultStream.runCollect
           } yield assert(result)(equalTo("ZIO-Actor response... received plus 01")) &&
-            assert(streamVals)(equalTo(Chunk(messages: _*)))
+            assert(streamVals)(equalTo(Chunk(messages: _*))) &&
+            assert(streamVals2)(equalTo(Chunk(messages2: _*)))
+
         },
         testM("ActorRef serialization case") {
           for {

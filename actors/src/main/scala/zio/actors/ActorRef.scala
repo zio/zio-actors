@@ -134,7 +134,8 @@ private[actors] final class ActorRefRemote[-F[+_]](
                                      ZStream
                                        .fromEffect(readFromWire(client))
                                        .repeat(Schedule.forever)
-                                       .takeWhile(e => e != StreamEnd)
+                                       .takeUntil(_ == StreamEnd)
+                                       .collect { case StreamMsg(m) => m }
                                    ).either
                                  else
                                    readFromWire(client)
