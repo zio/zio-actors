@@ -7,7 +7,7 @@ import zio.nio.core.channels.AsynchronousSocketChannel
 import zio.stream.ZStream
 import zio.{ IO, Runtime, Schedule, Task, UIO }
 
-import scala.reflect.runtime.universe._
+import scala.reflect.ClassTag
 
 /**
  * Reference to actor that might reside on local JVM instance or be available via remote communication
@@ -24,7 +24,7 @@ sealed trait ActorRef[-F[+_]] extends Serializable {
    * @tparam A return type
    * @return effectful response
    */
-  def ?[A: TypeTag](fa: F[A]): Task[A]
+  def ?[A: ClassTag](fa: F[A]): Task[A]
 
   /**
    * Send message to an actor as `fire-and-forget` -
@@ -89,7 +89,7 @@ private[actors] final class ActorRefLocal[-F[+_]](
   private val actorName: String,
   actor: Actor[F]
 ) extends ActorRefSerial[F](actorName) {
-  override def ?[A: TypeTag](fa: F[A]): Task[A] = actor ? fa
+  override def ?[A: ClassTag](fa: F[A]): Task[A] = actor ? fa
 
   override def !(fa: F[_]): Task[Unit] = actor ! fa
 
@@ -114,15 +114,14 @@ private[actors] final class ActorRefRemote[-F[+_]](
 ) extends ActorRefSerial[F](actorName) {
   import ActorSystemUtils._
 
-  override def ?[A: TypeTag](fa: F[A]): Task[A] = sendEnvelope(Command.Ask(fa))
+  override def ?[A: ClassTag](fa: F[A]): Task[A] = sendEnvelope(Command.Ask(fa))
 
   override def !(fa: F[_]): Task[Unit] = sendEnvelope[Unit](Command.Tell(fa))
 
   override val stop: Task[List[_]] = sendEnvelope(Command.Stop)
 
-  private def sendEnvelope[A](command: Command)(implicit typeTag: TypeTag[A]): Task[A] = {
-    val baseClassNames = typeTag.tpe.baseClasses.map(_.name.decodedName.toString)
-    val isZStream      = baseClassNames.contains("ZStream")
+  private def sendEnvelope[A](command: Command)(implicit classTag: ClassTag[A]): Task[A] = {
+    val isZStream = classTag.runtimeClass.isAssignableFrom(classOf[ZStream[_, _, _]])
     for {
       client   <- AsynchronousSocketChannel()
       response <- for {
