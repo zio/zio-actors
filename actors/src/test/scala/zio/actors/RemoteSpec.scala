@@ -30,9 +30,9 @@ object SpecUtils {
     ): ActorResponse[Any, Int, A] =
       msg match {
         case Str(value)   =>
-          oneTime(IO.effectTotal((state + 1, value + "received plus " + state + 1)))
+          IO.effectTotal((state + 1, value + "received plus " + state + 1))
         case Strs(values) =>
-          stream(ZStream(values: _*).zipWithIndex.map { case (v, i) => (state + i.toInt, v) })
+          ZStream(values: _*).zipWithIndex.map { case (v, i) => (state + i.toInt, v) }
       }
   }
 
