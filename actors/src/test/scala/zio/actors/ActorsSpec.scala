@@ -2,8 +2,6 @@ package zio.actors
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-import zio.actors.Supervisor
-import zio.actors.Actor.ActorResponse._
 import zio.actors.Actor.{ ActorResponse, Stateful }
 import zio.stream.{ Stream, ZStream }
 import zio.{ Chunk, IO, Ref, Schedule, Task, UIO }
