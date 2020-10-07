@@ -11,7 +11,7 @@ import zio.stream.ZStream
 import zio.test.Assertion._
 import zio.test.{ DefaultRunnableSpec, _ }
 import zio.test.environment.TestConsole
-import zio.{ clock, console, Chunk, IO }
+import zio.{ clock, console, Chunk, IO, RIO }
 
 object SpecUtils {
   sealed trait Message[+A]
@@ -41,11 +41,11 @@ object SpecUtils {
   case class GameInit(recipient: ActorRef[PingPongProto]) extends PingPongProto[Unit]
 
   val protoHandler = new Stateful[Any, Unit, PingPongProto] {
-    override def receiveS[A](
+    override def receive[A](
       state: Unit,
       msg: PingPongProto[A],
       context: Context
-    ): ActorResponse[Any, Unit, A] =
+    ): RIO[Any, (Unit, A)] =
       msg match {
         case Ping(sender) =>
           (for {
