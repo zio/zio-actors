@@ -3,16 +3,15 @@ package zio.actors
 import java.io.File
 import java.net.ConnectException
 
-import zio.actors.Actor.{ ActorResponse, Stateful }
-import zio.{ clock, console, Chunk, IO }
-import zio.test.DefaultRunnableSpec
-import zio.test._
-import zio.test.Assertion._
+import zio.actors.Actor.ActorResponse.oneTime
+import zio.actors.Actor.{ActorResponse, Stateful}
+import zio.actors.SpecUtils._
 import zio.duration._
-import zio.test.environment.TestConsole
-import SpecUtils._
-import zio.actors.Actor.ActorResponse.{ oneTime, stream }
 import zio.stream.ZStream
+import zio.test.Assertion._
+import zio.test.{DefaultRunnableSpec, _}
+import zio.test.environment.TestConsole
+import zio.{Chunk, IO, clock, console}
 
 object SpecUtils {
   sealed trait Message[+A]
@@ -49,24 +48,24 @@ object SpecUtils {
     ): ActorResponse[Any, Unit, A] =
       msg match {
         case Ping(sender) =>
-          ActorResponse.oneTime((for {
+          (for {
             path <- sender.path
             _    <- console.putStrLn(s"Ping from: $path, sending pong")
             _    <- sender ! Pong
-          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]])
+          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
 
         case Pong =>
           (for {
             _ <- console.putStrLn("Received pong")
             _ <- IO.succeed(1)
-          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]: ActorResponse[Any, Unit, A]
+          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
 
         case GameInit(to) =>
-          ActorResponse.oneTime((for {
+          (for {
             _    <- console.putStrLn("The game starts...")
             self <- context.self[PingPongProto]
             _    <- to ! Ping(self)
-          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]])
+          } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
       }
   }
 
