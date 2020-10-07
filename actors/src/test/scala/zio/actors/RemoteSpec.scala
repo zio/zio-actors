@@ -3,15 +3,14 @@ package zio.actors
 import java.io.File
 import java.net.ConnectException
 
-import zio.actors.Actor.ActorResponse.oneTime
 import zio.actors.Actor.{ ActorResponse, Stateful }
 import zio.actors.SpecUtils._
 import zio.duration._
 import zio.stream.ZStream
 import zio.test.Assertion._
-import zio.test.{ DefaultRunnableSpec, _ }
 import zio.test.environment.TestConsole
-import zio.{ clock, console, Chunk, IO, RIO }
+import zio.test.{ DefaultRunnableSpec, _ }
+import zio.{ clock, console, Chunk, IO }
 
 object SpecUtils {
   sealed trait Message[+A]
@@ -45,7 +44,7 @@ object SpecUtils {
       state: Unit,
       msg: PingPongProto[A],
       context: Context
-    ): RIO[Any, (Unit, A)] =
+    ): IO[Throwable, (Unit, A)] =
       msg match {
         case Ping(sender) =>
           (for {
