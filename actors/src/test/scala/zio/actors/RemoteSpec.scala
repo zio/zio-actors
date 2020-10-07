@@ -4,14 +4,14 @@ import java.io.File
 import java.net.ConnectException
 
 import zio.actors.Actor.ActorResponse.oneTime
-import zio.actors.Actor.{ActorResponse, Stateful}
+import zio.actors.Actor.{ ActorResponse, Stateful }
 import zio.actors.SpecUtils._
 import zio.duration._
 import zio.stream.ZStream
 import zio.test.Assertion._
-import zio.test.{DefaultRunnableSpec, _}
+import zio.test.{ DefaultRunnableSpec, _ }
 import zio.test.environment.TestConsole
-import zio.{Chunk, IO, clock, console}
+import zio.{ clock, console, Chunk, IO }
 
 object SpecUtils {
   sealed trait Message[+A]
@@ -54,7 +54,7 @@ object SpecUtils {
             _    <- sender ! Pong
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
 
-        case Pong =>
+        case Pong         =>
           (for {
             _ <- console.putStrLn("Received pong")
             _ <- IO.succeed(1)
@@ -122,9 +122,9 @@ object RemoteSpec extends DefaultRunnableSpec {
                              "zio://testSystem22@127.0.0.1:9668/actorTwo"
                            )
 
-            _ <- one ! GameInit(remoteActor)
+            _           <- one ! GameInit(remoteActor)
 
-            _ <- clock.sleep(2.seconds)
+            _ <- clock.sleep(3.seconds)
 
             outputVector <- TestConsole.output
           } yield assert(outputVector.size)(equalTo(3)) &&
