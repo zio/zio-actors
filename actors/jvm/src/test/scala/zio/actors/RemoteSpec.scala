@@ -79,7 +79,7 @@ object SpecUtils {
       }
   }
 
-  val configFile = Some(new File("./actors/src/test/resources/application.conf"))
+  val configFile = Some(new File("./actors/jvm/src/test/resources/application.conf"))
 }
 
 object RemoteSpec extends DefaultRunnableSpec {
@@ -149,10 +149,7 @@ object RemoteSpec extends DefaultRunnableSpec {
             _           <- actorRef ! GameInit(actorRef)
           } yield ()
 
-          assertM(program.run)(
-            fails(isSubtype[ConnectException](anything)) &&
-              fails(hasField[Throwable, String]("message", _.getMessage, equalTo("Connection refused")))
-          )
+          assertM(program.run)(fails(isSubtype[ConnectException](anything)))
         },
         testM("Remote actor does not exist") {
           val program = for {

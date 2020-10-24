@@ -2,7 +2,7 @@ package zio.actors
 
 import zio.actors.Actor.PendingMessage
 import zio.clock.Clock
-import zio.{ Supervisor => _, _ }
+import zio.{Supervisor => _, _}
 
 object Actor {
 
