@@ -50,7 +50,7 @@ object SpecUtils {
             _    <- sender ! Pong
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
 
-        case Pong         =>
+        case Pong =>
           (for {
             _ <- console.putStrLn("Received pong")
             _ <- IO.succeed(1)
@@ -109,7 +109,7 @@ object RemoteSpec extends DefaultRunnableSpec {
                              "zio://testSystem22@127.0.0.1:9668/actorTwo"
                            )
 
-            _           <- one ! GameInit(remoteActor)
+            _ <- one ! GameInit(remoteActor)
 
             _ <- clock.sleep(2.seconds)
 

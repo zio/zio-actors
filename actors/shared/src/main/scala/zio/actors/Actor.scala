@@ -2,7 +2,7 @@ package zio.actors
 
 import zio.actors.Actor.PendingMessage
 import zio.clock.Clock
-import zio.{Supervisor => _, _}
+import zio.{ Supervisor => _, _ }
 
 object Actor {
 
@@ -56,9 +56,9 @@ object Actor {
         state <- Ref.make(initial)
         queue <- Queue.bounded[PendingMessage[F, _]](mailboxSize)
         _     <- (for {
-                     t <- queue.take
-                     _ <- process(t, state)
-                   } yield ()).forever.fork
+                   t <- queue.take
+                   _ <- process(t, state)
+                 } yield ()).forever.fork
       } yield new Actor[F](queue)(optOutActorSystem)
     }
   }
