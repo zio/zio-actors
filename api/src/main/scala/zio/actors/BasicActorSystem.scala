@@ -148,7 +148,7 @@ object BasicActorSystem {
         val port            = Port(value.group(3).toInt)
         val actorName       = "/" + value.group(4)
         IO.succeed((actorSystemName, address, port, actorName))
-      case None                                 =>
+      case _                                    =>
         IO.fail(
           new Exception(
             "Invalid path provided. The pattern is zio://YOUR_ACTOR_SYSTEM_NAME@ADDRES:PORT/RELATIVE_ACTOR_PATH"
