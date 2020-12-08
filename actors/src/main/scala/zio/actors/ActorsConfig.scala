@@ -1,5 +1,6 @@
 package zio.actors
 
+import zio.actors.config.{ Addr, Port, RemoteConfig }
 import zio.{ Task, ZIO }
 import zio.config.{ ConfigDescriptor, ZConfig }
 import zio.config.ConfigDescriptor._
@@ -7,10 +8,6 @@ import zio.config.typesafe.TypesafeConfig
 import zio.Tag
 
 private[actors] object ActorsConfig {
-
-  final case class Addr(value: String) extends AnyVal
-  final case class Port(value: Int)    extends AnyVal
-  final case class RemoteConfig(addr: Addr, port: Port)
 
   val remoteConfig: ConfigDescriptor[Option[RemoteConfig]] =
     nested("remoting") {

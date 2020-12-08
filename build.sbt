@@ -42,7 +42,34 @@ lazy val root =
   project
     .in(file("."))
     .settings(skip in publish := true)
-    .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC, examples, zioActorsAkkaInterop)
+    .aggregate(
+      zioActorsApi.jvm,
+      zioActors,
+      zioActorsPersistence,
+      zioActorsPersistenceJDBC,
+      examples,
+      zioActorsAkkaInterop
+    )
+
+lazy val zioActorsApi =
+  crossProject(JVMPlatform, JSPlatform)
+    .withoutSuffixFor(JVMPlatform)
+    .crossType(CrossType.Pure)
+    .enablePlugins(BuildInfoPlugin, ScalaJSBundlerPlugin)
+    .in(file("api"))
+    .settings(
+      name := "zio-actors-api",
+      libraryDependencies ++= Seq(
+        "dev.zio"      %%% "zio"           % zioVersion,
+        "dev.zio"      %%% "zio-test"      % zioVersion % "test",
+        "dev.zio"      %%% "zio-test-sbt"  % zioVersion % "test",
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value
+      ),
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+    )
+    .settings(
+      stdSettings("zio-actors")
+    )
 
 lazy val zioActors = module("zio-actors", "actors")
   .enablePlugins(BuildInfoPlugin)
@@ -61,6 +88,7 @@ lazy val zioActors = module("zio-actors", "actors")
   .settings(
     stdSettings("zio-actors")
   )
+  .dependsOn(zioActorsApi.jvm)
 
 lazy val zioActorsPersistence = module("zio-actors-persistence", "persistence")
   .settings(
@@ -134,5 +162,5 @@ lazy val docs = project
     docusaurusCreateSite := docusaurusCreateSite.dependsOn(unidoc in Compile).value,
     docusaurusPublishGhpages := docusaurusPublishGhpages.dependsOn(unidoc in Compile).value
   )
-  .dependsOn(zioActors, zioActorsPersistence, zioActorsAkkaInterop)
+  .dependsOn(zioActorsApi.jvm, zioActors, zioActorsPersistence, zioActorsAkkaInterop)
   .enablePlugins(MdocPlugin, DocusaurusPlugin, ScalaUnidocPlugin)

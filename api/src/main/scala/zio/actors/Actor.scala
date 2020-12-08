@@ -63,7 +63,7 @@ object Actor {
     }
   }
 
-  private[actors] trait AbstractStateful[R, S, -F[+_]] {
+  trait AbstractStateful[R, S, -F[+_]] {
 
     private[actors] def makeActor(
       supervisor: Supervisor[R],

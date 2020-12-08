@@ -1,9 +1,10 @@
 package zio.actors.persistence
 
+import zio.actors.ActorsConfig
 import zio.{ IO, Managed, Promise, Runtime, Task, UIO }
 import zio.config.ConfigDescriptor
 import zio.config.ConfigDescriptor._
-import zio.actors.ActorsConfig._
+import ActorsConfig._
 
 private[actors] object PersistenceConfig {
 
@@ -33,7 +34,7 @@ private[actors] object PersistenceConfig {
     }
 
   def getPluginClass(systemName: String, configStr: String): Task[JournalPluginClass] =
-    zio.actors.ActorsConfig.getConfig(systemName, configStr, pluginConfig).flatMap(getPluginClassMapping)
+    ActorsConfig.getConfig(systemName, configStr, pluginConfig).flatMap(getPluginClassMapping)
 
   def getPluginClassMapping(journalPluginRaw: JournalPluginRaw): Task[JournalPluginClass] =
     for {
