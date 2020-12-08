@@ -1,17 +1,15 @@
 package zio.actors
 
-import zio.actors.LocalActorSystem._
-import zio.actors.Actor.AbstractStateful
-import zio.actors.config.{ Addr, Port, RemoteConfig }
-import zio.clock.Clock
 import zio._
+import zio.actors.Actor.AbstractStateful
+import zio.actors.BasicActorSystem._
+import zio.actors.config.{ Addr, Port }
+import zio.clock.Clock
 
-class LocalActorSystem(
-  val actorSystemName: String,
-  val config: Option[String],
-  private val remoteConfig: Option[RemoteConfig],
+class BasicActorSystem(
   private val refActorMap: Ref[Map[String, Any]],
-  private val parentActor: Option[String]
+  private val parentActor: Option[String],
+  val config: Option[String]
 ) {
 
   /**
@@ -35,7 +33,7 @@ class LocalActorSystem(
       map          <- refActorMap.get
       finalName    <- buildFinalName(parentActor.getOrElse(""), actorName)
       _            <- if (map.contains(finalName)) IO.fail(new Exception(s"Actor $finalName already exists")) else IO.unit
-      path          = buildPath(actorSystemName, finalName, remoteConfig)
+      path          = buildPath(finalName)
       derivedSystem = newActorSystem(finalName)
       childrenSet  <- Ref.make(Set.empty[ActorRef[Any]])
       actor        <- stateful.makeActor(
@@ -46,8 +44,10 @@ class LocalActorSystem(
       _            <- refActorMap.set(map + (finalName -> actor))
     } yield new ActorRefLocal[F](path, actor)
 
+  protected def buildPath(actorPath: String)                   =
+    s"zio://$actorSystemName@127.0.0.1:0$actorPath"
   protected def newActorSystem[F[+_], S, R](finalName: String) =
-    new LocalActorSystem(actorSystemName, config, remoteConfig, refActorMap, Some(finalName))
+    new BasicActorSystem(refActorMap, Some(finalName), config)
 
   /**
    * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module.
@@ -115,10 +115,27 @@ class LocalActorSystem(
       _                   <- ZIO.foreach_(children)(_.stop)
       _                   <- childrenRef.set(Set.empty)
     } yield ()
+
+  def actorSystemName: String = "local"
 }
 
-object LocalActorSystem {
-  private val RegexName = "[\\w+|\\d+|(\\-_.*$+:@&=,!~';.)|\\/]+".r
+object BasicActorSystem {
+
+  /**
+   * Constructor for Actor System
+   *
+   * @param sysName    - Identifier for Actor System
+   * @param configFile - Optional configuration for a remoting internal module.
+   *                   If not provided the actor system will only handle local actors in terms of actor selection.
+   *                   When provided - remote messaging and remote actor selection is possible
+   * @return instantiated actor system
+   */
+  def apply(config: Option[String] = None): Task[BasicActorSystem] =
+    for {
+      initActorRefMap <- Ref.make(Map.empty[String, Any])
+      actorSystem     <- IO.effect(new BasicActorSystem(initActorRefMap, parentActor = None, config = config))
+    } yield actorSystem
+  private val RegexName                                            = "[\\w+|\\d+|(\\-_.*$+:@&=,!~';.)|\\/]+".r
 
   private val RegexFullPath =
     "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w+|\\d+|\\-_.*$+:@&=,!~';.|\\/]+)$".r
@@ -147,6 +164,4 @@ object LocalActorSystem {
       case _             => IO.fail(new Exception(s"Invalid actor name provided $actorName. Valid symbols are -_.*$$+:@&=,!~';"))
     }
 
-  def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[RemoteConfig]) =
-    s"zio://$actorSystemName@${remoteConfig.map(c => c.addr.value + ":" + c.port.value).getOrElse("0.0.0.0:0000")}$actorPath"
 }

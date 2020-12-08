@@ -1,12 +1,12 @@
 package zio.actors
 
-import java.util.concurrent.atomic.AtomicBoolean
-
+import zio.{ Supervisor => _, _ }
 import zio.actors.Actor.Stateful
 import zio.stream.Stream
-import zio.{ Chunk, IO, Ref, Schedule, Task, UIO }
-import zio.test._
 import zio.test.Assertion._
+import zio.test._
+
+import java.util.concurrent.atomic.AtomicBoolean
 
 object CounterUtils {
   sealed trait Message[+_]
@@ -47,7 +47,7 @@ object ActorsSpec extends DefaultRunnableSpec {
         }
 
         for {
-          system <- ActorSystem("test1")
+          system <- BasicActorSystem()
           actor  <- system.make("actor1", Supervisor.none, 0, handler)
           _      <- actor ! Increase
           _      <- actor ! Increase
@@ -90,7 +90,7 @@ object ActorsSpec extends DefaultRunnableSpec {
           handler  = makeHandler(ref)
           schedule = Schedule.recurs(maxRetries)
           policy   = Supervisor.retry(schedule)
-          system  <- ActorSystem("test2", None)
+          system  <- BasicActorSystem(None)
           actor   <- system.make("actor1", policy, (), handler)
           _       <- actor ? Tick
           count   <- ref.get
@@ -119,7 +119,7 @@ object ActorsSpec extends DefaultRunnableSpec {
           )
 
         val program = for {
-          system <- ActorSystem("test3", None)
+          system <- BasicActorSystem(None)
           actor  <- system.make("actor1", policy, (), handler)
           _      <- actor ? Tick
         } yield ()
@@ -140,7 +140,7 @@ object ActorsSpec extends DefaultRunnableSpec {
             }
         }
         for {
-          system <- ActorSystem("test1")
+          system <- BasicActorSystem()
           actor <- system.make("actor1", Supervisor.none, (), handler)
           _     <- actor ! Letter
           _     <- actor ? Letter
@@ -164,7 +164,7 @@ object ActorsSpec extends DefaultRunnableSpec {
             }
         }
         for {
-          system <- ActorSystem("test5")
+          system <- BasicActorSystem()
           _         <- system.make("actor1-1", Supervisor.none, (), handler)
           actor     <- system.select[Message]("zio://test5@0.0.0.0:0000/actor1-1")
           _         <- actor ! Tick
@@ -186,7 +186,7 @@ object ActorsSpec extends DefaultRunnableSpec {
         }
 
         val program = for {
-          system <- ActorSystem("test6")
+          system <- BasicActorSystem()
           _      <- system.make("actorOne", Supervisor.none, (), handler)
           actor  <- system.select[Message]("zio://test6@0.0.0.0:0000/actorTwo")
           _      <- actor ! Tick

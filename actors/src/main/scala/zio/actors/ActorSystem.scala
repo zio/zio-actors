@@ -1,11 +1,11 @@
 package zio.actors
 
-import zio.actors.LocalActorSystem.resolvePath
+import zio._
 import zio.actors.ActorSystemUtils._
+import zio.actors.BasicActorSystem.resolvePath
 import zio.actors.config.{ Addr, Port, RemoteConfig }
 import zio.nio.core.channels.{ AsynchronousServerSocketChannel, AsynchronousSocketChannel }
 import zio.nio.core.{ Buffer, InetAddress, SocketAddress }
-import zio._
 
 import java.io._
 import java.nio.ByteBuffer
@@ -30,7 +30,7 @@ object ActorSystem {
       initActorRefMap <- Ref.make(Map.empty[String, Any])
       config          <- retrieveConfig(configFile)
       remoteConfig    <- retrieveRemoteConfig(sysName, config)
-      actorSystem     <- IO.effect(new ActorSystem(sysName, config, remoteConfig, initActorRefMap, parentActor = None))
+      actorSystem     <- IO.effect(new ActorSystem(initActorRefMap, parentActor = None, config, sysName, remoteConfig))
       _               <- IO
                            .effectTotal(remoteConfig)
                            .flatMap(_.fold[Task[Unit]](IO.unit)(c => actorSystem.receiveLoop(c.addr, c.port)))
@@ -41,13 +41,13 @@ object ActorSystem {
  * Type representing running instance of actor system provisioning actor herding,
  * remoting and actor creation and selection.
  */
-final class ActorSystem private[actors] (
-  actorSystemName: String,
-  config: Option[String],
-  remoteConfig: Option[RemoteConfig],
+final class ActorSystem private (
   refActorMap: Ref[Map[String, Any]],
-  parentActor: Option[String]
-) extends LocalActorSystem(actorSystemName, config, remoteConfig, refActorMap, parentActor) {
+  parentActor: Option[String],
+  config: Option[String],
+  override val actorSystemName: String,
+  private val remoteConfig: Option[RemoteConfig]
+) extends BasicActorSystem(refActorMap, parentActor, config) {
 
   /**
    * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module.
@@ -76,8 +76,10 @@ final class ActorSystem private[actors] (
                     } yield new ActorRefRemote[F](path, address)
     } yield actorRef
 
-  override protected def newActorSystem[F[+_], S, R](finalName: String): LocalActorSystem =
-    new ActorSystem(actorSystemName, config, remoteConfig, refActorMap, Some(finalName))
+  override protected def buildPath(actorPath: String)                                     =
+    s"zio://$actorSystemName@${remoteConfig.map(c => c.addr.value + ":" + c.port.value).getOrElse("0.0.0.0:0000")}$actorPath"
+  override protected def newActorSystem[F[+_], S, R](finalName: String): BasicActorSystem =
+    new ActorSystem(refActorMap, Some(finalName), config, actorSystemName, remoteConfig)
   private def receiveLoop(address: Addr, port: Port): Task[Unit]                          =
     for {
       addr      <- InetAddress.byName(address.value)
@@ -129,12 +131,12 @@ final class ActorSystem private[actors] (
       _         <- loopEffect.onTermination(_ => channel.close.catchAll(_ => ZIO.unit)).fork
       _         <- p.await
     } yield ()
+
 }
 
 /* INTERNAL API */
 
 private[actors] object ActorSystemUtils {
-
   def retrieveConfig(configFile: Option[File]): Task[Option[String]] =
     configFile.fold[Task[Option[String]]](Task.none) { file =>
       IO(Source.fromFile(file)).toManaged(f => UIO(f.close())).use(s => IO.some(s.mkString))

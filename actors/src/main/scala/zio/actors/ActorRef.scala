@@ -1,6 +1,6 @@
 package zio.actors
 
-import zio.actors.LocalActorSystem.resolvePath
+import zio.actors.BasicActorSystem.resolvePath
 
 import java.io.{ IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException }
 import zio.nio.core.{ InetAddress, InetSocketAddress, SocketAddress }

@@ -9,7 +9,7 @@ import zio.{ Ref, Task, ZIO }
  */
 final class Context private[actors] (
   private val path: String,
-  private val actorSystem: LocalActorSystem,
+  private val actorSystem: BasicActorSystem,
   private val childrenRef: Ref[Set[ActorRef[Any]]]
 ) {
 
