@@ -31,12 +31,13 @@ inThisBuild(
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
-val zioVersion            = "1.0.3"
-val zioNioVersion         = "1.0.0-RC9"
-val zioConfigVersion      = "1.0.0-RC30-1"
-val zioInteropCatsVersion = "2.2.0.1"
-val akkaActorTypedVersion = "2.6.10"
-val doobieVersion         = "0.9.4"
+val zioVersion                  = "1.0.3"
+val zioNioVersion               = "1.0.0-RC9"
+val zioConfigVersion            = "1.0.0-RC30-1"
+val zioInteropCatsVersion       = "2.2.0.1"
+val akkaActorTypedVersion       = "2.6.10"
+val doobieVersion               = "0.9.4"
+val portableScalaReflectVersion = "1.0.0"
 
 lazy val root =
   project
@@ -45,7 +46,8 @@ lazy val root =
     .aggregate(
       zioActors.jvm,
       zioActors.js,
-      zioActorsPersistence,
+      zioActorsPersistence.jvm,
+      zioActorsPersistence.js,
       zioActorsPersistenceJDBC,
       examples,
       zioActorsAkkaInterop
@@ -79,15 +81,29 @@ lazy val zioActors =
       )
     )
 
-lazy val zioActorsPersistence = module("zio-actors-persistence", "persistence")
+lazy val zioActorsPersistence = crossProject(JVMPlatform, JSPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("persistence"))
   .settings(
+    name := "zio-actors-persistence",
+    // Workaround for https://github.com/portable-scala/sbt-crossproject/issues/74
+    Seq(Compile, Test).flatMap(inConfig(_) {
+      unmanagedResourceDirectories ++= {
+        unmanagedSourceDirectories.value
+          .map(src => (src / ".." / "resources").getCanonicalFile)
+          .filterNot(unmanagedResourceDirectories.value.contains)
+          .distinct
+      }
+    }),
     libraryDependencies ++= Seq(
-      "dev.zio" %% "zio-test"     % zioVersion % "test",
-      "dev.zio" %% "zio-test-sbt" % zioVersion % "test"
+      "org.portable-scala" %%% "portable-scala-reflect" % portableScalaReflectVersion,
+      "dev.zio"            %%% "zio-test"               % zioVersion % "test",
+      "dev.zio"            %%% "zio-test-sbt"           % zioVersion % "test"
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
-  .dependsOn(zioActors.jvm)
+  .dependsOn(zioActors)
 
 lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persistence-jdbc")
   .settings(
@@ -101,7 +117,7 @@ lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persi
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
-  .dependsOn(zioActorsPersistence)
+  .dependsOn(zioActorsPersistence.jvm)
 
 lazy val examples = module("zio-actors-examples", "examples")
   .settings(
@@ -113,7 +129,7 @@ lazy val examples = module("zio-actors-examples", "examples")
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
-  .dependsOn(zioActors.jvm, zioActorsPersistence, zioActorsPersistenceJDBC)
+  .dependsOn(zioActors.jvm, zioActorsPersistence.jvm, zioActorsPersistenceJDBC)
 
 lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop")
   .settings(
@@ -151,5 +167,5 @@ lazy val docs = project
     docusaurusCreateSite := docusaurusCreateSite.dependsOn(unidoc in Compile).value,
     docusaurusPublishGhpages := docusaurusPublishGhpages.dependsOn(unidoc in Compile).value
   )
-  .dependsOn(zioActors.jvm, zioActorsPersistence, zioActorsAkkaInterop)
+  .dependsOn(zioActors.jvm, zioActorsPersistence.jvm, zioActorsAkkaInterop)
   .enablePlugins(MdocPlugin, DocusaurusPlugin, ScalaUnidocPlugin)

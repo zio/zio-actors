@@ -5,16 +5,12 @@ import zio.{ IO, Managed, Promise, Runtime, Task, UIO }
 import zio.config.ConfigDescriptor
 import zio.config.ConfigDescriptor._
 import ActorsConfig._
+import zio.actors.persistence.config.{ InMemConfig, JournalPluginClass, JournalPluginRaw }
 
 private[actors] object PersistenceConfig {
 
   private lazy val runtime = Runtime.default
   private lazy val promise = runtime.unsafeRun(Promise.make[Exception, String])
-
-  final case class JournalPluginRaw(value: String)   extends AnyVal
-  final case class JournalPluginClass(value: String) extends AnyVal
-
-  final case class InMemConfig(key: String) extends AnyVal
 
   val pluginConfig: ConfigDescriptor[JournalPluginRaw] =
     nested("persistence") {

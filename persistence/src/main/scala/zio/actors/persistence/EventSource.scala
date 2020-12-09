@@ -1,12 +1,14 @@
 package zio.actors.persistence
 
-import scala.reflect.runtime.universe
-import zio.actors.{ Actor, Context, Supervisor }
-import zio.{ IO, Queue, RIO, Ref, Task }
+import org.portablescala.reflect._
+import zio._
 import zio.actors.Actor._
+import zio.actors.persistence.PersistenceId._
 import zio.actors.persistence.journal.{ Journal, JournalFactory }
-import PersistenceId._
+import zio.actors.{ Actor, Context, Supervisor }
 import zio.clock.Clock
+
+import scala.reflect.runtime.universe
 
 /**
  * Each message can result in either an event that will be persisted or idempotent action.
@@ -57,12 +59,15 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
       for {
         configStr    <- IO
                           .fromOption(context.actorSystemConfig)
-                          .mapError(_ => new Exception("Couldn't retrieve persistence config"))
+                          .orElseFail(new Exception("Couldn't retrieve persistence config"))
         systemName    = context.actorSystemName
         pluginClass  <- PersistenceConfig.getPluginClass(systemName, configStr)
-        maybeFactory <- Task(mirror.reflectModule(mirror.staticModule(pluginClass.value)).instance).mapError(e =>
-                          new IllegalArgumentException(s"Could not load plugin class $pluginClass from $configStr", e)
-                        )
+        maybeFactory <-
+          IO.fromOption(Reflect.lookupLoadableModuleClass(pluginClass.value + "$"))
+            .bimap(
+              _ => new IllegalArgumentException(s"Could not load plugin class $pluginClass from $configStr"),
+              _.loadModule()
+            )
         factory      <-
           Task(maybeFactory.asInstanceOf[JournalFactory]).mapError(e =>
             new IllegalArgumentException(

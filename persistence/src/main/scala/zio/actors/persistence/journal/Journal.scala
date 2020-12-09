@@ -1,5 +1,6 @@
 package zio.actors.persistence.journal
 
+import org.portablescala.reflect.annotation.EnableReflectiveInstantiation
 import zio.Task
 import zio.actors.persistence.PersistenceId.PersistenceId
 
@@ -11,6 +12,7 @@ private[actors] trait Journal[Ev] {
 
 }
 
+@EnableReflectiveInstantiation
 trait JournalFactory {
   def getJournal[Ev](actorSystemName: String, configStr: String): Task[Journal[Ev]]
 }
