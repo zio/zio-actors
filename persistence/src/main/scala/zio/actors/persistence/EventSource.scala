@@ -8,8 +8,6 @@ import zio.actors.persistence.journal.{ Journal, JournalFactory }
 import zio.actors.{ Actor, Context, Supervisor }
 import zio.clock.Clock
 
-import scala.reflect.runtime.universe
-
 /**
  * Each message can result in either an event that will be persisted or idempotent action.
  * Changing the actor's state can only occur via `Persist` event.
@@ -52,8 +50,6 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
     optOutActorSystem: () => Task[Unit],
     mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S): RIO[R with Clock, Actor[F]] = {
-
-    val mirror = universe.runtimeMirror(getClass.getClassLoader)
 
     def retrieveJournal: Task[Journal[Ev]] =
       for {
