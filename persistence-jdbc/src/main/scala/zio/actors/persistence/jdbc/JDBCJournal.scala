@@ -1,6 +1,7 @@
 package zio.actors.persistence.jdbc
 
 import cats.effect.Blocker
+import com.typesafe.config.Config
 import com.zaxxer.hikari.HikariDataSource
 import doobie._
 import doobie.hikari.HikariTransactor
@@ -34,9 +35,9 @@ object JDBCJournal extends JournalFactory {
   private lazy val runtime           = Runtime.default
   private lazy val transactorPromise = runtime.unsafeRun(Promise.make[Exception, HikariTransactor[Task]])
 
-  def getJournal[Ev](actorSystemName: String, configStr: String): Task[JDBCJournal[Ev]] =
+  def getJournal[Ev](actorSystemName: String, config: Config): Task[JDBCJournal[Ev]] =
     for {
-      dbConfig <- JDBCConfig.getDbConfig(actorSystemName, configStr)
+      dbConfig <- JDBCConfig.getDbConfig(actorSystemName, config)
       tnx      <- getTransactor(dbConfig)
     } yield new JDBCJournal[Ev](tnx)
 

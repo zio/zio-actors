@@ -1,5 +1,6 @@
 package zio.actors.persistence.jdbc
 
+import com.typesafe.config.Config
 import zio.Task
 import zio.actors.ActorsConfig.getConfig
 import zio.config.ConfigDescriptor
@@ -19,7 +20,7 @@ private[actors] object JDBCConfig {
         string("pass").xmap[DbPass](DbPass, _.value))(DbConfig.apply, DbConfig.unapply)
     }
 
-  def getDbConfig(systemName: String, configStr: String): Task[DbConfig] =
-    getConfig(systemName, configStr, dbConfig)
+  def getDbConfig(systemName: String, config: Config): Task[DbConfig] =
+    getConfig(systemName, config, dbConfig)
 
 }
