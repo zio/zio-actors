@@ -80,10 +80,15 @@ lazy val zioActors =
         "dev.zio" %% "zio-config-typesafe" % zioConfigVersion
       )
     )
+    .jsSettings(
+      libraryDependencies ++= Seq(
+        "org.akka-js" %%% "shocon" % "1.0.0"
+      )
+    )
 
 lazy val zioActorsPersistence = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
+  .crossType(CrossType.Full)
   .in(file("persistence"))
   .settings(
     name := "zio-actors-persistence",
@@ -102,6 +107,15 @@ lazy val zioActorsPersistence = crossProject(JVMPlatform, JSPlatform)
       "dev.zio"            %%% "zio-test-sbt"           % zioVersion % "test"
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+  )
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "dev.zio" %% "zio-config-typesafe" % zioConfigVersion
+    )
+  )
+  .jsConfigure(_.enablePlugins(ShoconPlugin))
+  .jsSettings(
+    compile in Compile := (compile in Compile).dependsOn(shoconConcat).value
   )
   .dependsOn(zioActors)
 

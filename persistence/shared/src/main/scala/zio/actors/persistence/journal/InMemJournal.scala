@@ -2,8 +2,9 @@ package zio.actors.persistence.journal
 
 import zio.{ Ref, Runtime, Task, UIO }
 import zio.actors.persistence.PersistenceId.PersistenceId
-import zio.actors.persistence.PersistenceConfig
 import InMemJournal.JournalRow
+import com.typesafe.config.Config
+import zio.actors.persistence.config.{ ConfigParser, InMemConfig }
 
 private[actors] final class InMemJournal[Ev](journalRef: Ref[List[JournalRow[Ev]]]) extends Journal[Ev] {
 
@@ -24,6 +25,7 @@ private[actors] final class InMemJournal[Ev](journalRef: Ref[List[JournalRow[Ev]
 
 object InMemJournal extends JournalFactory {
 
+  val parser = implicitly[ConfigParser[InMemConfig]]
   private case class JournalRow[Ev](persistenceId: PersistenceId, seqNum: Int, event: Ev)
 
   private lazy val runtime = Runtime.default
@@ -36,9 +38,9 @@ object InMemJournal extends JournalFactory {
     runtime.unsafeRun(journalEff)
   }
 
-  def getJournal[Ev](actorSystemName: String, configStr: String): Task[InMemJournal[Ev]] =
+  def getJournal[Ev](actorSystemName: String, config: Config): Task[InMemJournal[Ev]] =
     for {
-      inMemConfig <- PersistenceConfig.getInMemConfig(actorSystemName, configStr)
+      inMemConfig <- parser.parse(actorSystemName, config)
       key          = inMemConfig.key
       map         <- journalMap.get
       journal     <- map.get(key) match {

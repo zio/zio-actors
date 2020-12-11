@@ -1,5 +1,6 @@
 package zio.actors
 
+import com.typesafe.config.Config
 import zio._
 import zio.actors.Actor.AbstractStateful
 import zio.actors.BasicActorSystem._
@@ -9,7 +10,7 @@ import zio.clock.Clock
 class BasicActorSystem(
   private val refActorMap: Ref[Map[String, Any]],
   private val parentActor: Option[String],
-  val config: Option[String]
+  val config: Option[Config]
 ) {
 
   /**
@@ -130,7 +131,7 @@ object BasicActorSystem {
    *                   When provided - remote messaging and remote actor selection is possible
    * @return instantiated actor system
    */
-  def apply(config: Option[String] = None): Task[BasicActorSystem] =
+  def apply(config: Option[Config] = None): Task[BasicActorSystem] =
     for {
       initActorRefMap <- Ref.make(Map.empty[String, Any])
       actorSystem     <- IO.effect(new BasicActorSystem(initActorRefMap, parentActor = None, config = config))

@@ -1,5 +1,6 @@
 package zio.actors
 
+import com.typesafe.config.{ Config, ConfigFactory }
 import zio._
 import zio.actors.ActorSystemUtils._
 import zio.actors.BasicActorSystem.resolvePath
@@ -30,7 +31,15 @@ object ActorSystem {
       initActorRefMap <- Ref.make(Map.empty[String, Any])
       config          <- retrieveConfig(configFile)
       remoteConfig    <- retrieveRemoteConfig(sysName, config)
-      actorSystem     <- IO.effect(new ActorSystem(initActorRefMap, parentActor = None, config, sysName, remoteConfig))
+      actorSystem     <- IO.effect(
+                           new ActorSystem(
+                             initActorRefMap,
+                             parentActor = None,
+                             config.map(ConfigFactory.parseString),
+                             sysName,
+                             remoteConfig
+                           )
+                         )
       _               <- IO
                            .effectTotal(remoteConfig)
                            .flatMap(_.fold[Task[Unit]](IO.unit)(c => actorSystem.receiveLoop(c.addr, c.port)))
@@ -44,7 +53,7 @@ object ActorSystem {
 final class ActorSystem private (
   refActorMap: Ref[Map[String, Any]],
   parentActor: Option[String],
-  config: Option[String],
+  config: Option[Config],
   override val actorSystemName: String,
   private val remoteConfig: Option[RemoteConfig]
 ) extends BasicActorSystem(refActorMap, parentActor, config) {

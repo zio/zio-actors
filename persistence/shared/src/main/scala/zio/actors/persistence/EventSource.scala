@@ -4,6 +4,7 @@ import org.portablescala.reflect._
 import zio._
 import zio.actors.Actor._
 import zio.actors.persistence.PersistenceId._
+import zio.actors.persistence.config.JournalPluginClass
 import zio.actors.persistence.journal.{ Journal, JournalFactory }
 import zio.actors.{ Actor, Context, Supervisor }
 import zio.clock.Clock
@@ -36,7 +37,10 @@ object PersistenceId {
  * @tparam F type of messages that actor receives
  * @tparam Ev events that will be persisted
  */
-abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: PersistenceId) extends AbstractStateful[R, S, F] {
+abstract class EventSourcedStateful[R, S, -F[+_], Ev](
+  persistenceId: PersistenceId,
+  journalRetriever: Context => Task[Journal[Ev]]
+) extends AbstractStateful[R, S, F] {
 
   def receive[A](state: S, msg: F[A], context: Context): RIO[R, (Command[Ev], S => A)]
 
@@ -50,29 +54,6 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
     optOutActorSystem: () => Task[Unit],
     mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S): RIO[R with Clock, Actor[F]] = {
-
-    def retrieveJournal: Task[Journal[Ev]] =
-      for {
-        configStr    <- IO
-                          .fromOption(context.actorSystemConfig)
-                          .orElseFail(new Exception("Couldn't retrieve persistence config"))
-        systemName    = context.actorSystemName
-        pluginClass  <- PersistenceConfig.getPluginClass(systemName, configStr)
-        maybeFactory <-
-          IO.fromOption(Reflect.lookupLoadableModuleClass(pluginClass.value + "$"))
-            .bimap(
-              _ => new IllegalArgumentException(s"Could not load plugin class $pluginClass from $configStr"),
-              _.loadModule()
-            )
-        factory      <-
-          Task(maybeFactory.asInstanceOf[JournalFactory]).mapError(e =>
-            new IllegalArgumentException(
-              s"Plugin class $maybeFactory from $configStr is not a ${classOf[JournalFactory].getCanonicalName}",
-              e
-            )
-          )
-        journal      <- factory.getJournal[Ev](systemName, configStr)
-      } yield journal
 
     def applyEvents(events: Seq[Ev], state: S): S = events.foldLeft(state)(sourceEvent)
 
@@ -108,7 +89,7 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
       } yield ()
 
     for {
-      journal     <- retrieveJournal
+      journal     <- journalRetriever(context)
       events      <- journal.getEvents(persistenceId)
       sourcedState = applyEvents(events, initial)
       state       <- Ref.make(sourcedState)
@@ -120,4 +101,26 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
     } yield new Actor[F](queue)(optOutActorSystem)
   }
 
+}
+
+object EventSourcedStateful {
+  def retrieveJournal[Ev](pluginClass: JournalPluginClass, context: Context): Task[Journal[Ev]] =
+    for {
+      config       <- IO
+                        .fromOption(context.actorSystemConfig)
+                        .orElseFail(new Exception("Couldn't retrieve persistence config"))
+      systemName    = context.actorSystemName
+      maybeFactory <- IO.fromOption(Reflect.lookupLoadableModuleClass(pluginClass.value + "$"))
+                        .bimap(
+                          _ => new IllegalArgumentException(s"Could not load plugin class $pluginClass from $config"),
+                          _.loadModule()
+                        )
+      factory      <- Task(maybeFactory.asInstanceOf[JournalFactory]).mapError(e =>
+                        new IllegalArgumentException(
+                          s"Plugin class $maybeFactory from $config is not a ${classOf[JournalFactory].getName}",
+                          e
+                        )
+                      )
+      journal      <- factory.getJournal[Ev](systemName, config)
+    } yield journal
 }

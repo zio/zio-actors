@@ -1,12 +1,14 @@
-package zio.actors.persistence
+package zio.actors.persistence.config
 
 import zio.actors.ActorsConfig
+import zio.actors.ActorsConfig.getConfig
 import zio.{ IO, Managed, Promise, Runtime, Task, UIO }
+
 import zio.config.ConfigDescriptor
 import zio.config.ConfigDescriptor._
 import ActorsConfig._
-import zio.actors.persistence.config.{ InMemConfig, JournalPluginClass, JournalPluginRaw }
 
+import zio.actors.persistence.config.{ InMemConfig, JournalPluginClass, JournalPluginRaw }
 private[actors] object PersistenceConfig {
 
   private lazy val runtime = Runtime.default
@@ -22,11 +24,6 @@ private[actors] object PersistenceConfig {
       nested("datastores") {
         string(pluginClass).xmap(JournalPluginClass, _.value)
       }
-    }
-
-  val inMemConfig: ConfigDescriptor[InMemConfig] =
-    nested("persistence") {
-      string("key").xmap(InMemConfig, _.key)
     }
 
   def getPluginClass(systemName: String, configStr: String): Task[JournalPluginClass] =
@@ -48,8 +45,4 @@ private[actors] object PersistenceConfig {
                      }
       pluginClass <- getConfig("internals", configStr, classPathConfig(journalPluginRaw.value))
     } yield pluginClass
-
-  def getInMemConfig(systemName: String, configStr: String): Task[InMemConfig] =
-    getConfig(systemName, configStr, inMemConfig)
-
 }
