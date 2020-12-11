@@ -79,7 +79,7 @@ object SpecUtils {
       }
   }
 
-  val configFile = Some(new File("./actors/src/test/resources/application.conf"))
+  val configFile = Some(new File("./actors/jvm/src/test/resources/application.conf"))
 }
 
 object RemoteSpec extends DefaultRunnableSpec {

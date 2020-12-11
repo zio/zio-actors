@@ -1,5 +1,6 @@
 package zio.actors
 
+import com.typesafe.config.Config
 import zio.actors.config.{ Addr, Port, RemoteConfig }
 import zio.{ Task, ZIO }
 import zio.config.{ ConfigDescriptor, ZConfig }
@@ -23,6 +24,15 @@ private[actors] object ActorsConfig {
         }
       }
     }
+
+  def getConfig[T](
+    systemName: String,
+    config: Config,
+    configDescriptor: ConfigDescriptor[T]
+  )(implicit tag: Tag[T]): Task[T] =
+    ZIO
+      .access[ZConfig[T]](_.get)
+      .provideLayer(TypesafeConfig.fromTypesafeConfig[T](config, selectiveSystemConfig(systemName, configDescriptor)))
 
   def getConfig[T](
     systemName: String,
