@@ -24,9 +24,7 @@ jobs:
           ~/.m2
           ~/.cache
         key: sbt-actors-cache
-    - name: Run compile
-      run: sbt compile
-    - name: Run scalafmt
+    - name: Lint code
       run: sbt check
     - name: Run tests
       run: sbt test
