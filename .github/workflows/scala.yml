@@ -37,6 +37,7 @@ jobs:
   publish:
     runs-on: ubuntu-20.04
     needs: [build]
+    if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v1
       - uses: olafurpg/setup-scala@v10
