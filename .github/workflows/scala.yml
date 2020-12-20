@@ -28,7 +28,7 @@ jobs:
           ~/.sbt
           ~/.m2
           ~/.cache
-        key: sbt-actors-cache-${{ matrix.java }}-${{ matrix-scala }}
+        key: sbt-actors-cache-${{ matrix.java }}-${{ matrix.scala }}
     - name: Lint code
       run: sbt check
     - name: Run tests
