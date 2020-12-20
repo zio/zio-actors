@@ -1,0 +1,18 @@
+name: Scala CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - uses: jodersky/setup-mill@master
+      with:
+        mill-version: 0.8.0
+    - name: Compile
+      run: mill ZioGeolocation.compile
+    - name: Test
+      run: mill ZioGeolocation.test
