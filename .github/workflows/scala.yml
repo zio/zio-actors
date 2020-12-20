@@ -20,7 +20,6 @@ jobs:
     - uses: olafurpg/setup-scala@v10
       with:
         java-version: ${{ matrix.java }}
-        scala-version: ${{ matrix.scala }}
     - name: Cache scala dependencies
       uses: actions/cache@v2
       with:
