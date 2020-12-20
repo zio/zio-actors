@@ -1,6 +1,11 @@
 name: Scala CI
 
-on: [push]
+on:
+  pull_request:
+    branches: ['*']
+  push:
+    branches: ['*']
+    tags: ['/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/']
 
 jobs:
   build:
@@ -15,5 +20,4 @@ jobs:
     - name: Run scalafmt
       run: sbt check
     - name: Run tests
-      run: sbt testname: Scala CI
-
+      run: sbt test
