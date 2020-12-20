@@ -9,7 +9,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - uses: olafurpg/setup-scala@v5
+    - uses: olafurpg/setup-scala@v10
     - name: Run compile
       run: sbt compile
     - name: Run scalafmt
