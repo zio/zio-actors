@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: ['*']
   push:
-    branches: ['*']
+    branches: ['master']
     tags: ['v*']
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
         java: ['adopt@1.8', 'adopt@1.11']
         scala: ['2.12.10', '2.13.1']
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2.3.4
     - uses: olafurpg/setup-scala@v10
       with:
         java-version: ${{ matrix.java }}
@@ -39,12 +39,14 @@ jobs:
     needs: [build]
     if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 0
       - uses: olafurpg/setup-scala@v10
-      - name: Publish artifacts
-        run: sbt ci-release
+      - uses: olafurpg/setup-gpg@v3
+      - run: sbt ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
