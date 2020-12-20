@@ -11,10 +11,14 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        scala: [2.12.12, 2.13.3]
     steps:
     - uses: actions/checkout@v1
     - uses: olafurpg/setup-scala@v10
+      with:
+        scala-version: ${{ matrix.scala }}
     - name: Cache scala dependencies
       uses: actions/cache@v2
       with:
