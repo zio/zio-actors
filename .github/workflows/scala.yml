@@ -12,11 +12,13 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        scala: [2.12.12, 2.13.3]
+        java: ['adopt@1.8', 'adopt@1.11']
+        scala: ['2.12.12', '2.13.3']
     steps:
     - uses: actions/checkout@v1
     - uses: olafurpg/setup-scala@v10
       with:
+        java-version: ${{ matrix.java }}
         scala-version: ${{ matrix.scala }}
     - name: Cache scala dependencies
       uses: actions/cache@v2
@@ -26,7 +28,7 @@ jobs:
           ~/.sbt
           ~/.m2
           ~/.cache
-        key: sbt-actors-cache
+        key: sbt-actors-cache-${{ matrix.java }}-${{ matrix-scala }}
     - name: Lint code
       run: sbt check
     - name: Run tests
