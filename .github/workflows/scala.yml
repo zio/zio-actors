@@ -9,10 +9,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - uses: jodersky/setup-mill@master
-      with:
-        mill-version: 0.8.0
-    - name: Compile
-      run: mill ZioGeolocation.compile
-    - name: Test
-      run: mill ZioGeolocation.test
+    - uses: olafurpg/setup-scala@v5
+    - name: Run compile
+      run: sbt compile
+    - name: Run scalafmt
+      run: sbt check
+    - name: Run tests
+      run: sbt testname: Scala CI
+
