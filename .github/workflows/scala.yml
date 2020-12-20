@@ -33,4 +33,4 @@ jobs:
     - name: Lint code
       run: sbt check
     - name: Run tests
-      run: sbt test
+      run: sbt +${{ matrix.scala }} test
