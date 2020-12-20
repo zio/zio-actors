@@ -15,6 +15,15 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - uses: olafurpg/setup-scala@v10
+    - name: Cache scala dependencies
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.ivy2/cache
+          ~/.sbt
+          ~/.m2
+          ~/.cache
+        key: sbt-actors-cache
     - name: Run compile
       run: sbt compile
     - name: Run scalafmt
