@@ -28,7 +28,6 @@ jobs:
           ~/.sbt
           ~/.m2
           ~/.cache
-          ~/.coursier
         key: sbt-actors-cache-${{ matrix.java }}-${{ matrix.scala }}
     - name: Lint code
       run: sbt check
