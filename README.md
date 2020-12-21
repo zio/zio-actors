@@ -2,7 +2,7 @@
 
 | CI | Release | Snapshot | Discord |
 | --- | --- | --- | --- |
-| https://github.com/zio/zio-actors/workflows/CI/badge.svg | [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases] | [![Snapshot Artifacts][Badge-SonatypeSnapshots]][Link-SonatypeSnapshots] | [![Badge-Discord]][Link-Discord] |
+| ![CI](https://github.com/zio/zio-actors/workflows/CI/badge.svg) | [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases] | [![Snapshot Artifacts][Badge-SonatypeSnapshots]][Link-SonatypeSnapshots] | [![Badge-Discord]][Link-Discord] |
 
 # Summary
 High-performance, purely-functional library for building, composing, and supervising typed actors based on ZIO.
