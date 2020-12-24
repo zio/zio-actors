@@ -1,8 +1,10 @@
 name: Website
+
 on:
   push:
-    branches: [main]
+    branches: [master]
     tags: ["*"]
+
 jobs:
   publish:
     runs-on: ubuntu-20.04
