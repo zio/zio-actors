@@ -1,4 +1,4 @@
-name: Build and release
+name: CI
 
 on:
   pull_request:
