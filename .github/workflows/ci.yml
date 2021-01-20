@@ -5,7 +5,9 @@ on:
     branches: ['*']
   push:
     branches: ['master']
-    tags: ['v*']
+  release:
+    types:
+      - published
 
 jobs:
   build:
