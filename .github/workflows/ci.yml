@@ -2,7 +2,6 @@ name: CI
 
 on:
   pull_request:
-    branches: ['*']
   push:
     branches: ['master']
   release:
@@ -23,14 +22,7 @@ jobs:
       with:
         java-version: ${{ matrix.java }}
     - name: Cache scala dependencies
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.ivy2/cache
-          ~/.sbt
-          ~/.m2
-          ~/.cache
-        key: sbt-actors-cache-${{ matrix.java }}-${{ matrix.scala }}
+      uses: coursier/cache-action@v5
     - name: Lint code
       run: sbt check
     - name: Run tests
@@ -45,7 +37,6 @@ jobs:
         with:
           fetch-depth: 0
       - uses: olafurpg/setup-scala@v10
-      - uses: olafurpg/setup-gpg@v3
       - run: sbt ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
