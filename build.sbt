@@ -36,7 +36,7 @@ val zioNioVersion         = "1.0.0-RC9"
 val zioConfigVersion      = "1.0.0-RC30-1"
 val zioInteropCatsVersion = "2.3.1.0"
 val akkaActorTypedVersion = "2.6.13"
-val doobieVersion         = "0.10.0"
+val doobieVersion         = "0.12.1"
 
 lazy val root =
   project
