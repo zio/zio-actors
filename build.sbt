@@ -34,8 +34,8 @@ addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck"
 val zioVersion            = "1.0.4"
 val zioNioVersion         = "1.0.0-RC9"
 val zioConfigVersion      = "1.0.0-RC30-1"
-val zioInteropCatsVersion = "2.4.0.0"
-val akkaActorTypedVersion = "2.6.13"
+val zioInteropCatsVersion = "2.3.1.0"
+val akkaActorTypedVersion = "2.6.14"
 val doobieVersion         = "0.12.1"
 
 lazy val root =
