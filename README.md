@@ -32,6 +32,6 @@ Come chat with us on [![Badge-Discord]][Link-Discord].
 [Link-SonatypeSnapshots]: https://oss.sonatype.org/content/repositories/snapshots/dev/zio/zio-actors_2.12/ "Sonatype Snapshots"
 [Link-Discord]: https://discord.gg/2ccFBr4 "Discord"
 [Badge-CI]: https://github.com/zio/zio-actors/workflows/CI/badge.svg
-[Stage]: https://img.shields.io/badge/Project%20Stage-Production%20Ready-brightgreen.svg
+[Stage]: https://img.shields.io/badge/Project%20Stage-Experimental-yellow.svg
 [Stage-Page]: https://github.com/zio/zio/wiki/Project-Stages
 
