@@ -31,18 +31,19 @@ inThisBuild(
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
-val zioVersion            = "1.0.4"
+val zioVersion            = "1.0.9"
 val zioNioVersion         = "1.0.0-RC9"
 val zioConfigVersion      = "1.0.0-RC30-1"
 val zioInteropCatsVersion = "2.4.1.0"
 val akkaActorTypedVersion = "2.6.18"
 val doobieVersion         = "0.13.4"
+val zioCassandraVersion   = "0.5.0"
 
 lazy val root =
   project
     .in(file("."))
     .settings(skip in publish := true)
-    .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC, examples, zioActorsAkkaInterop)
+    .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC, zioActorsPersistenceCassandra, examples, zioActorsAkkaInterop)
 
 lazy val zioActors = module("zio-actors", "actors")
   .enablePlugins(BuildInfoPlugin)
@@ -83,6 +84,17 @@ lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persi
       "org.tpolecat" %% "doobie-postgres"  % doobieVersion
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+  )
+  .dependsOn(zioActorsPersistence)
+
+lazy val zioActorsPersistenceCassandra = module("zio-actors-persistence-cassandra", "persistence-cassandra")
+  .settings(
+    libraryDependencies ++= Seq(
+      "dev.palanga" %% "zio-cassandra"     % zioCassandraVersion,
+      "dev.zio"      %% "zio-test"         % zioVersion % "test",
+      "dev.zio"      %% "zio-test-sbt"     % zioVersion % "test"
+    ),
+    resolvers += "Artifactory" at "https://palanga.jfrog.io/artifactory/maven/"
   )
   .dependsOn(zioActorsPersistence)
 
