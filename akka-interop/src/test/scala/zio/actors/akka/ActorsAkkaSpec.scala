@@ -9,7 +9,8 @@ import zio.actors._
 import zio.actors.akka.AkkaBehaviorsUtils._
 import zio.test.Assertion._
 import zio.test._
-import zio.{ IO, Runtime, ZIO }
+import zio.{ Supervisor => _, IO, Unsafe, Runtime, ZIO }
+import zio.ZLayer
 
 import scala.concurrent.duration._
 
@@ -38,8 +39,14 @@ object AkkaBehaviorsUtils {
       Behaviors.receiveMessage { message =>
         message match {
           case HelloFromZio                         => ()
-          case PingFromZio(zioSenderActor)          => runtime.unsafeRun(zioSenderActor ! PongFromAkka("Pong from Akka"))
-          case PingToZio(zioReplyToActor, msgToZio) => runtime.unsafeRun(zioReplyToActor ! PongFromAkka(msgToZio))
+          case PingFromZio(zioSenderActor)          =>
+            Unsafe.unsafe { implicit runtime =>
+              Runtime.default.unsafe.run(zioSenderActor ! PongFromAkka("Pong from Akka"))
+            }
+          case PingToZio(zioReplyToActor, msgToZio) =>
+            Unsafe.unsafe { implicit runtime =>
+              Runtime.default.unsafe.run(zioReplyToActor ! PongFromAkka(msgToZio))
+            }
         }
         Behaviors.same
       }
@@ -69,10 +76,11 @@ object AskUtils {
   }
 }
 
-object ActorsAkkaSpec extends DefaultRunnableSpec {
+object ActorsAkkaSpec extends ZIOSpecDefault {
+
   def spec =
     suite("Test the basic integration with akka typed actor behavior")(
-      testM("Send message from zioActor to akkaActor") {
+      test("Send message from zioActor to akkaActor") {
         import AkkaBehaviorsUtils._
 
         val handler = new Stateful[Any, Int, ZioMessage] {
@@ -82,21 +90,21 @@ object ActorsAkkaSpec extends DefaultRunnableSpec {
             context: Context
           ): ZIO[Any, Throwable, (Int, A)] =
             msg match {
-              case Ping(akkaActor) => (akkaActor ! HelloFromZio).as((state, ()))
-              case _               => IO.fail(new Exception("fail"))
+              case Ping(akkaActor) => (akkaActor ! HelloFromZio).as((state, ().asInstanceOf[A]))
+              case _               => ZIO.fail(new Exception("fail"))
             }
         }
 
         val program = for {
-          typedActorSystem <- IO(typed.ActorSystem(TestBehavior(), "typedSystem"))
+          typedActorSystem <- ZIO.attempt(typed.ActorSystem(TestBehavior(), "typedSystem"))
           system           <- ActorSystem("test1")
           zioActor         <- system.make("actor1", Supervisor.none, 0, handler)
           akkaActor        <- AkkaTypedActor.make(typedActorSystem)
           _                <- zioActor ! Ping(akkaActor)
         } yield ()
-        assertM(program.run)(succeeds(anything))
+        assertZIO(program)(isUnit)
       },
-      testM("Send message from akkaActor to zioActor") {
+      test("Send message from akkaActor to zioActor") {
         import AkkaBehaviorsUtils._
         val handler = new Stateful[Any, String, ZioMessage] {
           override def receive[A](
@@ -105,20 +113,20 @@ object ActorsAkkaSpec extends DefaultRunnableSpec {
             context: Context
           ): IO[Throwable, (String, A)] =
             msg match {
-              case PongFromAkka(msg) => IO.succeed((msg, ()))
-              case _                 => IO.fail(new Exception("fail"))
+              case PongFromAkka(msg) => ZIO.succeed((msg, ().asInstanceOf[A]))
+              case _                 => ZIO.fail(new Exception("fail"))
             }
         }
         val program = for {
-          typedActorSystem <- IO(typed.ActorSystem(TestBehavior(), "typedSystem2"))
+          typedActorSystem <- ZIO.succeed(typed.ActorSystem(TestBehavior(), "typedSystem2"))
           system           <- ActorSystem("test2")
           akkaActor        <- AkkaTypedActor.make(typedActorSystem)
           zioActor         <- system.make("actor2", Supervisor.none, "", handler)
           _                <- akkaActor ! PingToZio(zioActor, "Ping from Akka")
         } yield ()
-        assertM(program.run)(succeeds(anything))
+        assertZIO(program)(isUnit)
       },
-      testM("ZioActor send message to akkaActor and then replyTo to zioActor") {
+      test("ZioActor send message to akkaActor and then replyTo to zioActor") {
         val handler =
           new Stateful[Any, String, ZioMessage] {
             override def receive[A](
@@ -131,21 +139,21 @@ object ActorsAkkaSpec extends DefaultRunnableSpec {
                   for {
                     self <- context.self[ZioMessage]
                     _    <- akkaActor ! PingFromZio(self)
-                  } yield (state, ())
-                case PongFromAkka(msg) => IO.succeed((msg, ()))
-                case _                 => IO.fail(new Exception("fail"))
+                  } yield (state, ().asInstanceOf[A])
+                case PongFromAkka(msg) => ZIO.succeed((msg, ().asInstanceOf[A]))
+                case _                 => ZIO.fail(new Exception("fail"))
               }
           }
         val program = for {
-          typedActorSystem <- IO(typed.ActorSystem(TestBehavior(), "typedSystem3"))
+          typedActorSystem <- ZIO.succeed(typed.ActorSystem(TestBehavior(), "typedSystem3"))
           system           <- ActorSystem("test3")
           zioActor         <- system.make("actor3", Supervisor.none, "", handler)
           akkaActor        <- AkkaTypedActor.make(typedActorSystem)
           _                <- zioActor ! Ping(akkaActor)
         } yield ()
-        assertM(program.run)(succeeds(anything))
+        assertZIO(program)(isUnit)
       },
-      testM("send ask message to akkaActor and get response") {
+      test("send ask message to akkaActor and get response") {
 
         import AskUtils._
 
@@ -162,8 +170,7 @@ object ActorsAkkaSpec extends DefaultRunnableSpec {
           result    <- akkaActor ? PingAskDeferred(1000)
         } yield assert(result)(equalTo(1000))
       },
-      testM("send message to zioActor and ask akkaActor for the response") {
-
+      test("send message to zioActor and ask akkaActor for the response") {
         import AskUtils._
 
         val typedActorSystem = typed.ActorSystem(AskTestBehavior(), "typedSystem")
@@ -180,8 +187,8 @@ object ActorsAkkaSpec extends DefaultRunnableSpec {
             ): IO[Throwable, (Int, A)] =
               msg match {
                 case GetState(akkaActor) =>
-                  (akkaActor ? PingAskDeferred(1000)).map(newState => (newState, newState))
-                case _                   => IO.fail(new Exception("fail"))
+                  (akkaActor ? PingAskDeferred(1000)).map(newState => (newState, newState.asInstanceOf[A]))
+                case _                   => ZIO.fail(new Exception("fail"))
               }
           }
         for {
@@ -191,5 +198,5 @@ object ActorsAkkaSpec extends DefaultRunnableSpec {
           result    <- zioActor ? GetState(akkaActor)
         } yield assert(result)(equalTo(1000))
       }
-    )
+    ).provideSomeLayer(ZLayer.fromZIO(testClock))
 }

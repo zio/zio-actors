@@ -2,11 +2,10 @@ package zio.actors.examples.persistence
 
 import java.time.Instant
 
-import zio.UIO
+import zio._
 import zio.actors.persistence.PersistenceId.PersistenceId
 import zio.actors.{ persistence, Context }
 import zio.actors.persistence._
-import zio.clock.Clock
 
 /**
  * This is a full example of [[https://github.com/akka/akka-samples/tree/2.6/akka-sample-persistence-scala Akka persistence shopping cart]]
@@ -94,36 +93,58 @@ object ShoppingCart {
     command match {
       case AddItem(itemId, quantity)            =>
         if (state.hasItem(itemId))
-          UIO((Command.ignore, _ => Rejected(s"Item '$itemId' was already added to this shopping cart")))
+          ZIO.succeed(
+            (Command.ignore, _ => Rejected(s"Item '$itemId' was already added to this shopping cart").asInstanceOf[A])
+          )
         else if (quantity <= 0)
-          UIO((Command.ignore, _ => Rejected("Quantity must be greater than zero")))
+          ZIO.succeed((Command.ignore, _ => Rejected("Quantity must be greater than zero").asInstanceOf[A]))
         else
-          UIO((Command.persist(ItemAdded(cartId, itemId, quantity)), updatedState => Accepted(updatedState.toSummary)))
+          ZIO.succeed(
+            (
+              Command.persist(ItemAdded(cartId, itemId, quantity)),
+              updatedState => Accepted(updatedState.toSummary).asInstanceOf[A]
+            )
+          )
       case RemoveItem(itemId)                   =>
         if (state.hasItem(itemId))
-          UIO((Command.persist(ItemRemoved(cartId, itemId)), updatedState => Accepted(updatedState.toSummary)))
-        else
-          UIO((Command.ignore, _ => Accepted(state.toSummary)))
-      case AdjustItemQuantity(itemId, quantity) =>
-        if (quantity <= 0)
-          UIO((Command.ignore, _ => Rejected("Quantity must be greater than zero")))
-        else if (state.hasItem(itemId))
-          UIO(
+          ZIO.succeed(
             (
-              Command.persist(ItemQuantityAdjusted(cartId, itemId, quantity)),
-              updatedCart => Accepted(updatedCart.toSummary)
+              Command.persist(ItemRemoved(cartId, itemId)),
+              updatedState => Accepted(updatedState.toSummary).asInstanceOf[A]
             )
           )
         else
-          UIO((Command.ignore, _ => Rejected(s"Cannot adjust quantity for item '$itemId'. Item not present on cart")))
+          ZIO.succeed((Command.ignore, _ => Accepted(state.toSummary).asInstanceOf[A]))
+      case AdjustItemQuantity(itemId, quantity) =>
+        if (quantity <= 0)
+          ZIO.succeed((Command.ignore, _ => Rejected("Quantity must be greater than zero").asInstanceOf[A]))
+        else if (state.hasItem(itemId))
+          ZIO.succeed(
+            (
+              Command.persist(ItemQuantityAdjusted(cartId, itemId, quantity)),
+              updatedCart => Accepted(updatedCart.toSummary).asInstanceOf[A]
+            )
+          )
+        else
+          ZIO.succeed(
+            (
+              Command.ignore,
+              _ => Rejected(s"Cannot adjust quantity for item '$itemId'. Item not present on cart").asInstanceOf[A]
+            )
+          )
 
       case Checkout                             =>
         if (state.isEmpty)
-          UIO((Command.ignore, _ => Rejected("Cannot checkout an empty shopping cart")))
+          ZIO.succeed((Command.ignore, _ => Rejected("Cannot checkout an empty shopping cart").asInstanceOf[A]))
         else
-          UIO((Command.persist(CheckedOut(cartId, Instant.now())), updatedCart => Accepted(updatedCart.toSummary)))
+          ZIO.succeed(
+            (
+              Command.persist(CheckedOut(cartId, Instant.now())),
+              updatedCart => Accepted(updatedCart.toSummary).asInstanceOf[A]
+            )
+          )
       case Get                                  =>
-        UIO((Command.ignore, _ => state.toSummary))
+        ZIO.succeed((Command.ignore, _ => state.toSummary.asInstanceOf[A]))
     }
 
   private def checkedOutShoppingCart[A](
@@ -133,15 +154,32 @@ object ShoppingCart {
   ): UIO[(persistence.Command[Event], State => A)] =
     command match {
       case Get                   =>
-        UIO((Command.ignore, _ => state.toSummary))
+        ZIO.succeed((Command.ignore, _ => state.toSummary.asInstanceOf[A]))
       case _: AddItem            =>
-        UIO((Command.ignore, _ => Rejected(s"Can't add an item to an already checked out $cartId shopping cart")))
+        ZIO.succeed(
+          (
+            Command.ignore,
+            _ => Rejected(s"Can't add an item to an already checked out $cartId shopping cart").asInstanceOf[A]
+          )
+        )
       case _: RemoveItem         =>
-        UIO((Command.ignore, _ => Rejected(s"Can't remove an item from an already checked out $cartId shopping cart")))
+        ZIO.succeed(
+          (
+            Command.ignore,
+            _ => Rejected(s"Can't remove an item from an already checked out $cartId shopping cart").asInstanceOf[A]
+          )
+        )
       case _: AdjustItemQuantity =>
-        UIO((Command.ignore, _ => Rejected(s"Can't adjust item on an already checked out $cartId shopping cart")))
+        ZIO.succeed(
+          (
+            Command.ignore,
+            _ => Rejected(s"Can't adjust item on an already checked out $cartId shopping cart").asInstanceOf[A]
+          )
+        )
       case Checkout              =>
-        UIO((Command.ignore, _ => Rejected(s"Can't checkout already checked out $cartId shopping cart")))
+        ZIO.succeed(
+          (Command.ignore, _ => Rejected(s"Can't checkout already checked out $cartId shopping cart").asInstanceOf[A])
+        )
 
     }
 

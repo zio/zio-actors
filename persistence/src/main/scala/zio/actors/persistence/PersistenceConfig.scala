@@ -1,14 +1,15 @@
 package zio.actors.persistence
 
-import zio.{ IO, Managed, Promise, Runtime, Task, UIO }
+import zio._
 import zio.config.ConfigDescriptor
 import zio.config.ConfigDescriptor._
 import zio.actors.ActorsConfig._
 
 private[actors] object PersistenceConfig {
 
-  private lazy val runtime = Runtime.default
-  private lazy val promise = runtime.unsafeRun(Promise.make[Exception, String])
+  private lazy val promise = Unsafe.unsafe { implicit runtime =>
+    Runtime.default.unsafe.run(Promise.make[Exception, String]).getOrThrowFiberFailure()
+  }
 
   final case class JournalPluginRaw(value: String)   extends AnyVal
   final case class JournalPluginClass(value: String) extends AnyVal
@@ -17,19 +18,19 @@ private[actors] object PersistenceConfig {
 
   val pluginConfig: ConfigDescriptor[JournalPluginRaw] =
     nested("persistence") {
-      string("plugin").xmap(JournalPluginRaw, _.value)
+      string("plugin").transform(JournalPluginRaw, _.value)
     }
 
   def classPathConfig(pluginClass: String): ConfigDescriptor[JournalPluginClass] =
     nested("persistence") {
       nested("datastores") {
-        string(pluginClass).xmap(JournalPluginClass, _.value)
+        string(pluginClass).transform(JournalPluginClass, _.value)
       }
     }
 
   val inMemConfig: ConfigDescriptor[InMemConfig] =
     nested("persistence") {
-      string("key").xmap(InMemConfig, _.key)
+      string("key").transform(InMemConfig, _.key)
     }
 
   def getPluginClass(systemName: String, configStr: String): Task[JournalPluginClass] =
@@ -43,9 +44,16 @@ private[actors] object PersistenceConfig {
                          value
                        case None        =>
                          for {
-                           inputStream <- IO(getClass.getResourceAsStream("/datastores.conf"))
-                           source      <- IO(scala.io.Source.fromInputStream(inputStream))
-                           str         <- Managed.make(IO(source))(s => UIO(s.close())).use(s => IO(s.mkString))
+                           inputStream <- ZIO.attempt(getClass.getResourceAsStream("/datastores.conf"))
+                           source      <- ZIO.attempt(scala.io.Source.fromInputStream(inputStream))
+                           str         <- ZIO.scoped {
+                                            ZIO
+                                              .attempt(source)
+                                              .withFinalizer(s => ZIO.succeed(s.close()))
+                                              .flatMap { s =>
+                                                ZIO.attempt(s.mkString)
+                                              }
+                                          }
                            _           <- promise.succeed(str)
                          } yield str
                      }

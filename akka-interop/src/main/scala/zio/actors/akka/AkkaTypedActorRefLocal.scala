@@ -4,7 +4,7 @@ import akka.actor.typed
 import akka.actor.typed.Scheduler
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
-import zio.{ Task, UIO, ZIO }
+import zio._
 
 /**
  * Reference to proxy actor that contains an akka typed actor ref
@@ -22,7 +22,7 @@ final class AkkaTypedActorRefLocal[-F[+_]] private[actors] (
    * @param fa message
    * @return lifted unit
    */
-  def !(fa: F[_]): Task[Unit] = UIO(akkaActor ! fa)
+  def !(fa: F[_]): Task[Unit] = ZIO.succeed(akkaActor ! fa)
 
   /**
    * Send a message to an actor as `ask` interaction pattern -
@@ -40,5 +40,5 @@ final class AkkaTypedActorRefLocal[-F[+_]] private[actors] (
    *
    * @return
    */
-  val path: UIO[String] = UIO(actorName)
+  val path: UIO[String] = ZIO.succeed(actorName)
 }

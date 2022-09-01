@@ -4,9 +4,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import zio.actors.Actor.Stateful
 import zio.stream.Stream
-import zio.{ Chunk, IO, Ref, Schedule, Task, UIO }
+import zio.{ Supervisor => _, _ }
 import zio.test._
 import zio.test.Assertion._
+import zio.stream.ZStream
 
 object CounterUtils {
   sealed trait Message[+_]
@@ -26,10 +27,10 @@ object StopUtils {
   case object Letter extends Msg[Unit]
 }
 
-object ActorsSpec extends DefaultRunnableSpec {
+object ActorsSpec extends ZIOSpecDefault {
   def spec =
     suite("Test the basic actor behavior")(
-      testM("Sequential message processing") {
+      test("Sequential message processing") {
         import CounterUtils._
 
         val handler: Stateful[Any, Int, Message] = new Stateful[Any, Int, Message] {
@@ -39,10 +40,11 @@ object ActorsSpec extends DefaultRunnableSpec {
             context: Context
           ): UIO[(Int, A)] =
             msg match {
-              case Reset               => UIO((0, ()))
-              case Increase            => UIO((state + 1, ()))
-              case Get                 => UIO((state, state))
-              case IncreaseUpTo(upper) => UIO((upper, Stream.fromIterable(state until upper)))
+              case Reset               => ZIO.succeed((0, ().asInstanceOf[A])) // must need asInstanceOf?
+              case Increase            => ZIO.succeed((state + 1, ().asInstanceOf[A]))
+              case Get                 => ZIO.succeed((state, state.asInstanceOf[A]))
+              case IncreaseUpTo(upper) =>
+                ZIO.succeed((upper, ZStream.fromIterable(state until upper).asInstanceOf[A]))
             }
         }
 
@@ -62,7 +64,7 @@ object ActorsSpec extends DefaultRunnableSpec {
           assert(vals)(equalTo(Chunk.apply(0 until 20: _*))) &&
           assert(c4)(equalTo(20))
       },
-      testM("Error recovery by retrying") {
+      test("Error recovery by retrying") {
         import TickUtils._
 
         val maxRetries = 10
@@ -79,8 +81,8 @@ object ActorsSpec extends DefaultRunnableSpec {
                   ref
                     .updateAndGet(_ + 1)
                     .flatMap { v =>
-                      if (v < maxRetries) IO.fail(new Exception("fail"))
-                      else IO.succeed((state, state))
+                      if (v < maxRetries) ZIO.fail(new Exception("fail"))
+                      else ZIO.succeed((state, state.asInstanceOf[A]))
                     }
               }
           }
@@ -96,7 +98,7 @@ object ActorsSpec extends DefaultRunnableSpec {
           count   <- ref.get
         } yield assert(count)(equalTo(maxRetries))
       },
-      testM("Error recovery by fallback action") {
+      test("Error recovery by fallback action") {
         import TickUtils._
 
         val handler = new Stateful[Any, Unit, Message] {
@@ -106,7 +108,7 @@ object ActorsSpec extends DefaultRunnableSpec {
             context: Context
           ): IO[Throwable, (Unit, A)] =
             msg match {
-              case Tick => IO.fail(new Exception("fail"))
+              case Tick => ZIO.fail(new Exception("fail"))
             }
         }
 
@@ -115,18 +117,16 @@ object ActorsSpec extends DefaultRunnableSpec {
         val policy   =
           Supervisor.retryOrElse[Any, Long](
             schedule,
-            (_, _) => IO.effectTotal(called.set(true))
+            (_, _) => ZIO.succeed(called.set(true))
           )
 
-        val program = for {
+        (for {
           system <- ActorSystem("test3", None)
           actor  <- system.make("actor1", policy, (), handler)
           _      <- actor ? Tick
-        } yield ()
-
-        assertM(program.run)(fails(anything)).andThen(assertM(IO.effectTotal(called.get))(isTrue))
+        } yield ()).exit.map(assert(_)(fails(anything)) && assert(called.get)(isTrue))
       },
-      testM("Stopping actors") {
+      test("Stopping actors") {
         import StopUtils._
 
         val handler = new Stateful[Any, Unit, Msg] {
@@ -136,7 +136,7 @@ object ActorsSpec extends DefaultRunnableSpec {
             context: Context
           ): IO[Throwable, (Unit, A)] =
             msg match {
-              case Letter => IO.succeed(((), ()))
+              case Letter => ZIO.succeed(((), ().asInstanceOf[A]))
             }
         }
         for {
@@ -150,7 +150,7 @@ object ActorsSpec extends DefaultRunnableSpec {
             hasField[List[_], Int]("size", _.size, equalTo(0))
         )
       },
-      testM("Select local actor") {
+      test("Select local actor") {
         import TickUtils._
 
         val handler = new Stateful[Any, Unit, Message] {
@@ -160,7 +160,7 @@ object ActorsSpec extends DefaultRunnableSpec {
             context: Context
           ): IO[Throwable, (Unit, A)] =
             msg match {
-              case Tick => IO.succeed(((), ()))
+              case Tick => ZIO.succeed(((), ().asInstanceOf[A]))
             }
         }
         for {
@@ -171,7 +171,7 @@ object ActorsSpec extends DefaultRunnableSpec {
           actorPath <- actor.path
         } yield assert(actorPath)(equalTo("zio://test5@0.0.0.0:0000/actor1-1"))
       },
-      testM("Local actor does not exist") {
+      test("Local actor does not exist") {
         import TickUtils._
 
         val handler = new Stateful[Any, Unit, Message] {
@@ -181,27 +181,26 @@ object ActorsSpec extends DefaultRunnableSpec {
             context: Context
           ): IO[Throwable, (Unit, A)] =
             msg match {
-              case Tick => IO.succeed(((), ()))
+              case Tick => ZIO.succeed(((), ().asInstanceOf[A]))
             }
         }
 
-        val program = for {
+        (for {
           system <- ActorSystem("test6")
           _      <- system.make("actorOne", Supervisor.none, (), handler)
           actor  <- system.select[Message]("zio://test6@0.0.0.0:0000/actorTwo")
           _      <- actor ! Tick
-        } yield ()
-
-        assertM(program.run)(
-          fails(isSubtype[Throwable](anything)) &&
-            fails(
+        } yield ()).exit.map(
+          assert(_)(
+            fails(isSubtype[Throwable](anything)) && fails(
               hasField[Throwable, String](
                 "message",
                 _.getMessage,
                 equalTo("No such actor /actorTwo in local ActorSystem.")
               )
             )
+          )
         )
       }
-    )
+    ).provideCustomLayer(ZLayer.fromZIO(testClock))
 }

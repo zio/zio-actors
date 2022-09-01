@@ -1,10 +1,10 @@
 package zio.actors
 
-import java.io.{ IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException }
+import zio._
+import zio.nio.{ InetAddress, InetSocketAddress }
+import zio.nio.channels.AsynchronousSocketChannel
 
-import zio.nio.core.{ InetAddress, InetSocketAddress, SocketAddress }
-import zio.nio.core.channels.AsynchronousSocketChannel
-import zio.{ IO, Runtime, Task, UIO }
+import java.io.{ IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException }
 
 /**
  * Reference to actor that might reside on local JVM instance or be available via remote communication
@@ -46,11 +46,6 @@ sealed trait ActorRef[-F[+_]] extends Serializable {
 }
 
 /* INTERNAL API */
-
-private[actors] object ActorRefSerial {
-  private[actors] val runtimeForResolve = Runtime.default
-}
-
 private[actors] sealed abstract class ActorRefSerial[-F[+_]](private var actorPath: String)
     extends ActorRef[F]
     with Serializable {
@@ -73,13 +68,15 @@ private[actors] sealed abstract class ActorRefSerial[-F[+_]](private var actorPa
       (_, addr, port, _) = resolved
       address           <- InetAddress
                              .byName(addr.value)
-                             .flatMap(iAddr => SocketAddress.inetSocketAddress(iAddr, port.value))
+                             .flatMap(iAddr => InetSocketAddress.inetAddress(iAddr, port.value))
     } yield new ActorRefRemote[F](actorPath, address)
 
-    ActorRefSerial.runtimeForResolve.unsafeRun(remoteRef)
+    Unsafe.unsafe { implicit runtime =>
+      Runtime.default.unsafe.run(remoteRef).getOrThrowFiberFailure()
+    }
   }
 
-  override val path: UIO[String] = UIO(actorPath)
+  override val path: UIO[String] = ZIO.succeed(actorPath)
 }
 
 private[actors] final class ActorRefLocal[-F[+_]](
@@ -111,23 +108,22 @@ private[actors] final class ActorRefRemote[-F[+_]](
 ) extends ActorRefSerial[F](actorName) {
   import ActorSystemUtils._
 
-  override def ?[A](fa: F[A]): Task[A] = sendEnvelope(Command.Ask(fa))
+  override def ?[A](fa: F[A]): Task[A] = ZIO.scoped(sendEnvelope(Command.Ask(fa)))
 
-  override def !(fa: F[_]): Task[Unit] = sendEnvelope[Unit](Command.Tell(fa))
+  override def !(fa: F[_]): Task[Unit] = ZIO.scoped(sendEnvelope[Unit](Command.Tell(fa)))
 
-  override val stop: Task[List[_]] = sendEnvelope(Command.Stop)
+  override val stop: Task[List[_]] = ZIO.scoped(sendEnvelope(Command.Stop))
 
-  private def sendEnvelope[A](command: Command): Task[A] =
-    for {
-      client   <- AsynchronousSocketChannel()
-      response <- for {
-                    _         <- client.connect(address)
-                    actorPath <- path
-                    _         <- writeToWire(client, new Envelope(command, actorPath))
-                    response  <- readFromWire(client)
-                  } yield response.asInstanceOf[Either[Throwable, A]]
-      result   <- IO.fromEither(response)
-    } yield result
+  private def sendEnvelope[A](command: Command): ZIO[Scope, Throwable, A] =
+    AsynchronousSocketChannel.open.flatMap { client =>
+      for {
+        _         <- client.connect(address).refineToOrDie
+        actorPath <- path
+        _         <- writeToWire(client, new Envelope(command, actorPath))
+        response  <- readFromWire(client)
+        result    <- ZIO.fromEither(response.asInstanceOf[Either[Throwable, A]])
+      } yield result
+    }
 
   @throws[IOException]
   private def writeObject(out: ObjectOutputStream): Unit =

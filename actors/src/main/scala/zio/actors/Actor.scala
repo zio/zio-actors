@@ -1,7 +1,6 @@
 package zio.actors
 
 import zio.actors.Actor.PendingMessage
-import zio.clock.Clock
 import zio.{ Supervisor => _, _ }
 
 object Actor {
@@ -43,11 +42,11 @@ object Actor {
           (fa, promise) = msg
           receiver      = receive(s, fa, context)
           completer     = ((s: S, a: A) => state.set(s) *> promise.succeed(a)).tupled
-          _            <- receiver.foldM(
+          _            <- receiver.foldZIO(
                             e =>
                               supervisor
                                 .supervise(receiver, e)
-                                .foldM(_ => promise.fail(e), completer),
+                                .foldZIO(_ => promise.fail(e), completer),
                             completer
                           )
         } yield ()
@@ -109,5 +108,5 @@ private[actors] final class Actor[-F[+_]](
       tall <- queue.takeAll
       _    <- queue.shutdown
       _    <- optOutActorSystem()
-    } yield tall
+    } yield tall.toList
 }
