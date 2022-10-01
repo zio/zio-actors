@@ -40,7 +40,6 @@ object BuildHelper {
     "-Ypartial-unification",
     "-Ywarn-nullary-override",
     "-Yno-adapted-args",
-    "-Ywarn-infer-any",
     "-Ywarn-inaccessible",
     "-Ywarn-nullary-unit",
     "-Ywarn-unused-import",
