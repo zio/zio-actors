@@ -22,7 +22,7 @@ final class AkkaTypedActorRefLocal[-F[+_]] private[actors] (
    * @param fa message
    * @return lifted unit
    */
-  def !(fa: F[_]): Task[Unit] = UIO(akkaActor ! fa)
+  def !(fa: F[_]): Task[Unit] = ZIO.succeed(akkaActor ! fa)
 
   /**
    * Send a message to an actor as `ask` interaction pattern -
@@ -40,5 +40,5 @@ final class AkkaTypedActorRefLocal[-F[+_]] private[actors] (
    *
    * @return
    */
-  val path: UIO[String] = UIO(actorName)
+  val path: UIO[String] = ZIO.succeed(actorName)
 }

@@ -5,13 +5,12 @@ import com.zaxxer.hikari.HikariDataSource
 import doobie._
 import doobie.hikari.HikariTransactor
 import doobie.implicits._
-import zio.{ IO, Promise, Runtime, Task, UIO, ZIO }
 import zio.actors.ActorSystemUtils
 import zio.actors.persistence.PersistenceId.PersistenceId
-import zio.actors.persistence.journal.{ Journal, JournalFactory }
 import zio.actors.persistence.jdbc.JDBCConfig.DbConfig
-import zio.blocking.Blocking
+import zio.actors.persistence.journal.{ Journal, JournalFactory }
 import zio.interop.catz._
+import zio.{ Promise, Runtime, Task, Unsafe, ZIO }
 
 private[actors] final class JDBCJournal[Ev](tnx: Transactor[Task]) extends Journal[Ev] {
 
@@ -24,7 +23,7 @@ private[actors] final class JDBCJournal[Ev](tnx: Transactor[Task]) extends Journ
   override def getEvents(persistenceId: PersistenceId): Task[Seq[Ev]] =
     for {
       bytes  <- SqlEvents.getEventsById(persistenceId).to[Seq].transact(tnx)
-      events <- IO.collectAll(bytes.map(ActorSystemUtils.objFromByteArray(_).map(_.asInstanceOf[Ev])))
+      events <- ZIO.collectAll(bytes.map(ActorSystemUtils.objFromByteArray(_).map(_.asInstanceOf[Ev])))
     } yield events
 
 }
@@ -32,7 +31,10 @@ private[actors] final class JDBCJournal[Ev](tnx: Transactor[Task]) extends Journ
 object JDBCJournal extends JournalFactory {
 
   private lazy val runtime           = Runtime.default
-  private lazy val transactorPromise = runtime.unsafeRun(Promise.make[Exception, HikariTransactor[Task]])
+  private lazy val transactorPromise =
+    Unsafe.unsafe { implicit u =>
+      runtime.unsafe.run(Promise.make[Exception, HikariTransactor[Task]]).getOrThrowFiberFailure()
+    }
 
   def getJournal[Ev](actorSystemName: String, configStr: String): Task[JDBCJournal[Ev]] =
     for {
@@ -40,16 +42,16 @@ object JDBCJournal extends JournalFactory {
       tnx      <- getTransactor(dbConfig)
     } yield new JDBCJournal[Ev](tnx)
 
-  private def makeTransactor(dbConfig: DbConfig): ZIO[Blocking, Throwable, HikariTransactor[Task]] =
-    ZIO.runtime[Blocking].flatMap { implicit rt =>
+  private def makeTransactor(dbConfig: DbConfig): ZIO[Any, Throwable, HikariTransactor[Task]] =
+    ZIO.runtime[Any].flatMap { implicit rt =>
       for {
-        transactEC <- UIO(rt.environment.get.blockingExecutor.asEC)
-        connectEC   = rt.platform.executor.asEC
+        transactEC <- ZIO.blockingExecutor.map(_.asExecutionContext)
+        connectEC  <- ZIO.executor.map(_.asExecutionContext)
         ds          = new HikariDataSource()
         _           = ds.setJdbcUrl(dbConfig.dbURL.value)
         _           = ds.setUsername(dbConfig.dbUser.value)
         _           = ds.setPassword(dbConfig.dbPass.value)
-        transactor <- IO.effect(HikariTransactor.apply[Task](ds, connectEC, Blocker.liftExecutionContext(transactEC)))
+        transactor <- ZIO.attempt(HikariTransactor.apply[Task](ds, connectEC, Blocker.liftExecutionContext(transactEC)))
       } yield transactor
     }
 
@@ -58,7 +60,7 @@ object JDBCJournal extends JournalFactory {
       case Some(value) => value
       case None        =>
         for {
-          newTnx <- makeTransactor(dbConfig).provideLayer(Blocking.live)
+          newTnx <- makeTransactor(dbConfig)
           _      <- transactorPromise.succeed(newTnx)
         } yield newTnx
     }

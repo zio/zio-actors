@@ -3,13 +3,11 @@ package zio.actors
 import java.io.File
 import java.net.ConnectException
 
+import zio._
 import zio.actors.Actor.Stateful
-import zio.{ clock, console, IO }
-import zio.test.DefaultRunnableSpec
+import zio.actors.Supervisor
 import zio.test._
 import zio.test.Assertion._
-import zio.duration._
-import zio.test.environment.TestConsole
 import SpecUtils._
 
 object SpecUtils {
@@ -27,7 +25,7 @@ object SpecUtils {
     ): IO[MyErrorDomain, (Int, A)] =
       msg match {
         case Str(value) =>
-          IO.effectTotal((state + 1, value + "received plus " + state + 1))
+          ZIO.succeed((state + 1, value + "received plus " + state + 1))
       }
   }
 
@@ -46,19 +44,19 @@ object SpecUtils {
         case Ping(sender) =>
           (for {
             path <- sender.path
-            _    <- console.putStrLn(s"Ping from: $path, sending pong")
+            _    <- Console.printLine(s"Ping from: $path, sending pong")
             _    <- sender ! Pong
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
 
         case Pong         =>
           (for {
-            _ <- console.putStrLn("Received pong")
-            _ <- IO.succeed(1)
+            _ <- Console.printLine("Received pong")
+            _ <- ZIO.succeed(1)
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
 
         case GameInit(to) =>
           (for {
-            _    <- console.putStrLn("The game starts...")
+            _    <- Console.printLine("The game starts...")
             self <- context.self[PingPongProto]
             _    <- to ! Ping(self)
           } yield ((), ())).asInstanceOf[IO[Throwable, (Unit, A)]]
@@ -75,18 +73,18 @@ object SpecUtils {
       context: Context
     ): IO[Throwable, (Unit, A)] =
       msg match {
-        case UnsafeMessage => IO.fail(new Exception("Error on remote side"))
+        case UnsafeMessage => ZIO.fail(new Exception("Error on remote side"))
       }
   }
 
   val configFile = Some(new File("./actors/src/test/resources/application.conf"))
 }
 
-object RemoteSpec extends DefaultRunnableSpec {
+object RemoteSpec extends ZIOSpecDefault {
   def spec =
     suite("RemoteSpec")(
       suite("Remote communication suite")(
-        testM("Remote test send message") {
+        test("Remote test send message") {
           for {
             actorSystemOne <- ActorSystem("testSystem11", configFile)
             _              <- actorSystemOne.make("actorOne", Supervisor.none, 0, handlerMessageTrait)
@@ -95,9 +93,9 @@ object RemoteSpec extends DefaultRunnableSpec {
                                 "zio://testSystem11@127.0.0.1:9665/actorOne"
                               )
             result         <- actorRef ? Str("ZIO-Actor response... ")
-          } yield assert(result)(equalTo("ZIO-Actor response... received plus 01"))
+          } yield assertTrue(result == "ZIO-Actor response... received plus 01")
         },
-        testM("ActorRef serialization case") {
+        test("ActorRef serialization case") {
           for {
             actorSystemRoot <- ActorSystem("testSystem21", configFile)
             one             <- actorSystemRoot.make("actorOne", Supervisor.none, (), protoHandler)
@@ -111,25 +109,25 @@ object RemoteSpec extends DefaultRunnableSpec {
 
             _           <- one ! GameInit(remoteActor)
 
-            _ <- clock.sleep(2.seconds)
+            _ <- Clock.sleep(2.seconds)
 
             outputVector <- TestConsole.output
-          } yield assert(outputVector.size)(equalTo(3)) &&
-            assert(outputVector(0))(equalTo("The game starts...\n")) &&
-            assert(outputVector(1))(
-              equalTo("Ping from: zio://testSystem21@127.0.0.1:9667/actorOne, sending pong\n")
-            ) &&
-            assert(outputVector(2))(equalTo("Received pong\n"))
+          } yield assertTrue(
+            outputVector.size == 3,
+            outputVector(0) == "The game starts...\n",
+            outputVector(1) == "Ping from: zio://testSystem21@127.0.0.1:9667/actorOne, sending pong\n",
+            outputVector(2) == "Received pong\n"
+          )
         }
       ),
       suite("Error handling suite")(
-        testM("ActorRef not found case (in local actor system)") {
+        test("ActorRef not found case (in local actor system)") {
           val program = for {
             actorSystem <- ActorSystem("testSystem31", configFile)
             _           <- actorSystem.select[PingPongProto]("zio://testSystem31@127.0.0.1:9669/actorTwo")
           } yield ()
 
-          assertM(program.run)(
+          assertZIO(program.exit)(
             fails(isSubtype[Throwable](anything)) &&
               fails(
                 hasField[Throwable, String](
@@ -140,7 +138,7 @@ object RemoteSpec extends DefaultRunnableSpec {
               )
           )
         },
-        testM("Remote system does not exist") {
+        test("Remote system does not exist") {
           val program = for {
             actorSystem <- ActorSystem("testSystem41", configFile)
             actorRef    <- actorSystem.select[PingPongProto](
@@ -149,12 +147,12 @@ object RemoteSpec extends DefaultRunnableSpec {
             _           <- actorRef ! GameInit(actorRef)
           } yield ()
 
-          assertM(program.run)(
+          assertZIO(program.exit)(
             fails(isSubtype[ConnectException](anything)) &&
               fails(hasField[Throwable, String]("message", _.getMessage, equalTo("Connection refused")))
           )
         },
-        testM("Remote actor does not exist") {
+        test("Remote actor does not exist") {
           val program = for {
             actorSystemOne <- ActorSystem("testSystem51", configFile)
             _              <- ActorSystem("testSystem52", configFile)
@@ -164,12 +162,12 @@ object RemoteSpec extends DefaultRunnableSpec {
             _              <- actorRef ? GameInit(actorRef)
           } yield ()
 
-          assertM(program.run)(
+          assertZIO(program.exit)(
             fails(isSubtype[Throwable](anything)) &&
               fails(hasField[Throwable, String]("message", _.getMessage, equalTo("No such remote actor")))
           )
         },
-        testM("On remote side error message processing error") {
+        test("On remote side error message processing error") {
           val program = for {
             actorSystemOne <- ActorSystem("testSystem61", configFile)
             _              <- actorSystemOne.make("actorOne", Supervisor.none, (), errorHandler)
@@ -180,12 +178,12 @@ object RemoteSpec extends DefaultRunnableSpec {
             _              <- actorRef ? UnsafeMessage
           } yield ()
 
-          assertM(program.run)(
+          assertZIO(program.exit)(
             fails(isSubtype[Throwable](anything)) &&
               fails(hasField[Throwable, String]("message", _.getMessage, equalTo("Error on remote side")))
           )
         },
-        testM("remote test select actor with special symbols") {
+        test("remote test select actor with special symbols") {
           for {
             actorSystemOne <- ActorSystem("testSystem71", configFile)
             _              <- actorSystemOne.make("actor-One-;_&", Supervisor.none, 0, handlerMessageTrait)
@@ -194,8 +192,8 @@ object RemoteSpec extends DefaultRunnableSpec {
                                 "zio://testSystem71@127.0.0.1:9677/actor-One-;_&"
                               )
             result         <- actorRef ? Str("ZIO-Actor response... ")
-          } yield assert(result)(equalTo("ZIO-Actor response... received plus 01"))
+          } yield assertTrue(result == "ZIO-Actor response... received plus 01")
         }
       )
-    ).provideCustomLayer(clock.Clock.live ++ environment.TestConsole.silent)
+    ) @@ TestAspect.withLiveClock @@ TestAspect.silent
 }

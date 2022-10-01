@@ -1,7 +1,6 @@
 package zio.actors
 
 import zio.actors.Actor.PendingMessage
-import zio.clock.Clock
 import zio.{ Supervisor => _, _ }
 
 object Actor {
@@ -35,19 +34,19 @@ object Actor {
       context: Context,
       optOutActorSystem: () => Task[Unit],
       mailboxSize: Int = DefaultActorMailboxSize
-    )(initial: S): URIO[R with Clock, Actor[F]] = {
+    )(initial: S): URIO[R, Actor[F]] = {
 
-      def process[A](msg: PendingMessage[F, A], state: Ref[S]): URIO[R with Clock, Unit] =
+      def process[A](msg: PendingMessage[F, A], state: Ref[S]): URIO[R, Unit] =
         for {
           s            <- state.get
           (fa, promise) = msg
           receiver      = receive(s, fa, context)
           completer     = ((s: S, a: A) => state.set(s) *> promise.succeed(a)).tupled
-          _            <- receiver.foldM(
+          _            <- receiver.foldZIO(
                             e =>
                               supervisor
                                 .supervise(receiver, e)
-                                .foldM(_ => promise.fail(e), completer),
+                                .foldZIO(_ => promise.fail(e), completer),
                             completer
                           )
         } yield ()
@@ -70,7 +69,7 @@ object Actor {
       context: Context,
       optOutActorSystem: () => Task[Unit],
       mailboxSize: Int = DefaultActorMailboxSize
-    )(initial: S): RIO[R with Clock, Actor[F]]
+    )(initial: S): RIO[R, Actor[F]]
 
   }
 
@@ -104,7 +103,7 @@ private[actors] final class Actor[-F[+_]](
         this.stop
     }
 
-  val stop: Task[List[_]] =
+  val stop: Task[Chunk[_]] =
     for {
       tall <- queue.takeAll
       _    <- queue.shutdown

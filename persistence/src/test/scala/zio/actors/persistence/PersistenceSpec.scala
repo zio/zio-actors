@@ -1,17 +1,15 @@
 package zio.actors.persistence
 
 import java.io.File
-
 import zio.actors.{ ActorSystem, Context, Supervisor }
-import zio.UIO
-import zio.test.DefaultRunnableSpec
+import zio.{ UIO, ZIO }
 import zio.test._
 import zio.test.Assertion._
 import CounterUtils._
 import SpecUtils._
 
 object CounterUtils {
-  sealed trait Message[+_]
+  sealed trait Message[+A]
   case object Reset    extends Message[Unit]
   case object Increase extends Message[Unit]
   case object Get      extends Message[Int]
@@ -30,9 +28,9 @@ object SpecUtils {
       context: Context
     ): UIO[(Command[CounterEvent], Int => A)] =
       msg match {
-        case Reset    => UIO((Command.persist(ResetEvent), _ => ()))
-        case Increase => UIO((Command.persist(IncreaseEvent), _ => ()))
-        case Get      => UIO((Command.ignore, _ => state))
+        case Reset    => ZIO.succeed((Command.persist(ResetEvent), _ => ()))
+        case Increase => ZIO.succeed((Command.persist(IncreaseEvent), _ => ()))
+        case Get      => ZIO.succeed((Command.ignore, _ => state))
       }
 
     override def sourceEvent(state: Int, event: CounterEvent): Int =
@@ -45,11 +43,11 @@ object SpecUtils {
   val configFile = Some(new File("./persistence/src/test/resources/application.conf"))
 }
 
-object PersistenceSpec extends DefaultRunnableSpec {
+object PersistenceSpec extends ZIOSpecDefault {
   def spec =
     suite("PersistenceSpec")(
       suite("Basic persistence operation")(
-        testM("Restarting persisted actor") {
+        test("Restarting persisted actor") {
           for {
             actorSystem <- ActorSystem("testSystem1", configFile)
             actor       <- actorSystem.make("actor1", Supervisor.none, 0, ESCounterHandler)
@@ -59,15 +57,15 @@ object PersistenceSpec extends DefaultRunnableSpec {
             actor       <- actorSystem.make("actor1", Supervisor.none, 0, ESCounterHandler)
             _           <- actor ! Increase
             counter     <- actor ? Get
-          } yield assert(counter)(equalTo(3))
+          } yield assertTrue(counter == 3)
         },
-        testM("Corrupt plugin config name") {
+        test("Corrupt plugin config name") {
           val program = for {
             as <- ActorSystem("testSystem3", configFile)
             _  <- as.make("actor1", Supervisor.none, 0, ESCounterHandler)
           } yield ()
 
-          assertM(program.run)(
+          assertZIO(program.exit)(
             fails(isSubtype[Throwable](anything)) &&
               fails(
                 hasField[Throwable, Boolean](
@@ -78,13 +76,13 @@ object PersistenceSpec extends DefaultRunnableSpec {
               )
           )
         },
-        testM("Plugin with a non-existing factory class") {
+        test("Plugin with a non-existing factory class") {
           val program = for {
             as <- ActorSystem("testSystem4", configFile)
             _  <- as.make("actor1", Supervisor.none, 0, ESCounterHandler)
           } yield ()
 
-          assertM(program.run)(
+          assertZIO(program.exit)(
             fails(isSubtype[Throwable](anything)) &&
               fails(
                 hasField[Throwable, Boolean](
@@ -95,13 +93,13 @@ object PersistenceSpec extends DefaultRunnableSpec {
               )
           )
         },
-        testM("Plugin with an incorrect factory") {
+        test("Plugin with an incorrect factory") {
           val program = for {
             as <- ActorSystem("testSystem5", configFile)
             _  <- as.make("actor1", Supervisor.none, 0, ESCounterHandler)
           } yield ()
 
-          assertM(program.run)(
+          assertZIO(program.exit)(
             fails(isSubtype[Throwable](anything)) &&
               fails(
                 hasField[Throwable, Boolean](

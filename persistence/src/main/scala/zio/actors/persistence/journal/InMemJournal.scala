@@ -1,6 +1,6 @@
 package zio.actors.persistence.journal
 
-import zio.{ Ref, Runtime, Task, UIO }
+import zio.{ Ref, Runtime, Task, UIO, Unsafe, ZIO }
 import zio.actors.persistence.PersistenceId.PersistenceId
 import zio.actors.persistence.PersistenceConfig
 import InMemJournal.JournalRow
@@ -33,7 +33,10 @@ object InMemJournal extends JournalFactory {
         j <- Ref.make(Map.empty[String, InMemJournal[_]])
         _ <- j.set(Map.empty)
       } yield j
-    runtime.unsafeRun(journalEff)
+
+    Unsafe.unsafe { implicit u =>
+      runtime.unsafe.run(journalEff).getOrThrowFiberFailure()
+    }
   }
 
   def getJournal[Ev](actorSystemName: String, configStr: String): Task[InMemJournal[Ev]] =
@@ -43,7 +46,7 @@ object InMemJournal extends JournalFactory {
       map         <- journalMap.get
       journal     <- map.get(key) match {
                        case Some(j) =>
-                         UIO.effectTotal(j.asInstanceOf[InMemJournal[Ev]])
+                         ZIO.succeed(j.asInstanceOf[InMemJournal[Ev]])
                        case None    =>
                          for {
                            j <- InMemJournal.make[Ev]()
