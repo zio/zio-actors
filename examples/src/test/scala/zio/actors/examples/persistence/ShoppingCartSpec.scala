@@ -1,94 +1,94 @@
 package zio.actors.examples.persistence
 
+import zio.actors.examples.persistence.Deps._
+import zio.actors.examples.persistence.ShoppingCart._
+import zio.actors.{ ActorSystem, Supervisor }
+import zio.test.Assertion._
+import zio.test.{ assert, assertTrue, ZIOSpecDefault }
+import zio.{ Duration, Schedule, Scope, ZIO, ZLayer }
+
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-import zio.{ Cause, Has, Managed, Schedule, UIO, ZIO, ZLayer }
-import zio.actors.{ ActorSystem, Supervisor }
-import zio.duration.Duration
-import zio.test.Assertion._
-import zio.test.{ assert, suite, testM, DefaultRunnableSpec, TestFailure }
-import ShoppingCart._
-import Deps._
-
 object Deps {
-  val actorSystem: Managed[TestFailure[Throwable], ActorSystem] =
-    Managed.make(
+  val actorSystem: ZIO[Scope, Throwable, ActorSystem] =
+    ZIO.acquireRelease(
       ActorSystem("testSys", Some(new File("./src/test/resources/application.conf")))
-        .mapError(e => TestFailure.Runtime(Cause.die(e)))
-    )(_.shutdown.catchAll(_ => UIO.unit))
+    )(_.shutdown.ignore)
 
-  val actorSystemLayer = ZLayer.fromManaged(actorSystem)
+  val actorSystemLayer = ZLayer.scoped(actorSystem)
 
   val recoverPolicy = Supervisor.retry(Schedule.exponential(Duration(200, TimeUnit.MILLISECONDS)))
 
 }
 
-object ShoppingCartSpec extends DefaultRunnableSpec {
+object ShoppingCartSpec extends ZIOSpecDefault {
   def spec =
     suite("The Shopping Cart should")(
-      testM("add item") {
+      test("add item") {
         for {
-          as   <- ZIO.environment[Has[ActorSystem]].map(_.get)
+          as   <- ZIO.service[ActorSystem]
           cart <- as.make("cart1", recoverPolicy, State.empty, ShoppingCart("cart1"))
           conf <- cart ? AddItem("foo", 42)
-        } yield assert(conf)(equalTo(Accepted(Summary(Map("foo" -> 42), checkedOut = false))))
+        } yield assertTrue(conf == Accepted(Summary(Map("foo" -> 42), checkedOut = false)))
 
       },
-      testM("reject already added item") {
+      test("reject already added item") {
         for {
-          as    <- ZIO.environment[Has[ActorSystem]].map(_.get)
+          as    <- ZIO.service[ActorSystem]
           cart  <- as.make("cart2", recoverPolicy, State.empty, ShoppingCart("cart2"))
           conf1 <- cart ? AddItem("foo", 42)
           conf2 <- cart ? AddItem("foo", 13)
         } yield assert(conf1)(isSubtype[Accepted](anything)) && assert(conf2)(isSubtype[Rejected](anything))
       },
-      testM("remove item") {
+      test("remove item") {
 
         for {
-          as    <- ZIO.environment[Has[ActorSystem]].map(_.get)
+          as    <- ZIO.service[ActorSystem]
           cart  <- as.make("cart3", recoverPolicy, State.empty, ShoppingCart("cart3"))
           conf1 <- cart ? AddItem("foo", 42)
           conf2 <- cart ? RemoveItem("foo")
-        } yield assert(conf1)(isSubtype[Accepted](anything)) && assert(conf2)(
-          equalTo(Accepted(Summary(Map.empty, checkedOut = false)))
+        } yield assert(conf1)(isSubtype[Accepted](anything)) && assertTrue(
+          conf2 == Accepted(Summary(Map.empty, checkedOut = false))
         )
 
       },
-      testM("adjust quantity") {
+      test("adjust quantity") {
         for {
-          as    <- ZIO.environment[Has[ActorSystem]].map(_.get)
+          as    <- ZIO.service[ActorSystem]
           cart  <- as.make("cart4", recoverPolicy, State.empty, ShoppingCart("cart4"))
           conf1 <- cart ? AddItem("foo", 42)
           conf2 <- cart ? AdjustItemQuantity("foo", 43)
-        } yield assert(conf1)(isSubtype[Accepted](anything)) && assert(conf2)(
-          equalTo(Accepted(Summary(Map("foo" -> 43), checkedOut = false)))
+        } yield assert(conf1)(isSubtype[Accepted](anything)) && assertTrue(
+          conf2 == Accepted(Summary(Map("foo" -> 43), checkedOut = false))
         )
 
       },
-      testM("checkout") {
+      test("checkout") {
 
         for {
-          as    <- ZIO.environment[Has[ActorSystem]].map(_.get)
+          as    <- ZIO.service[ActorSystem]
           cart  <- as.make("cart5", recoverPolicy, State.empty, ShoppingCart("cart5"))
           conf1 <- cart ? AddItem("foo", 42)
           conf2 <- cart ? Checkout
-        } yield assert(conf1)(isSubtype[Accepted](anything)) && assert(conf2)(
-          equalTo(Accepted(Summary(Map("foo" -> 42), checkedOut = true)))
+        } yield assert(conf1)(isSubtype[Accepted](anything)) && assertTrue(
+          conf2 == Accepted(Summary(Map("foo" -> 42), checkedOut = true))
         )
 
       },
-      testM("keep its state") {
+      test("keep its state") {
 
         for {
-          as     <- ZIO.environment[Has[ActorSystem]].map(_.get)
+          as     <- ZIO.service[ActorSystem]
           cart   <- as.make("cart6", recoverPolicy, State.empty, ShoppingCart("cart6"))
           conf1  <- cart ? AddItem("foo", 42)
           _      <- cart.stop
           cart   <- as.make("cart6", recoverPolicy, State.empty, ShoppingCart("cart6"))
           status <- cart ? Get
-        } yield assert(conf1)(equalTo(Accepted(Summary(Map("foo" -> 42), checkedOut = false)))) &&
-          assert(status)(equalTo(Summary(Map("foo" -> 42), checkedOut = false)))
+        } yield assertTrue(
+          conf1 == Accepted(Summary(Map("foo" -> 42), checkedOut = false)),
+          status == Summary(Map("foo" -> 42), checkedOut = false)
+        )
       }
-    ).provideCustomLayer(actorSystemLayer)
+    ).provide(actorSystemLayer)
 }

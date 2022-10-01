@@ -1,12 +1,12 @@
 package zio.actors.persistence
 
-import scala.reflect.runtime.universe
-import zio.actors.{ Actor, Context, Supervisor }
-import zio.{ IO, Queue, RIO, Ref, Task }
 import zio.actors.Actor._
+import zio.actors.persistence.PersistenceId._
 import zio.actors.persistence.journal.{ Journal, JournalFactory }
-import PersistenceId._
-import zio.clock.Clock
+import zio.actors.{ Actor, Context, Supervisor }
+import zio.{ Queue, RIO, Ref, Task, ZIO }
+
+import scala.reflect.runtime.universe
 
 /**
  * Each message can result in either an event that will be persisted or idempotent action.
@@ -49,33 +49,36 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
     context: Context,
     optOutActorSystem: () => Task[Unit],
     mailboxSize: Int = DefaultActorMailboxSize
-  )(initial: S): RIO[R with Clock, Actor[F]] = {
+  )(initial: S): RIO[R, Actor[F]] = {
 
     val mirror = universe.runtimeMirror(getClass.getClassLoader)
 
     def retrieveJournal: Task[Journal[Ev]] =
       for {
-        configStr    <- IO
+        configStr    <- ZIO
                           .fromOption(context.actorSystemConfig)
-                          .mapError(_ => new Exception("Couldn't retrieve persistence config"))
+                          .orElseFail(new Exception("Couldn't retrieve persistence config"))
         systemName    = context.actorSystemName
         pluginClass  <- PersistenceConfig.getPluginClass(systemName, configStr)
-        maybeFactory <- Task(mirror.reflectModule(mirror.staticModule(pluginClass.value)).instance).mapError(e =>
-                          new IllegalArgumentException(s"Could not load plugin class $pluginClass from $configStr", e)
-                        )
+        maybeFactory <-
+          ZIO
+            .attempt(mirror.reflectModule(mirror.staticModule(pluginClass.value)).instance)
+            .mapError(e => new IllegalArgumentException(s"Could not load plugin class $pluginClass from $configStr", e))
         factory      <-
-          Task(maybeFactory.asInstanceOf[JournalFactory]).mapError(e =>
-            new IllegalArgumentException(
-              s"Plugin class $maybeFactory from $configStr is not a ${classOf[JournalFactory].getCanonicalName}",
-              e
+          ZIO
+            .attempt(maybeFactory.asInstanceOf[JournalFactory])
+            .mapError(e =>
+              new IllegalArgumentException(
+                s"Plugin class $maybeFactory from $configStr is not a ${classOf[JournalFactory].getCanonicalName}",
+                e
+              )
             )
-          )
         journal      <- factory.getJournal[Ev](systemName, configStr)
       } yield journal
 
     def applyEvents(events: Seq[Ev], state: S): S = events.foldLeft(state)(sourceEvent)
 
-    def process[A](msg: PendingMessage[F, A], state: Ref[S], journal: Journal[Ev]): RIO[R with Clock, Unit] =
+    def process[A](msg: PendingMessage[F, A], state: Ref[S], journal: Journal[Ev]): RIO[R, Unit] =
       for {
         s                  <- state.get
         (fa, promise)       = msg
@@ -97,11 +100,11 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
                                         } yield res
                                     }
                               ).tupled
-        _                  <- receiver.foldM(
+        _                  <- receiver.foldZIO(
                                 e =>
                                   supervisor
                                     .supervise(receiver, e)
-                                    .foldM(_ => promise.fail(e), fullCompleter),
+                                    .foldZIO(_ => promise.fail(e), fullCompleter),
                                 fullCompleter
                               )
       } yield ()
