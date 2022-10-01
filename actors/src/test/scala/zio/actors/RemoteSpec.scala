@@ -3,9 +3,8 @@ package zio.actors
 import java.io.File
 import java.net.ConnectException
 
-import zio._
+import zio.{ durationInt, Clock, Console, IO, ZIO }
 import zio.actors.Actor.Stateful
-import zio.actors.Supervisor
 import zio.test._
 import zio.test.Assertion._
 import SpecUtils._

@@ -43,7 +43,8 @@ object BuildHelper {
     "-Ywarn-infer-any",
     "-Ywarn-inaccessible",
     "-Ywarn-nullary-unit",
-    "-Ywarn-unused-import"
+    "-Ywarn-unused-import",
+    "-Xlint:-infer-any"
   )
 
   private def extraOptions(scalaVersion: String) =
