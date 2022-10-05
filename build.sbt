@@ -37,6 +37,7 @@ val zioConfigVersion      = "3.0.2"
 val zioInteropCatsVersion = "22.0.0.0"
 val akkaActorTypedVersion = "2.6.19"
 val doobieVersion         = "0.13.4"
+val shardcakeVersion      = "2.0.2"
 
 lazy val root =
   project
@@ -86,7 +87,7 @@ lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persi
   )
   .dependsOn(zioActorsPersistence)
 
-lazy val examples = module("zio-actors-examples", "examples")
+lazy val examples             = module("zio-actors-examples", "examples")
   .settings(
     skip in publish := true,
     fork := true,
@@ -96,7 +97,7 @@ lazy val examples = module("zio-actors-examples", "examples")
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
-  .dependsOn(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC)
+  .dependsOn(zioActors, zioActorsPersistence, zioActorsSharding, zioActorsPersistenceJDBC % "test->test")
 
 lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop")
   .settings(
@@ -108,6 +109,23 @@ lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop"
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
   .dependsOn(zioActors)
+
+lazy val zioActorsSharding = module("zio-actors-sharding", "sharding")
+  .settings(
+    libraryDependencies ++= Seq(
+      "dev.zio"        %% "zio-test"                     % zioVersion % "test",
+      "dev.zio"        %% "zio-test-sbt"                 % zioVersion % "test",
+      "com.devsisters" %% "shardcake-core"               % shardcakeVersion,
+      "com.devsisters" %% "shardcake-entities"           % shardcakeVersion,
+      "com.devsisters" %% "shardcake-manager"            % shardcakeVersion,
+      "com.devsisters" %% "shardcake-health-k8s"         % shardcakeVersion,
+      "com.devsisters" %% "shardcake-protocol-grpc"      % shardcakeVersion,
+      "com.devsisters" %% "shardcake-serialization-kryo" % shardcakeVersion,
+      "com.devsisters" %% "shardcake-storage-redis"      % shardcakeVersion
+    ),
+    testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+  )
+  .dependsOn(zioActors, zioActorsPersistence)
 
 def module(moduleName: String, fileName: String): Project =
   Project(moduleName, file(fileName))
