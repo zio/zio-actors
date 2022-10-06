@@ -1,22 +1,21 @@
 package zio.actors.sharding
 
 import com.devsisters.shardcake.Sharding
-import zio.{ Dequeue, RIO, ZIO }
 import zio.actors.ActorRef
 import zio.actors.persistence.EventSourcedStateful
-
-import Layers.ActorSystemZ
+import zio.actors.sharding.Layers.ActorSystemZ
+import zio.{ Dequeue, RIO, ZIO }
 
 trait Behavior[BehaviorMessage] {
   type State
-  type Message[+_]
+  type Command[+_]
   type Event
 
   val stateEmpty: State
-  def eventSourcedFactory: String => EventSourcedStateful[Any, State, Message, Event]
+  def eventSourcedFactory: String => EventSourcedStateful[Any, State, Command, Event]
   def messageHandler(
     message: BehaviorMessage,
-    actor: ActorRef[Message]
+    actor: ActorRef[Command]
   ): ZIO[Sharding, Throwable, Unit]
 
   def behavior(
@@ -31,7 +30,7 @@ trait Behavior[BehaviorMessage] {
     message: BehaviorMessage
   ): RIO[Sharding with ActorSystemZ, Unit] =
     ActorFinder
-      .ref[State, Message, Event](
+      .ref[State, Command, Event](
         entityId,
         stateEmpty,
         eventSourcedFactory

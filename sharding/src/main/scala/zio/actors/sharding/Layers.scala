@@ -6,9 +6,9 @@ import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.data.RedisCodec
 import dev.profunktor.redis4cats.effect.Log
 import dev.profunktor.redis4cats.pubsub.PubSub
-import zio.{ Task, ZEnvironment, ZIO, ZLayer }
 import zio.actors.ActorSystem
 import zio.interop.catz._
+import zio.{ Task, ZEnvironment, ZIO, ZLayer }
 
 import java.io.File
 
