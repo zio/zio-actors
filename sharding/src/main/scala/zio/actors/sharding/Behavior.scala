@@ -11,8 +11,10 @@ trait Behavior[BehaviorMessage] {
   type Command[+_]
   type Event
 
-  val stateEmpty: State
+  def stateEmpty: State
+
   def eventSourcedFactory: String => EventSourcedStateful[Any, State, Command, Event]
+
   def messageHandler(
     message: BehaviorMessage,
     actor: ActorRef[Command]
@@ -35,7 +37,5 @@ trait Behavior[BehaviorMessage] {
         stateEmpty,
         eventSourcedFactory
       )
-      .flatMap { actor =>
-        messageHandler(message, actor)
-      }
+      .flatMap(messageHandler(message, _))
 }

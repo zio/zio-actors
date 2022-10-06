@@ -36,9 +36,9 @@ object Layers {
     val basePath = s"zio://$name@0.0.0.0:0000/"
   }
 
-  def actorSystem(name: String): ZLayer[Any, Throwable, ActorSystemZ] =
+  def actorSystem(name: String, configPathName: Option[String] = None): ZLayer[Any, Throwable, ActorSystemZ] =
     ZLayer {
-      ActorSystem(name, Some(new File("./src/main/resources/application.conf"))).map { system =>
+      ActorSystem(name, configPathName.map(path => new File(path))).map { system =>
         ActorSystemZ(name, system)
       }
     }

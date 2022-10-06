@@ -47,7 +47,7 @@ object ShoppingCartApp extends ZIOAppDefault {
         ZLayer.succeed(GrpcConfig.default),
         ZLayer.succeed(RedisConfig.default),
         Layers.redis,
-        Layers.actorSystem("ShoppingCartSystem"),
+        Layers.actorSystem("ShoppingCartSystem", Some("./src/main/resources/application.conf")),
         StorageRedis.live,
         KryoSerialization.live,
         ShardManagerClient.liveWithSttp,

@@ -13,7 +13,7 @@ object ShoppingCartBehavior extends Behavior[ShoppingCartEntity.Message] {
   type Command[+A] = ShoppingCart.Command[A]
   type Event       = ShoppingCart.Event
 
-  val stateEmpty: State = ShoppingCart.State.empty
+  def stateEmpty: State = ShoppingCart.State.empty
 
   def eventSourcedFactory: String => EventSourcedStateful[Any, State, Command, Event] =
     persistenceId => ShoppingCart(persistenceId)
@@ -43,6 +43,5 @@ object ShoppingCartBehavior extends Behavior[ShoppingCartEntity.Message] {
         actor
           .?(ShoppingCart.Get)
           .flatMap(replier.reply)
-
     }
 }
