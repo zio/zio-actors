@@ -6,7 +6,8 @@ import zio.actors.persistence.EventSourcedStateful
 import zio.actors.sharding.Layers.ActorSystemZ
 import zio.{ Dequeue, RIO, ZIO }
 
-trait Behavior[BehaviorMessage] {
+trait Behavior {
+  type BehaviorMessage
   type State
   type Command[+_]
   type Event
