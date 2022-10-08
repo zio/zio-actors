@@ -13,6 +13,7 @@ import example.{ ShoppingCart, ShoppingCartBehavior, ShoppingCartEntity }
 import sttp.client3.UriContext
 import zio.Clock.ClockLive
 import zio._
+import zio.actors.sharding.Behavior.Message
 import zio.interop.catz._
 import zio.test.TestAspect.{ sequential, withLiveClock }
 import zio.test.{ assertTrue, Spec, TestEnvironment, ZIOSpecDefault }
@@ -66,7 +67,6 @@ object ShoppingCartEntitySpec extends ZIOSpecDefault {
   private val redisConfig   = ZLayer.succeed(RedisConfig.default)
 
   import ShoppingCart._
-  import ShoppingCartEntity._
   override def spec: Spec[TestEnvironment with Scope, Any] =
     suite("The Shopping Cart should")(
       test("complete cycle") {
@@ -74,7 +74,7 @@ object ShoppingCartEntitySpec extends ZIOSpecDefault {
           for {
             _       <- Sharding.registerEntity(
                          ShoppingCartEntity.entityType,
-                         Behavior.create(ShoppingCartBehavior.behavior)
+                         Behavior.create(ShoppingCartBehavior)
                        )
             _       <- Sharding.registerScoped
             cart    <- Sharding.messenger(ShoppingCartEntity.entityType)

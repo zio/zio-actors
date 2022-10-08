@@ -1,13 +1,8 @@
 package example
 
-import com.devsisters.shardcake.Messenger.Replier
-import zio.actors.sharding.Entity
+import zio.actors.sharding.{ Behavior, Entity }
 
 object ShoppingCartEntity extends Entity {
-  case class Message[A](
-    command: ShoppingCart.Command[A],
-    replier: Replier[A]
-  )
-  type Msg = Message[_]
+  type Msg = Behavior.Message[_, ShoppingCartBehavior.Command]
   override def name: String = "ShoppingCartEntity"
 }

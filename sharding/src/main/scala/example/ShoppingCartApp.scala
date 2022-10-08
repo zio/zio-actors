@@ -2,6 +2,7 @@ package example
 
 import com.devsisters.shardcake._
 import com.devsisters.shardcake.interfaces.Serialization
+import zio.actors.sharding.Behavior.Message
 import zio.actors.sharding.Layers.ActorSystemZ
 import zio.actors.sharding.{ Behavior, Layers }
 import zio.{ Random, Scope, System, Task, ZIO, ZIOAppDefault, ZLayer }
@@ -24,7 +25,7 @@ object ShoppingCartApp extends ZIOAppDefault {
     for {
       _     <- Sharding.registerEntity(
                  entityType,
-                 Behavior.create(ShoppingCartBehavior.behavior)
+                 Behavior.create(ShoppingCartBehavior)
                )
       _     <- Sharding.registerScoped
       cart  <- Sharding.messenger(entityType)
