@@ -2,9 +2,10 @@ package example
 
 import com.devsisters.shardcake._
 import com.devsisters.shardcake.interfaces.Serialization
+import zio.actors.sharding.Behavior
 import zio.actors.sharding.Behavior.Message
-import zio.actors.sharding.Layers.ActorSystemZ
-import zio.actors.sharding.{ Behavior, Layers }
+import zio.actors.sharding.utils.Layers
+import zio.actors.sharding.utils.Layers.ActorSystemZ
 import zio.{ Random, Scope, System, Task, ZIO, ZIOAppDefault, ZLayer }
 
 object ShoppingCartApp extends ZIOAppDefault {

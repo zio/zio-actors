@@ -1,4 +1,4 @@
-package zio.actors.sharding
+package zio.actors.sharding.utils
 
 import com.devsisters.shardcake._
 import com.devsisters.shardcake.interfaces.PodsHealth

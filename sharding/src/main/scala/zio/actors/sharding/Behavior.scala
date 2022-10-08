@@ -4,7 +4,8 @@ import com.devsisters.shardcake.Messenger.Replier
 import com.devsisters.shardcake.Sharding
 import zio.actors.ActorRef
 import zio.actors.persistence.EventSourcedStateful
-import zio.actors.sharding.Layers.ActorSystemZ
+import zio.actors.sharding.utils.ActorFinder
+import zio.actors.sharding.utils.Layers.ActorSystemZ
 import zio.{ Dequeue, RIO, ZIO }
 
 trait Behavior {

@@ -1,15 +1,18 @@
-package zio.actors.sharding
+package example
 
 import com.devsisters.shardcake._
 import com.devsisters.shardcake.interfaces.PodsHealth
-import example.{ ShoppingCart, ShoppingCartEntity }
-import zio._
+import zio.actors.sharding.Behavior
 import zio.actors.sharding.Behavior.Message
+import zio.actors.sharding.utils.Layers
 import zio.test.TestAspect.{ sequential, withLiveClock }
 import zio.test.{ assertTrue, Spec, TestEnvironment, ZIOSpecDefault }
+import zio.{ Random, Scope, ZIO }
 
 object ShoppingCartEntitySpec extends ZIOSpecDefault {
+
   import ShoppingCart._
+
   override def spec: Spec[TestEnvironment with Scope, Any] =
     suite("The Shopping Cart should")(
       test("complete cycle") {

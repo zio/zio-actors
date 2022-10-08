@@ -1,4 +1,4 @@
-package zio.actors.sharding
+package example
 
 import com.devsisters.shardcake.StorageRedis.Redis
 import com.devsisters.shardcake._
@@ -11,7 +11,7 @@ import dev.profunktor.redis4cats.pubsub.PubSub
 import sttp.client3.UriContext
 import zio.Clock.ClockLive
 import zio.interop.catz._
-import zio.{ Runtime, Task, ZEnvironment, ZIO, ZLayer, _ }
+import zio.{ durationInt, Runtime, Task, ULayer, ZEnvironment, ZIO, ZLayer }
 
 object TestLayers {
 
@@ -34,8 +34,10 @@ object TestLayers {
       implicit val runtime: Runtime[Any] = Runtime.default
       implicit val logger: Log[Task]     = new Log[Task] {
         override def debug(msg: => String): Task[Unit] = ZIO.unit
+
         override def error(msg: => String): Task[Unit] = ZIO.logError(msg)
-        override def info(msg: => String): Task[Unit]  = ZIO.logDebug(msg)
+
+        override def info(msg: => String): Task[Unit] = ZIO.logDebug(msg)
       }
       ZIO
         .service[GenericContainer]

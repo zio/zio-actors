@@ -1,8 +1,8 @@
-package zio.actors.sharding
+package zio.actors.sharding.utils
 
 import zio.ZIO
 import zio.actors.persistence.EventSourcedStateful
-import zio.actors.sharding.Layers.ActorSystemZ
+import zio.actors.sharding.utils.Layers.ActorSystemZ
 import zio.actors.{ ActorRef, Supervisor }
 
 // TODO: create a more efficient method in ActorSystem
