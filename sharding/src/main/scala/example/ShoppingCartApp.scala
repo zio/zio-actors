@@ -2,8 +2,8 @@ package example
 
 import com.devsisters.shardcake._
 import com.devsisters.shardcake.interfaces.Serialization
-import zio.actors.sharding.Layers
 import zio.actors.sharding.Layers.ActorSystemZ
+import zio.actors.sharding.{ Behavior, Layers }
 import zio.{ Random, Scope, System, Task, ZIO, ZIOAppDefault, ZLayer }
 
 object ShoppingCartApp extends ZIOAppDefault {
@@ -18,14 +18,14 @@ object ShoppingCartApp extends ZIOAppDefault {
     Sharding with ActorSystemZ with Scope with Serialization,
     Throwable,
     Unit
-  ] =
+  ] = {
     for {
       _     <- Sharding.registerEntity(
-                 ShoppingCartEntity.ShoppingCartEntityType,
-                 ShoppingCartEntity.behavior
+                 ShoppingCartEntity.entityType,
+                 Behavior.create(ShoppingCartBehavior.behavior)
                )
       _     <- Sharding.registerScoped
-      cart  <- Sharding.messenger(ShoppingCartEntity.ShoppingCartEntityType)
+      cart  <- Sharding.messenger(ShoppingCartEntity.entityType)
       item1 <- Random.nextUUID.map(_.toString)
       item2 <- Random.nextUUID.map(_.toString)
       item3 <- Random.nextUUID.map(_.toString)
@@ -38,6 +38,7 @@ object ShoppingCartApp extends ZIOAppDefault {
       _     <- cart.send("cart1")(ShoppingCartEntity.Get).debug
       _     <- ZIO.never
     } yield ()
+  }
 
   def run: Task[Unit] =
     ZIO

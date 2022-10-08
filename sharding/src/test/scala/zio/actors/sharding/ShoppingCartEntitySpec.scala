@@ -9,11 +9,11 @@ import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.data.RedisCodec
 import dev.profunktor.redis4cats.effect.Log
 import dev.profunktor.redis4cats.pubsub.PubSub
+import example.ShoppingCart.Summary
+import example.{ ShoppingCartBehavior, ShoppingCartEntity }
 import sttp.client3.UriContext
 import zio.Clock.ClockLive
 import zio._
-import example.ShoppingCart.Summary
-import example.ShoppingCartEntity
 import zio.interop.catz._
 import zio.test.TestAspect.{ sequential, withLiveClock }
 import zio.test.{ assertTrue, Spec, TestEnvironment, ZIOSpecDefault }
@@ -72,11 +72,11 @@ object ShoppingCartEntitySpec extends ZIOSpecDefault {
         ZIO.scoped {
           for {
             _       <- Sharding.registerEntity(
-                         ShoppingCartEntity.ShoppingCartEntityType,
-                         ShoppingCartEntity.behavior
+                         ShoppingCartEntity.entityType,
+                         Behavior.create(ShoppingCartBehavior.behavior)
                        )
             _       <- Sharding.registerScoped
-            cart    <- Sharding.messenger(ShoppingCartEntity.ShoppingCartEntityType)
+            cart    <- Sharding.messenger(ShoppingCartEntity.entityType)
             item1   <- Random.nextUUID.map(_.toString)
             item2   <- Random.nextUUID.map(_.toString)
             item3   <- Random.nextUUID.map(_.toString)
