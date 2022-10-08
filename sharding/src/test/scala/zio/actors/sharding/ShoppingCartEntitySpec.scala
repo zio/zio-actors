@@ -13,7 +13,7 @@ import sttp.client3.UriContext
 import zio.Clock.ClockLive
 import zio._
 import example.ShoppingCart.Summary
-import example.{ ShoppingCartBehavior, ShoppingCartEntity }
+import example.ShoppingCartEntity
 import zio.interop.catz._
 import zio.test.TestAspect.{ sequential, withLiveClock }
 import zio.test.{ assertTrue, Spec, TestEnvironment, ZIOSpecDefault }
@@ -73,7 +73,7 @@ object ShoppingCartEntitySpec extends ZIOSpecDefault {
           for {
             _       <- Sharding.registerEntity(
                          ShoppingCartEntity.ShoppingCartEntityType,
-                         ShoppingCartBehavior.behavior
+                         ShoppingCartEntity.behavior
                        )
             _       <- Sharding.registerScoped
             cart    <- Sharding.messenger(ShoppingCartEntity.ShoppingCartEntityType)
@@ -87,7 +87,7 @@ object ShoppingCartEntitySpec extends ZIOSpecDefault {
             _       <- cart.send("cart1")(ShoppingCartEntity.AdjustItemQuantity(item2, 2, _))
             _       <- cart.send("cart1")(ShoppingCartEntity.Checkout)
             summary <- cart.send("cart1")(ShoppingCartEntity.Get)
-          } yield assertTrue(summary == Summary(Map("item2" -> 2, "item3" -> 1), checkedOut = false))
+          } yield assertTrue(summary == Summary(Map(item2 -> 2, item3 -> 1), checkedOut = true))
         }
       }
     ).provideShared(

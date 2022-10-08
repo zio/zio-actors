@@ -22,7 +22,7 @@ object ShoppingCartApp extends ZIOAppDefault {
     for {
       _     <- Sharding.registerEntity(
                  ShoppingCartEntity.ShoppingCartEntityType,
-                 ShoppingCartBehavior.behavior
+                 ShoppingCartEntity.behavior
                )
       _     <- Sharding.registerScoped
       cart  <- Sharding.messenger(ShoppingCartEntity.ShoppingCartEntityType)
