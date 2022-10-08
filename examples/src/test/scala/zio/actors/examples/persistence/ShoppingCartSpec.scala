@@ -19,6 +19,7 @@ object Deps {
   val actorSystemLayer = ZLayer.scoped(actorSystem)
 
   val recoverPolicy = Supervisor.retry(Schedule.exponential(Duration(200, TimeUnit.MILLISECONDS)))
+
 }
 
 object ShoppingCartSpec extends ZIOSpecDefault {
