@@ -38,7 +38,7 @@ val zioInteropCatsVersion = "22.0.0.0"
 val zioCatsInteropVersion = "3.3.0"
 val akkaActorTypedVersion = "2.6.19"
 val doobieVersion         = "0.13.4"
-val shardcakeVersion      = "2.0.2"
+val shardcakeVersion      = "2.0.3"
 val testContainersVersion = "0.40.9"
 
 lazy val root =
