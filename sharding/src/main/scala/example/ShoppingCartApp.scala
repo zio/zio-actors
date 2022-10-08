@@ -15,20 +15,19 @@ object ShoppingCartApp extends ZIOAppDefault {
         .map(_.flatMap(_.toIntOption).fold(Config.default)(port => Config.default.copy(shardingPort = port)))
     )
 
+  import ShoppingCart._
   val program: ZIO[
     Sharding with ActorSystemZ with Scope with Serialization,
     Throwable,
     Unit
   ] = {
-    import ShoppingCart._
-    import ShoppingCartEntity._
     for {
       _     <- Sharding.registerEntity(
-                 entityType,
-                 Behavior.create(ShoppingCartBehavior)
+                 ShoppingCartEntity.entityType,
+                 Behavior.create(ShoppingCartEntity)
                )
       _     <- Sharding.registerScoped
-      cart  <- Sharding.messenger(entityType)
+      cart  <- Sharding.messenger(ShoppingCartEntity.entityType)
       item1 <- Random.nextUUID.map(_.toString)
       item2 <- Random.nextUUID.map(_.toString)
       item3 <- Random.nextUUID.map(_.toString)

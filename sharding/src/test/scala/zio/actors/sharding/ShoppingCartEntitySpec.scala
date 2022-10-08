@@ -9,7 +9,7 @@ import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.data.RedisCodec
 import dev.profunktor.redis4cats.effect.Log
 import dev.profunktor.redis4cats.pubsub.PubSub
-import example.{ ShoppingCart, ShoppingCartBehavior, ShoppingCartEntity }
+import example.{ ShoppingCart, ShoppingCartEntity }
 import sttp.client3.UriContext
 import zio.Clock.ClockLive
 import zio._
@@ -74,7 +74,7 @@ object ShoppingCartEntitySpec extends ZIOSpecDefault {
           for {
             _       <- Sharding.registerEntity(
                          ShoppingCartEntity.entityType,
-                         Behavior.create(ShoppingCartBehavior)
+                         Behavior.create(ShoppingCartEntity)
                        )
             _       <- Sharding.registerScoped
             cart    <- Sharding.messenger(ShoppingCartEntity.entityType)
