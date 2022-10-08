@@ -13,6 +13,7 @@ import zio.{ Task, ZEnvironment, ZIO, ZLayer }
 import java.io.File
 
 object Layers {
+
   val redis: ZLayer[Any, Throwable, Redis] =
     ZLayer.scopedEnvironment {
       implicit val runtime: zio.Runtime[Any] = zio.Runtime.default
@@ -42,4 +43,5 @@ object Layers {
         ActorSystemZ(name, system)
       }
     }
+
 }

@@ -7,6 +7,7 @@ import zio.actors.{ ActorRef, Supervisor }
 
 // TODO: create a more efficient method in ActorSystem
 object ActorFinder {
+
   def ref[State, Message[+_], Event](
     entityId: String,
     stateEmpty: => State,
@@ -25,4 +26,5 @@ object ActorFinder {
             )
         )
     }
+
 }

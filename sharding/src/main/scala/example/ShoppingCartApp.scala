@@ -9,6 +9,7 @@ import zio.actors.sharding.utils.Layers.ActorSystemZ
 import zio.{ Random, Scope, System, Task, ZIO, ZIOAppDefault, ZLayer }
 
 object ShoppingCartApp extends ZIOAppDefault {
+
   val config: ZLayer[Any, SecurityException, Config] =
     ZLayer(
       System
@@ -59,4 +60,5 @@ object ShoppingCartApp extends ZIOAppDefault {
         Sharding.live,
         GrpcShardingService.live
       )
+
 }

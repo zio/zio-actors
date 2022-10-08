@@ -64,4 +64,5 @@ object TestLayers {
   val managerConfig: ULayer[ManagerConfig] = ZLayer.succeed(ManagerConfig.default.copy(apiPort = 8087))
 
   val redisConfig: ULayer[RedisConfig] = ZLayer.succeed(RedisConfig.default)
+
 }

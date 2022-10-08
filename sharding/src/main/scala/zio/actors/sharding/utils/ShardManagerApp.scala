@@ -5,6 +5,7 @@ import com.devsisters.shardcake.interfaces.PodsHealth
 import zio.{ Task, ZIOAppDefault, ZLayer }
 
 object ShardManagerApp extends ZIOAppDefault {
+
   def run: Task[Nothing] =
     Server.run.provide(
       ZLayer.succeed(ManagerConfig.default),
@@ -16,4 +17,5 @@ object ShardManagerApp extends ZIOAppDefault {
       GrpcPods.live,     // use gRPC protocol
       ShardManager.live  // Shard Manager logic
     )
+
 }

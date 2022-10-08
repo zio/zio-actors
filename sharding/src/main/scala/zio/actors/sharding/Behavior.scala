@@ -9,11 +9,15 @@ import zio.actors.sharding.utils.Layers.ActorSystemZ
 import zio.{ Dequeue, RIO, ZIO }
 
 trait Behavior {
+
   type State
+
   type Command[+_]
+
   type Event
 
   def stateEmpty: State
+
   def eventSourcedFactory: String => EventSourcedStateful[Any, State, Command, Event]
 }
 
@@ -50,4 +54,5 @@ object Behavior {
     actor
       .?(message.command)
       .flatMap(message.replier.reply)
+
 }

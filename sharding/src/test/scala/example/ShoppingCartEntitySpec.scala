@@ -55,4 +55,5 @@ object ShoppingCartEntitySpec extends ZIOSpecDefault {
       TestLayers.redisConfig,
       Layers.actorSystem("testSys", Some("./sharding/src/test/resources/application.conf"))
     ) @@ sequential @@ withLiveClock
+
 }
