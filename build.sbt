@@ -35,9 +35,11 @@ val zioVersion            = "2.0.2"
 val zioNioVersion         = "2.0.0"
 val zioConfigVersion      = "3.0.2"
 val zioInteropCatsVersion = "22.0.0.0"
+val zioCatsInteropVersion = "3.3.0"
 val akkaActorTypedVersion = "2.6.19"
 val doobieVersion         = "0.13.4"
 val shardcakeVersion      = "2.0.2"
+val testContainersVersion = "0.40.9"
 
 lazy val root =
   project
@@ -87,7 +89,7 @@ lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persi
   )
   .dependsOn(zioActorsPersistence)
 
-lazy val examples             = module("zio-actors-examples", "examples")
+lazy val examples = module("zio-actors-examples", "examples")
   .settings(
     skip in publish := true,
     fork := true,
@@ -97,7 +99,7 @@ lazy val examples             = module("zio-actors-examples", "examples")
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
-  .dependsOn(zioActors, zioActorsPersistence, zioActorsSharding, zioActorsPersistenceJDBC % "test->test")
+  .dependsOn(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC)
 
 lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop")
   .settings(
@@ -113,8 +115,10 @@ lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop"
 lazy val zioActorsSharding = module("zio-actors-sharding", "sharding")
   .settings(
     libraryDependencies ++= Seq(
-      "dev.zio"        %% "zio-test"                     % zioVersion % "test",
-      "dev.zio"        %% "zio-test-sbt"                 % zioVersion % "test",
+      "dev.zio"        %% "zio-test"                     % zioVersion            % "test",
+      "dev.zio"        %% "zio-test-sbt"                 % zioVersion            % "test",
+      "com.dimafeng"   %% "testcontainers-scala-core"    % testContainersVersion % "test",
+      "dev.zio"        %% "zio-interop-cats"             % zioCatsInteropVersion,
       "com.devsisters" %% "shardcake-core"               % shardcakeVersion,
       "com.devsisters" %% "shardcake-entities"           % shardcakeVersion,
       "com.devsisters" %% "shardcake-manager"            % shardcakeVersion,

@@ -1,4 +1,4 @@
-package zio.actors.examples.sharding
+package example
 
 import com.devsisters.shardcake._
 import com.devsisters.shardcake.interfaces.Serialization
@@ -22,7 +22,7 @@ object ShoppingCartApp extends ZIOAppDefault {
     for {
       _     <- Sharding.registerEntity(
                  ShoppingCartEntity.ShoppingCartEntityType,
-                 ShoppingCartEntity.behavior
+                 ShoppingCartBehavior.behavior
                )
       _     <- Sharding.registerScoped
       cart  <- Sharding.messenger(ShoppingCartEntity.ShoppingCartEntityType)
@@ -47,7 +47,7 @@ object ShoppingCartApp extends ZIOAppDefault {
         ZLayer.succeed(GrpcConfig.default),
         ZLayer.succeed(RedisConfig.default),
         Layers.redis,
-        Layers.actorSystem("ShoppingCartSystem", Some("./src/main/resources/application.conf")),
+        Layers.actorSystem("ShoppingCartSystem", Some("./sharding/src/main/resources/application.conf")),
         StorageRedis.live,
         KryoSerialization.live,
         ShardManagerClient.liveWithSttp,

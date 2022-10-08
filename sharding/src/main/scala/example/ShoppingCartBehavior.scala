@@ -1,38 +1,13 @@
-package zio.actors.examples.sharding
+package example
 
-import com.devsisters.shardcake.Messenger.Replier
-import com.devsisters.shardcake.{ EntityType, Sharding }
+import com.devsisters.shardcake.Sharding
 import zio.ZIO
 import zio.actors.ActorRef
-import zio.actors.examples.persistence.ShoppingCart
 import zio.actors.persistence.EventSourcedStateful
 import zio.actors.sharding.Behavior
+import ShoppingCartEntity._
 
-object ShoppingCartEntity extends Behavior {
-  sealed trait Message
-
-  final case class AddItem(
-    itemId: String,
-    quantity: Int,
-    replier: Replier[ShoppingCart.Confirmation]
-  ) extends Message
-  final case class RemoveItem(
-    itemId: String,
-    replier: Replier[ShoppingCart.Confirmation]
-  ) extends Message
-  final case class AdjustItemQuantity(
-    itemId: String,
-    quantity: Int,
-    replier: Replier[ShoppingCart.Confirmation]
-  ) extends Message
-  final case class Checkout(
-    replier: Replier[ShoppingCart.Confirmation]
-  ) extends Message
-  final case class Get(
-    replier: Replier[ShoppingCart.Summary]
-  ) extends Message
-
-  object ShoppingCartEntityType extends EntityType[Message]("ShoppingCartEntity")
+object ShoppingCartBehavior extends Behavior {
 
   type BehaviorMessage = Message
   type State           = ShoppingCart.State
