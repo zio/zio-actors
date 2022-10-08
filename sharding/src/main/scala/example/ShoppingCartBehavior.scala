@@ -8,41 +8,23 @@ import zio.actors.persistence.EventSourcedStateful
 import zio.actors.sharding.Behavior
 
 object ShoppingCartBehavior {
-  val behavior: Behavior[Message] = new Behavior[Message] {
-    type State       = ShoppingCart.State
-    type Command[+A] = ShoppingCart.Command[A]
-    type Event       = ShoppingCart.Event
+  val behavior: Behavior[Message] =
+    new Behavior[Message] {
+      type State       = ShoppingCart.State
+      type Command[+A] = ShoppingCart.Command[A]
+      type Event       = ShoppingCart.Event
 
-    def stateEmpty: State = ShoppingCart.State.empty
+      def stateEmpty: State = ShoppingCart.State.empty
 
-    def eventSourcedFactory: String => EventSourcedStateful[Any, State, Command, Event] =
-      persistenceId => ShoppingCart(persistenceId)
+      def eventSourcedFactory: String => EventSourcedStateful[Any, State, Command, Event] =
+        persistenceId => ShoppingCart(persistenceId)
 
-    def messageHandler(
-      message: Message,
-      actor: ActorRef[Command]
-    ): ZIO[Sharding, Throwable, Unit] =
-      message match {
-        case AddItem(itemId, quantity, replier)            =>
-          actor
-            .?(ShoppingCart.AddItem(itemId, quantity))
-            .flatMap(replier.reply)
-        case RemoveItem(itemId, replier)                   =>
-          actor
-            .?(ShoppingCart.RemoveItem(itemId))
-            .flatMap(replier.reply)
-        case AdjustItemQuantity(itemId, quantity, replier) =>
-          actor
-            .?(ShoppingCart.AdjustItemQuantity(itemId, quantity))
-            .flatMap(replier.reply)
-        case Checkout(replier)                             =>
-          actor
-            .?(ShoppingCart.Checkout)
-            .flatMap(replier.reply)
-        case Get(replier)                                  =>
-          actor
-            .?(ShoppingCart.Get)
-            .flatMap(replier.reply)
-      }
-  }
+      def messageHandler[A](
+        message: Message[A],
+        actor: ActorRef[Command]
+      ): ZIO[Sharding, Throwable, Unit] =
+        actor
+          .?(message.command)
+          .flatMap(message.replier.reply)
+    }
 }

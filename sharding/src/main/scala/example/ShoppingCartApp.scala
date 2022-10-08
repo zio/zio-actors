@@ -19,23 +19,25 @@ object ShoppingCartApp extends ZIOAppDefault {
     Throwable,
     Unit
   ] = {
+    import ShoppingCart._
+    import ShoppingCartEntity._
     for {
       _     <- Sharding.registerEntity(
-                 ShoppingCartEntity.entityType,
+                 entityType,
                  Behavior.create(ShoppingCartBehavior.behavior)
                )
       _     <- Sharding.registerScoped
-      cart  <- Sharding.messenger(ShoppingCartEntity.entityType)
+      cart  <- Sharding.messenger(entityType)
       item1 <- Random.nextUUID.map(_.toString)
       item2 <- Random.nextUUID.map(_.toString)
       item3 <- Random.nextUUID.map(_.toString)
-      _     <- cart.send("cart1")(ShoppingCartEntity.AddItem(item1, 1, _)).debug
-      _     <- cart.send("cart1")(ShoppingCartEntity.AddItem(item2, 1, _)).debug
-      _     <- cart.send("cart1")(ShoppingCartEntity.RemoveItem(item1, _)).debug
-      _     <- cart.send("cart1")(ShoppingCartEntity.AddItem(item3, 1, _)).debug
-      _     <- cart.send("cart1")(ShoppingCartEntity.AdjustItemQuantity(item2, 2, _)).debug
-      _     <- cart.send("cart1")(ShoppingCartEntity.Checkout).debug
-      _     <- cart.send("cart1")(ShoppingCartEntity.Get).debug
+      _     <- cart.send[Confirmation]("cart1")(Message(AddItem(item1, 1), _)).debug
+      _     <- cart.send[Confirmation]("cart1")(Message(AddItem(item2, 1), _)).debug
+      _     <- cart.send[Confirmation]("cart1")(Message(RemoveItem(item1), _)).debug
+      _     <- cart.send[Confirmation]("cart1")(Message(AddItem(item3, 1), _)).debug
+      _     <- cart.send[Confirmation]("cart1")(Message(AdjustItemQuantity(item2, 2), _)).debug
+      _     <- cart.send[Confirmation]("cart1")(Message(Checkout, _)).debug
+      _     <- cart.send[Summary]("cart1")(Message(Get, _)).debug
       _     <- ZIO.never
     } yield ()
   }

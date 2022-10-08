@@ -1,36 +1,13 @@
 package example
 
-import com.devsisters.shardcake.EntityType
 import com.devsisters.shardcake.Messenger.Replier
+import zio.actors.sharding.Entity
 
-object ShoppingCartEntity {
-
-  sealed trait Message
-
-  final case class AddItem(
-    itemId: String,
-    quantity: Int,
-    replier: Replier[ShoppingCart.Confirmation]
-  ) extends Message
-
-  final case class RemoveItem(
-    itemId: String,
-    replier: Replier[ShoppingCart.Confirmation]
-  ) extends Message
-
-  final case class AdjustItemQuantity(
-    itemId: String,
-    quantity: Int,
-    replier: Replier[ShoppingCart.Confirmation]
-  ) extends Message
-
-  final case class Checkout(
-    replier: Replier[ShoppingCart.Confirmation]
-  ) extends Message
-
-  final case class Get(
-    replier: Replier[ShoppingCart.Summary]
-  ) extends Message
-
-  val entityType: EntityType[Message] = new EntityType[Message]("ShoppingCartEntity") {}
+object ShoppingCartEntity extends Entity {
+  case class Message[A](
+    command: ShoppingCart.Command[A],
+    replier: Replier[A]
+  )
+  type Msg = Message[_]
+  override def name: String = "ShoppingCartEntity"
 }

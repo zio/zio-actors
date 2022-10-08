@@ -6,7 +6,7 @@ import zio.actors.persistence.EventSourcedStateful
 import zio.actors.sharding.Layers.ActorSystemZ
 import zio.{ Dequeue, RIO, ZIO }
 
-trait Behavior[BehaviorMessage] {
+trait Behavior[BehaviorMessage[_]] {
   type State
   type Command[+_]
   type Event
@@ -14,24 +14,24 @@ trait Behavior[BehaviorMessage] {
   def stateEmpty: State
   def eventSourcedFactory: String => EventSourcedStateful[Any, State, Command, Event]
 
-  def messageHandler(
-    message: BehaviorMessage,
+  def messageHandler[A](
+    message: BehaviorMessage[A],
     actor: ActorRef[Command]
   ): ZIO[Sharding, Throwable, Unit]
 }
 
 object Behavior {
 
-  def create[Message](b: Behavior[Message])(
+  def create[Message[_]](b: Behavior[Message])(
     entityId: String,
-    messages: Dequeue[Message]
+    messages: Dequeue[Message[_]]
   ): RIO[Sharding with ActorSystemZ, Nothing] =
     ZIO.logInfo(s"Started entity $entityId") *>
       messages.take.flatMap(handleMessage(b)(entityId, _)).forever
 
-  private def handleMessage[Message](b: Behavior[Message])(
+  private def handleMessage[Message[_]](b: Behavior[Message])(
     entityId: String,
-    message: Message
+    message: Message[_]
   ): RIO[Sharding with ActorSystemZ, Unit] =
     ActorFinder
       .ref[b.State, b.Command, b.Event](
