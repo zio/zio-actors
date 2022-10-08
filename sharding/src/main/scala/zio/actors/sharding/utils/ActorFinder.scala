@@ -5,7 +5,6 @@ import zio.actors.persistence.EventSourcedStateful
 import zio.actors.sharding.utils.Layers.ActorSystemZ
 import zio.actors.{ ActorRef, Supervisor }
 
-// TODO: create a more efficient method in ActorSystem
 object ActorFinder {
 
   def ref[State, Message[+_], Event](
