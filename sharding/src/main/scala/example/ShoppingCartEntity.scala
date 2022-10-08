@@ -1,13 +1,12 @@
 package example
 
-import zio.actors.sharding.{ Behavior, Entity }
 import zio.actors.persistence.EventSourcedStateful
+import zio.actors.sharding.EntityBehavior
 
-object ShoppingCartEntity extends Entity with Behavior {
+object ShoppingCartEntity extends EntityBehavior {
   type State       = ShoppingCart.State
   type Command[+A] = ShoppingCart.Command[A]
   type Event       = ShoppingCart.Event
-  type Msg         = Behavior.Message[_, Command]
 
   def name: String = "ShoppingCartEntity"
 
