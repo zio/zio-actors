@@ -10,8 +10,8 @@ import zio.{ Random, Scope, ZIO }
 
 object ShoppingCartEntitySpec extends ZIOSpecDefault {
 
-  import ShoppingCart._
   import zio.actors.sharding.utils.MessengerOps._
+  import ShoppingCart._
 
   override def spec: Spec[TestEnvironment with Scope, Any] =
     suite("The Shopping Cart should")(
