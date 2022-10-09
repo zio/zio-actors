@@ -10,8 +10,6 @@ object ShoppingCartEntity extends EntityBehavior {
 
   type Dependencies = Unit
 
-  def name: String = "ShoppingCartEntity"
-
   def stateEmpty: State = ShoppingCart.State.empty
 
   def actorFactory: Dependencies => String => Actor = _ => persistenceId => ShoppingCart(persistenceId)
