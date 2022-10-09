@@ -1,9 +1,8 @@
 package example
 
-import com.devsisters.shardcake._
 import com.devsisters.shardcake.interfaces.Serialization
+import com.devsisters.shardcake._
 import zio.actors.sharding.Behavior
-import zio.actors.sharding.Behavior.Message
 import zio.actors.sharding.utils.Layers
 import zio.actors.sharding.utils.Layers.ActorSystemZ
 import zio.{ Random, Scope, System, Task, ZIO, ZIOAppDefault, ZLayer }
@@ -17,7 +16,9 @@ object ShoppingCartApp extends ZIOAppDefault {
         .map(_.flatMap(_.toIntOption).fold(Config.default)(port => Config.default.copy(shardingPort = port)))
     )
 
+  import zio.actors.sharding.utils.MessengerOps._
   import ShoppingCart._
+
   val program: ZIO[
     Sharding with ActorSystemZ with Scope with Serialization,
     Throwable,
@@ -33,13 +34,13 @@ object ShoppingCartApp extends ZIOAppDefault {
       item1 <- Random.nextUUID.map(_.toString)
       item2 <- Random.nextUUID.map(_.toString)
       item3 <- Random.nextUUID.map(_.toString)
-      _     <- cart.send[Confirmation]("cart1")(Message(AddItem(item1, 1), _)).debug
-      _     <- cart.send[Confirmation]("cart1")(Message(AddItem(item2, 1), _)).debug
-      _     <- cart.send[Confirmation]("cart1")(Message(RemoveItem(item1), _)).debug
-      _     <- cart.send[Confirmation]("cart1")(Message(AddItem(item3, 1), _)).debug
-      _     <- cart.send[Confirmation]("cart1")(Message(AdjustItemQuantity(item2, 2), _)).debug
-      _     <- cart.send[Confirmation]("cart1")(Message(Checkout, _)).debug
-      _     <- cart.send[Summary]("cart1")(Message(Get, _)).debug
+      _     <- cart.ask("cart1")(AddItem(item1, 1)).debug
+      _     <- cart.ask("cart1")(AddItem(item2, 1)).debug
+      _     <- cart.ask("cart1")(RemoveItem(item1)).debug
+      _     <- cart.ask("cart1")(AddItem(item3, 1)).debug
+      _     <- cart.ask("cart1")(AdjustItemQuantity(item2, 2)).debug
+      _     <- cart.ask("cart1")(Checkout).debug
+      _     <- cart.ask("cart1")(Get).debug
       _     <- ZIO.never
     } yield ()
   }
