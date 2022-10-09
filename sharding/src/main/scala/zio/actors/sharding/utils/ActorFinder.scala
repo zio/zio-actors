@@ -10,7 +10,8 @@ object ActorFinder {
   def ref[State, Message[+_]](
     entityId: String,
     stateEmpty: => State,
-    handler: String => AbstractStateful[Any, State, Message]
+    handler: String => AbstractStateful[Any, State, Message],
+    supervisor: Supervisor[Any] = Supervisor.none
   ): ZIO[ActorSystemZ, Throwable, ActorRef[Message]] =
     ZIO.serviceWithZIO[ActorSystemZ] { actorSystemZ =>
       actorSystemZ.system
@@ -19,7 +20,7 @@ object ActorFinder {
           actorSystemZ.system
             .make(
               entityId,
-              Supervisor.none,
+              supervisor,
               stateEmpty,
               handler(entityId)
             )

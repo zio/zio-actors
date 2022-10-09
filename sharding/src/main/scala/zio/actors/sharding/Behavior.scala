@@ -14,11 +14,13 @@ trait Behavior {
 
   type Command[+_]
 
-  def stateEmpty: State
+  type Dependencies
 
   type Actor = AbstractStateful[Any, State, Command]
 
-  def actorFactory: String => Actor
+  def stateEmpty: State
+
+  def actorFactory: Dependencies => String => Actor
 
 }
 
@@ -36,14 +38,14 @@ object Behavior {
     command: Command[A]
   ) extends Message[A, Command]
 
-  def create(b: Behavior)(
+  def create(b: Behavior)(requirements: => b.Dependencies)(
     entityId: String,
     messages: Dequeue[Behavior.Message[_, b.Command]]
   ): RIO[Sharding with ActorSystemZ, Nothing] =
     ZIO.logInfo(s"Started entity $entityId") *>
-      messages.take.flatMap(handleMessage(b)(entityId, _)).forever
+      messages.take.flatMap(handleMessage(b)(requirements)(entityId, _)).forever
 
-  private def handleMessage(b: Behavior)(
+  private def handleMessage(b: Behavior)(requirements: => b.Dependencies)(
     entityId: String,
     message: Behavior.Message[_, b.Command]
   ): RIO[Sharding with ActorSystemZ, Unit] =
@@ -51,7 +53,7 @@ object Behavior {
       .ref[b.State, b.Command](
         entityId,
         b.stateEmpty,
-        b.actorFactory
+        b.actorFactory(requirements)
       )
       .flatMap(messageHandler(b)(message, _))
 

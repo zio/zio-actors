@@ -27,7 +27,7 @@ object ShoppingCartApp extends ZIOAppDefault {
     for {
       _     <- Sharding.registerEntity(
                  ShoppingCartEntity.entityType,
-                 Behavior.create(ShoppingCartEntity)
+                 Behavior.create(ShoppingCartEntity)(())
                )
       _     <- Sharding.registerScoped
       cart  <- Sharding.messenger(ShoppingCartEntity.entityType)
