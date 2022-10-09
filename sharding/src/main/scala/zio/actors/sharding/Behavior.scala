@@ -2,8 +2,8 @@ package zio.actors.sharding
 
 import com.devsisters.shardcake.Messenger.Replier
 import com.devsisters.shardcake.Sharding
+import zio.actors.Actor.AbstractStateful
 import zio.actors.ActorRef
-import zio.actors.persistence.EventSourcedStateful
 import zio.actors.sharding.utils.ActorFinder
 import zio.actors.sharding.utils.Layers.ActorSystemZ
 import zio.{ Dequeue, RIO, ZIO }
@@ -14,11 +14,12 @@ trait Behavior {
 
   type Command[+_]
 
-  type Event
-
   def stateEmpty: State
 
-  def eventSourcedFactory: String => EventSourcedStateful[Any, State, Command, Event]
+  type Actor = AbstractStateful[Any, State, Command]
+
+  def actorFactory: String => Actor
+
 }
 
 object Behavior {
@@ -47,10 +48,10 @@ object Behavior {
     message: Behavior.Message[_, b.Command]
   ): RIO[Sharding with ActorSystemZ, Unit] =
     ActorFinder
-      .ref[b.State, b.Command, b.Event](
+      .ref[b.State, b.Command](
         entityId,
         b.stateEmpty,
-        b.eventSourcedFactory
+        b.actorFactory
       )
       .flatMap(messageHandler(b)(message, _))
 

@@ -1,16 +1,16 @@
 package zio.actors.sharding.utils
 
 import zio.ZIO
-import zio.actors.persistence.EventSourcedStateful
+import zio.actors.Actor.AbstractStateful
 import zio.actors.sharding.utils.Layers.ActorSystemZ
 import zio.actors.{ ActorRef, Supervisor }
 
 object ActorFinder {
 
-  def ref[State, Message[+_], Event](
+  def ref[State, Message[+_]](
     entityId: String,
     stateEmpty: => State,
-    handler: String => EventSourcedStateful[Any, State, Message, Event]
+    handler: String => AbstractStateful[Any, State, Message]
   ): ZIO[ActorSystemZ, Throwable, ActorRef[Message]] =
     ZIO.serviceWithZIO[ActorSystemZ] { actorSystemZ =>
       actorSystemZ.system
