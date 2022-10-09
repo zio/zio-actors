@@ -23,10 +23,17 @@ trait Behavior {
 
 object Behavior {
 
-  case class Message[A, Command[_]](
+  sealed trait Message[A, Command[_]] {
+    def command: Command[A]
+  }
+  case class AskMessage[A, Command[_]](
     command: Command[A],
     replier: Replier[A]
-  )
+  ) extends Message[A, Command]
+
+  case class TellMessage[A, Command[_]](
+    command: Command[A]
+  ) extends Message[A, Command]
 
   def create(b: Behavior)(
     entityId: String,
@@ -35,9 +42,9 @@ object Behavior {
     ZIO.logInfo(s"Started entity $entityId") *>
       messages.take.flatMap(handleMessage(b)(entityId, _)).forever
 
-  private def handleMessage[A](b: Behavior)(
+  private def handleMessage(b: Behavior)(
     entityId: String,
-    message: Behavior.Message[A, b.Command]
+    message: Behavior.Message[_, b.Command]
   ): RIO[Sharding with ActorSystemZ, Unit] =
     ActorFinder
       .ref[b.State, b.Command, b.Event](
@@ -45,14 +52,20 @@ object Behavior {
         b.stateEmpty,
         b.eventSourcedFactory
       )
-      .flatMap(messageHandler[A](b)(message, _))
+      .flatMap(messageHandler(b)(message, _))
 
-  private def messageHandler[A](b: Behavior)(
-    message: Behavior.Message[A, b.Command],
+  private def messageHandler(b: Behavior)(
+    message: Behavior.Message[_, b.Command],
     actor: ActorRef[b.Command]
   ): ZIO[Sharding, Throwable, Unit] =
-    actor
-      .?(message.command)
-      .flatMap(message.replier.reply)
+    message match {
+      case AskMessage(command, replier) =>
+        actor
+          .?(command)
+          .flatMap(replier.reply)
+      case TellMessage(command)         =>
+        actor
+          .!(command)
+    }
 
 }
