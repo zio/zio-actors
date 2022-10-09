@@ -3,7 +3,7 @@ package zio.actors.sharding
 import com.devsisters.shardcake.Messenger.Replier
 import com.devsisters.shardcake.Sharding
 import zio.actors.Actor.AbstractStateful
-import zio.actors.ActorRef
+import zio.actors.{ ActorRef, Supervisor }
 import zio.actors.sharding.utils.ActorFinder
 import zio.actors.sharding.utils.Layers.ActorSystemZ
 import zio.{ Dequeue, RIO, ZIO }
@@ -38,22 +38,29 @@ object Behavior {
     command: Command[A]
   ) extends Message[A, Command]
 
-  def create(b: Behavior)(requirements: => b.Dependencies)(
+  def create(b: Behavior)(
+    requirements: => b.Dependencies,
+    supervisor: Supervisor[Any] = Supervisor.none
+  )(
     entityId: String,
     messages: Dequeue[Behavior.Message[_, b.Command]]
   ): RIO[Sharding with ActorSystemZ, Nothing] =
     ZIO.logInfo(s"Started entity $entityId") *>
-      messages.take.flatMap(handleMessage(b)(requirements)(entityId, _)).forever
+      messages.take.flatMap(handleMessage(b)(requirements)(entityId, _, supervisor)).forever
 
-  private def handleMessage(b: Behavior)(requirements: => b.Dependencies)(
+  private def handleMessage(b: Behavior)(
+    requirements: => b.Dependencies
+  )(
     entityId: String,
-    message: Behavior.Message[_, b.Command]
+    message: Behavior.Message[_, b.Command],
+    supervisor: Supervisor[Any]
   ): RIO[Sharding with ActorSystemZ, Unit] =
     ActorFinder
       .ref[b.State, b.Command](
         entityId,
         b.stateEmpty,
-        b.actorFactory(requirements)
+        b.actorFactory(requirements),
+        supervisor
       )
       .flatMap(messageHandler(b)(message, _))
 
