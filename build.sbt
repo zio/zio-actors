@@ -41,7 +41,7 @@ val doobieVersion         = "0.13.4"
 lazy val root =
   project
     .in(file("."))
-    .settings(skip in publish := true)
+    .settings(publish / skip := true)
     .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC, examples, zioActorsAkkaInterop)
 
 lazy val zioActors = module("zio-actors", "actors")
@@ -88,7 +88,7 @@ lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persi
 
 lazy val examples = module("zio-actors-examples", "examples")
   .settings(
-    skip in publish := true,
+    publish / skip := true,
     fork := true,
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio-test"     % zioVersion % "test",
@@ -121,18 +121,21 @@ def module(moduleName: String, fileName: String): Project =
 lazy val docs = project
   .in(file("zio-actors-docs"))
   .settings(
-    skip.in(publish) := true,
+    publish / skip := true,
     moduleName := "zio-actors-docs",
     scalacOptions -= "-Yno-imports",
     scalacOptions -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % zioVersion
     ),
-    unidocProjectFilter in (ScalaUnidoc, unidoc) := inProjects(root),
-    target in (ScalaUnidoc, unidoc) := (baseDirectory in LocalRootProject).value / "website" / "static" / "api",
-    cleanFiles += (target in (ScalaUnidoc, unidoc)).value,
-    docusaurusCreateSite := docusaurusCreateSite.dependsOn(unidoc in Compile).value,
-    docusaurusPublishGhpages := docusaurusPublishGhpages.dependsOn(unidoc in Compile).value
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(root),
+    //unidocProjectFilter in (ScalaUnidoc, unidoc) := inProjects(root),
+    ScalaUnidoc / unidoc / target := (LocalRootProject / baseDirectory).value / "website" / "static" / "api",
+    //target in (ScalaUnidoc, unidoc) := ( in LocalRootProject).value / "website" / "static" / "api",
+    cleanFiles += (ScalaUnidoc / unidoc / target).value,
+    //cleanFiles += (target in (ScalaUnidoc, unidoc)).value,
+    docusaurusCreateSite := docusaurusCreateSite.dependsOn(Compile / unidoc).value,
+    docusaurusPublishGhpages := docusaurusPublishGhpages.dependsOn(Compile / unidoc).value
   )
   .dependsOn(zioActors, zioActorsPersistence, zioActorsAkkaInterop)
   .enablePlugins(MdocPlugin, DocusaurusPlugin, ScalaUnidocPlugin)
