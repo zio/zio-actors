@@ -461,6 +461,8 @@ project/plugins/project/
 project/secret
 project/metals.sbt
 
+.vscode/
+
 # mdoc
 website/node_modules
 website/build
