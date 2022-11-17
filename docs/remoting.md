@@ -1,5 +1,5 @@
 ---
-id: overview_remoting
+id: remoting
 title: "Remoting"
 ---
 
@@ -23,4 +23,4 @@ Currently serialization is done via Java Serialization.
 User defined messages are serialized "as is" except for `ActorRefs`, 
 which are serialized into actor's absolute path and deserialized into a remote `ActorRef` pointing to the original one:
 
-![diagram](../assets/remote.svg)
+![diagram](assets/remote.svg)
