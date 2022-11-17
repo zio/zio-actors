@@ -1,0 +1,5 @@
+{
+  "name": "@zio.dev/zio-interop-reactivestreams",
+  "description": "ZIO Interop Reactive Streams Documentation",
+  "license": "Apache-2.0"
+}
