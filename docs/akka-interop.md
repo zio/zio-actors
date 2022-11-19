@@ -1,5 +1,5 @@
 ---
-id: overview_akkainterop
+id: akka-interop
 title: "Akka Interop"
 ---
 
@@ -7,14 +7,8 @@ Akka Interop gives you the ability to send and receive messages between zio acto
 
 To use Akka Interops you need in your `build.sbt`:
 
-```scala mdoc:passthrough
-
-println(s"""```""")
-if (zio.actors.BuildInfo.isSnapshot)
-  println(s"""resolvers += Resolver.sonatypeRepo("snapshots")""")
-println(s"""libraryDependencies += "dev.zio" %% "zio-actors-akka-interop" % "${zio.actors.BuildInfo.version}"""")
-println(s"""```""")
-
+```sbt
+libraryDependencies += "dev.zio" %% "zio-actors-akka-interop" % "@VERSION@"
 ```
 
 Imports required for example:
@@ -23,7 +17,7 @@ Imports required for example:
 import zio.actors.Actor.Stateful
 import zio.actors.{ ActorSystem, ActorRef, Context, Supervisor }
 import zio.actors.akka.{ AkkaTypedActor, AkkaTypedActorRefLocal }
-import zio.{ IO, Runtime }
+import zio.{ ZIO, IO, Runtime }
 
 import akka.actor.typed
 import akka.actor.typed.Behavior
@@ -48,17 +42,18 @@ case class Ping(akkaActor: AkkaTypedActorRefLocal[TypedMessage]) extends ZioMess
 
 For zio actor basics, ([Basics section](basics.md#usage)).
 Here's the `Stateful` implementation for our zio actor:
+
 ```scala mdoc:silent
 val handler = new Stateful[Any, String, ZioMessage] {
   override def receive[A](state: String, msg: ZioMessage[A], context: Context): IO[Throwable, (String, A)] =
     msg match {             
-      case PongFromAkka(msg) => IO.succeed((msg, ()))
+      case PongFromAkka(msg) => ZIO.succeed((msg, ()))
       case Ping(akkaActor) =>
               for {
                  self <- context.self[ZioMessage]
                  _    <- akkaActor ! PingFromZio(self)
                } yield (state, ())
-      case _=> IO.fail(new Exception("fail"))
+      case _=> ZIO.fail(new Exception("fail"))
     }
 }
 ```
@@ -71,8 +66,14 @@ object TestBehavior {
     def apply(): Behavior[TypedMessage[_]] =
       Behaviors.receiveMessage { message =>
         message match {                  
-          case PingToZio(zioReplyToActor, msgToZio) => zioRuntime.unsafeRun(zioReplyToActor ! PongFromAkka(msgToZio))
-          case PingFromZio(zioSenderActor)          => zioRuntime.unsafeRun(zioSenderActor ! PongFromAkka("Pong from Akka"))
+          case PingToZio(zioReplyToActor, msgToZio) => 
+            zio.Unsafe.unsafe { implicit unsafe =>
+              zioRuntime.unsafe.run(zioReplyToActor ! PongFromAkka(msgToZio))
+            }
+          case PingFromZio(zioSenderActor)          =>
+            zio.Unsafe.unsafe { implicit unsafe => 
+              zioRuntime.unsafe.run(zioSenderActor ! PongFromAkka("Pong from Akka"))
+            }
         }
         Behaviors.same
       }
@@ -83,7 +84,7 @@ We are ready to start sending messages from zio to akka, or vice versa via `fire
 but first we need to create a ZIO value with the created akka ActorRef(or ActorSystem), using `AkkaTypedActor.make`:
 ```scala mdoc:silent
 for {
-  akkaSystem <- IO(typed.ActorSystem(TestBehavior(), "akkaSystem"))
+  akkaSystem <- ZIO.succeed(typed.ActorSystem(TestBehavior(), "akkaSystem"))
   system     <- ActorSystem("zioSystem")
   akkaActor  <- AkkaTypedActor.make(akkaSystem)
   zioActor   <- system.make("zioActor", Supervisor.none, "", handler)
@@ -111,11 +112,12 @@ object AskTestBehavior {
 
 def PingAskDeferred(value: Int): typed.ActorRef[Int] => PingAsk 
        = (hiddenRef: typed.ActorRef[Int]) => PingAsk(value, hiddenRef)
-
+       
+import scala.concurrent.duration.DurationInt 
 implicit val timeout: Timeout = 3.seconds
          
 for {
-  akkaAskSystem <- IO(typed.ActorSystem(AskTestBehavior(), "akkaSystem"))
+  akkaAskSystem <- ZIO.succeed(typed.ActorSystem(AskTestBehavior(), "akkaSystem"))
   akkaActor <- AkkaTypedActor.make(akkaAskSystem)
   result    <- (akkaActor ? PingAskDeferred(1000)) (timeout, akkaAskSystem.scheduler)
 } yield result == 2000
