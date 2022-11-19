@@ -1,5 +1,5 @@
 ---
-id: overview_basics
+id: basics
 title: "Basics"
 ---
 
@@ -8,7 +8,7 @@ Within processing actor can spawn finite number of children actors and send fini
 
 This can be visualized as a simple diagram:
 
-![diagram](../assets/actor.svg)
+![diagram](assets/actor.svg)
 
 ## Usage
 
@@ -22,7 +22,7 @@ import java.io.File
 
 import zio.actors.Actor.Stateful
 import zio.actors._
-import zio.UIO
+import zio.{UIO, ZIO}
 ```
 
 Our domain that will be used:
@@ -38,7 +38,7 @@ Our actor's assigment will be to double received values. Here's the `Stateful` i
 val stateful = new Stateful[Any, Unit, Command] {
   override def receive[A](state: Unit, msg: Command[A], context: Context): UIO[(Unit, A)] =
     msg match {
-      case DoubleCommand(value) => UIO(((), value * 2))
+      case DoubleCommand(value) => ZIO.succeed(((), value * 2))
     }
 }
 ```
