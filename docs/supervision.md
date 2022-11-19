@@ -1,5 +1,5 @@
 ---
-id: overview_supervision
+id: supervision
 title: "Supervision"
 ---
 
@@ -13,8 +13,6 @@ First do the imports:
 ```scala mdoc:silent
 import zio.actors._
 import zio.{ Supervisor => _, _ }
-import zio.console._
-import zio.duration._
 import java.util.concurrent.TimeUnit
 ```
 
@@ -33,5 +31,5 @@ Supervisor.retry(Schedule.recurs(10))
 The general method also requires effect that will be executed on `Schedule` end:
 
 ```scala mdoc:silent
-Supervisor.retryOrElse[Any, Long](Schedule.recurs(10), (e, a) => putStrLn("nothing can be done").provideLayer(Console.live))
+Supervisor.retryOrElse[Any, Long](Schedule.recurs(10), (e, a) => Console.printLine("nothing can be done").orDie)
 ```
