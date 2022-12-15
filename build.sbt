@@ -132,7 +132,7 @@ lazy val docs = project
     badgeInfo := Some(
       BadgeInfo(
         artifact = "zio-actors_2.12",
-        projectStage = ProjectStage.ProductionReady
+        projectStage = ProjectStage.Experimental
       )
     ),
     docsPublishBranch := "master"
