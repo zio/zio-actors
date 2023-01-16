@@ -1,12 +1,19 @@
 const sidebars = {
   sidebar: [
-    "index",
-    "basics",
-    "supervision",
-    "remoting",
-    "persistence",
-    "akka-interop",
-    "examples"
+    {
+      type: "category",
+      label: "ZIO Actors",
+      collapsed: false,
+      link: { type: "doc", id: "index" },
+      items: [
+        "basics",
+        "supervision",
+        "remoting",
+        "persistence",
+        "akka-interop",
+        "examples"
+      ]
+    }
   ]
 };
 

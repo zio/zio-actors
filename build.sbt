@@ -41,8 +41,8 @@ val doobieVersion         = "0.13.4"
 lazy val root =
   project
     .in(file("."))
-    .settings(skip in publish := true)
-    .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC, examples, zioActorsAkkaInterop)
+    .settings(publish / skip := true)
+    .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC, examples, zioActorsAkkaInterop, docs)
 
 lazy val zioActors = module("zio-actors", "actors")
   .enablePlugins(BuildInfoPlugin)
@@ -88,7 +88,7 @@ lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persi
 
 lazy val examples = module("zio-actors-examples", "examples")
   .settings(
-    skip in publish := true,
+    publish / skip := true,
     fork := true,
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio-test"     % zioVersion % "test",
@@ -121,13 +121,20 @@ def module(moduleName: String, fileName: String): Project =
 lazy val docs = project
   .in(file("zio-actors-docs"))
   .settings(
-    skip.in(publish) := true,
     moduleName := "zio-actors-docs",
     scalacOptions -= "-Yno-imports",
     scalacOptions -= "-Xfatal-warnings",
-    libraryDependencies ++= Seq(
-      "dev.zio" %% "zio" % zioVersion
-    )
+    libraryDependencies ++= Seq("dev.zio" %% "zio" % zioVersion),
+    projectName := "ZIO Actors",
+    mainModuleName := (zioActors / moduleName).value,
+    projectStage := ProjectStage.ProductionReady,
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(
+      zioActors,
+      zioActorsPersistence,
+      zioActorsPersistenceJDBC,
+      zioActorsAkkaInterop
+    ),
+    docsPublishBranch := "master"
   )
   .dependsOn(zioActors, zioActorsPersistence, zioActorsAkkaInterop)
   .enablePlugins(WebsitePlugin)
