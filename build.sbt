@@ -35,8 +35,11 @@ val zioVersion            = "2.0.2"
 val zioNioVersion         = "2.0.0"
 val zioConfigVersion      = "3.0.2"
 val zioInteropCatsVersion = "22.0.0.0"
+val zioCatsInteropVersion = "3.3.0"
 val akkaActorTypedVersion = "2.6.19"
 val doobieVersion         = "0.13.4"
+val shardcakeVersion      = "2.0.3"
+val testContainersVersion = "0.40.9"
 
 lazy val root =
   project
@@ -108,6 +111,25 @@ lazy val zioActorsAkkaInterop = module("zio-actors-akka-interop", "akka-interop"
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
   .dependsOn(zioActors)
+
+lazy val zioActorsSharding = module("zio-actors-sharding", "sharding")
+  .settings(
+    libraryDependencies ++= Seq(
+      "dev.zio"        %% "zio-test"                     % zioVersion            % "test",
+      "dev.zio"        %% "zio-test-sbt"                 % zioVersion            % "test",
+      "com.dimafeng"   %% "testcontainers-scala-core"    % testContainersVersion % "test",
+      "dev.zio"        %% "zio-interop-cats"             % zioCatsInteropVersion,
+      "com.devsisters" %% "shardcake-core"               % shardcakeVersion,
+      "com.devsisters" %% "shardcake-entities"           % shardcakeVersion,
+      "com.devsisters" %% "shardcake-manager"            % shardcakeVersion,
+      "com.devsisters" %% "shardcake-health-k8s"         % shardcakeVersion,
+      "com.devsisters" %% "shardcake-protocol-grpc"      % shardcakeVersion,
+      "com.devsisters" %% "shardcake-serialization-kryo" % shardcakeVersion,
+      "com.devsisters" %% "shardcake-storage-redis"      % shardcakeVersion
+    ),
+    testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+  )
+  .dependsOn(zioActors, zioActorsPersistence)
 
 def module(moduleName: String, fileName: String): Project =
   Project(moduleName, file(fileName))
