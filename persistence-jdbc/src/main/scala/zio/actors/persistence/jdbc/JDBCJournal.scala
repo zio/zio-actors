@@ -2,14 +2,14 @@ package zio.actors.persistence.jdbc
 
 import cats.effect.Blocker
 import com.zaxxer.hikari.HikariDataSource
-import doobie._
+import doobie.*
 import doobie.hikari.HikariTransactor
-import doobie.implicits._
+import doobie.implicits.*
 import zio.actors.ActorSystemUtils
 import zio.actors.persistence.PersistenceId.PersistenceId
 import zio.actors.persistence.jdbc.JDBCConfig.DbConfig
 import zio.actors.persistence.journal.{ Journal, JournalFactory }
-import zio.interop.catz._
+import zio.interop.catz.*
 import zio.{ Promise, Runtime, Task, Unsafe, ZIO }
 
 private[actors] final class JDBCJournal[Ev](tnx: Transactor[Task]) extends Journal[Ev] {
