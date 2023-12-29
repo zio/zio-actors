@@ -6,7 +6,7 @@ import zio.{ Supervisor as _, * }
 object Actor {
 
   private[actors] type PendingMessage[F[_], A] = (F[A], Promise[Throwable, A])
-  private[actors] final case class PendingMessageWrapper[F[_], A](value: (F[A], Promise[Throwable, A]))
+  private[actors] final case class PendingMessageWrapper[F[_], A](value: PendingMessage[F, A])
 
   /**
    * Description of actor behavior (can act as FSM)
@@ -85,28 +85,28 @@ object Actor {
 
 }
 
-private[actors] final class Actor[-F[+_]](
-  queue: Queue[PendingMessageWrapper[F, _]]
+private[actors] final class Actor[-Req[+_]](
+  queue: Queue[PendingMessageWrapper[Req, _]]
 )(optOutActorSystem: () => Task[Unit]) {
-  def ?[Res](fa: F[Res]): Task[Res] =
+  def ?[Res](fa: Req[Res]): Task[Res] =
     for {
       promise <- Promise.make[Throwable, Res]
       _       <- queue.offer(PendingMessageWrapper((fa, promise)))
       value   <- promise.await
     } yield value
 
-  def ![A](fa: F[A]): Task[Unit] =
+  def !(fa: Req[Any]): Task[Unit] =
     for {
-      promise <- Promise.make[Throwable, A]
+      promise <- Promise.make[Throwable, Any]
       _       <- queue.offer(PendingMessageWrapper((fa, promise)))
     } yield ()
 
   def unsafeOp(command: Command): Task[Any] =
     command match {
       case Command.Ask(msg)  =>
-        this ? msg.asInstanceOf[F[Any]]
+        this ? msg.asInstanceOf[Req[Any]]
       case Command.Tell(msg) =>
-        this ! msg.asInstanceOf[F[Any]]
+        this ! msg.asInstanceOf[Req[Any]]
       case Command.Stop      =>
         this.stop
     }

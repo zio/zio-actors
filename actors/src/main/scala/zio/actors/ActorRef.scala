@@ -35,7 +35,7 @@ sealed trait ActorRef[-F[+_]] extends Serializable {
    * @return
    *   lifted unit
    */
-  def ![A](fa: F[A]): Task[Unit]
+  def !(fa: F[Any]): Task[Unit]
 
   /**
    * Get referential absolute actor path
@@ -95,7 +95,7 @@ private[actors] final class ActorRefLocal[-F[+_]](
 ) extends ActorRefSerial[F](actorName) {
   override def ?[A](fa: F[A]): Task[A] = actor ? fa
 
-  override def ![A](fa: F[A]): Task[Unit] = actor ! fa
+  override def !(fa: F[Any]): Task[Unit] = actor ! fa
 
   override val stop: Task[Chunk[?]] = actor.stop
 
@@ -120,7 +120,7 @@ private[actors] final class ActorRefRemote[-F[+_]](
 
   override def ?[A](fa: F[A]): Task[A] = sendEnvelope(Command.Ask(fa))
 
-  override def ![A](fa: F[A]): Task[Unit] = sendEnvelope[Unit](Command.Tell(fa))
+  override def !(fa: F[Any]): Task[Unit] = sendEnvelope[Unit](Command.Tell(fa))
 
   override val stop: Task[Chunk[?]] = sendEnvelope(Command.Stop)
 
