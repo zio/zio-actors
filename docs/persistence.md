@@ -3,11 +3,11 @@ id: persistence
 title: "Persistence"
 ---
 
-Persistence gives you ability to store events that occur in your system with defined datastore.
+Persistence gives you ability to store events that occur in your system with defined datastore. 
 
 To use Persistence you need in your `build.sbt`:
 
-````scala mdoc:passthrough
+```scala mdoc:passthrough
 
 println(s"""```""")
 if (zio.actors.BuildInfo.isSnapshot)
@@ -15,9 +15,9 @@ if (zio.actors.BuildInfo.isSnapshot)
 println(s"""libraryDependencies += "dev.zio" %% "zio-actors-persistence" % "${zio.actors.BuildInfo.version}"""")
 println(s"""```""")
 
-````
+```
 
-For current version the only datastore available is `postgresql` and in-memory datastore for testing purposes.
+For current version the only datastore available is `postgresql` and in-memory datastore for testing purposes. 
 For `postgresql` you need a configuration in (by default) `resources/application.conf`:
 
 ```hocon
@@ -49,12 +49,12 @@ create table if not exists journal_zio
 ```
 
 After successful setup you can create persisted actors by implementing `EventSourcedStateful`.
-First method is `receive` which is similar to `receive` from basic actors: Here you can perform an
+First method is `receive` which is similar to `receive` from basic actors: Here you can perform an 
 effectful computations with possible failures and side effects. Here you must also decide whether
-processed message should result in an event that will be persisted or no state update.
-
+processed message should result in an event that will be persisted or no state update. 
+ 
 The second method is `sourceEvent` which must be a pure function that performs state updates.
-This method is used when restoring an actor after startup.
+This method is used when restoring an actor after startup. 
 
 The imports we need for simple example:
 
@@ -68,7 +68,7 @@ import zio.{ZIO, UIO}
 Case objects for messages that our actor can process and persisted events:
 
 ```scala mdoc:silent
-sealed trait Message[+A]
+sealed trait Message[+_]
 case object Reset    extends Message[Unit]
 case object Increase extends Message[Unit]
 case object Get      extends Message[Int]

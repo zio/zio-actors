@@ -7,7 +7,7 @@ So now how to use it? Here you can find some examples to dive into:
 
 - **[Ping Pong](#ping-pong-example)** — Example of `fire-and-forget` ping-pong with remote actor lookup
 - Also there are project samples in `examples` root directory of the repo.
-  They are meant to be a counterpart of [akka-samples](https://github.com/akka/akka-samples) for `zio-actors`.
+They are meant to be a counterpart of [akka-samples](https://github.com/akka/akka-samples) for `zio-actors`.
 
 ## Ping Pong Example
 
@@ -34,7 +34,7 @@ import zio.actors._
 import zio.RIO
 import zio._
 
-sealed trait PingPong[+A]
+sealed trait PingPong[+_]
 case class Ping(sender: ActorRef[PingPong])        extends PingPong[Unit]
 case object Pong                                   extends PingPong[Unit]
 case class GameInit(recipient: ActorRef[PingPong]) extends PingPong[Unit]
