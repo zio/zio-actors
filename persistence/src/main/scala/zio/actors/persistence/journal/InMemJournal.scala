@@ -5,7 +5,7 @@ import zio.actors.persistence.PersistenceId.PersistenceId
 import zio.actors.persistence.PersistenceConfig
 import InMemJournal.JournalRow
 
-private[actors] final class InMemJournal[Ev](journalRef: Ref[List[JournalRow[Ev]]]) extends Journal[Ev] {
+private[actors] final class InMemJournal[Ev] private (journalRef: Ref[List[JournalRow[Ev]]]) extends Journal[Ev] {
 
   override def persistEvent(persistenceId: PersistenceId, event: Ev): Task[Unit] =
     journalRef.update { journal =>
@@ -27,10 +27,10 @@ object InMemJournal extends JournalFactory {
   private case class JournalRow[Ev](persistenceId: PersistenceId, seqNum: Int, event: Ev)
 
   private lazy val runtime = Runtime.default
-  lazy val journalMap = {
+  lazy val journalMap      = {
     val journalEff =
       for {
-        j <- Ref.make(Map.empty[String, InMemJournal[_]])
+        j <- Ref.make(Map.empty[String, InMemJournal[?]])
         _ <- j.set(Map.empty)
       } yield j
 

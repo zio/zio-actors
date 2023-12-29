@@ -1,18 +1,17 @@
 package zio.actors.persistence
 
-import zio.actors.Actor._
-import zio.actors.persistence.PersistenceId._
+import zio.actors.Actor.*
+import zio.actors.persistence.PersistenceId.*
 import zio.actors.persistence.journal.{ Journal, JournalFactory }
 import zio.actors.{ Actor, Context, Supervisor }
 import zio.{ Queue, RIO, Ref, Task, ZIO }
 
-import scala.reflect.runtime.universe
-
 /**
- * Each message can result in either an event that will be persisted or idempotent action.
- * Changing the actor's state can only occur via `Persist` event.
+ * Each message can result in either an event that will be persisted or idempotent action. Changing the actor's state
+ * can only occur via `Persist` event.
  *
- * @tparam Ev events that will be persisted
+ * @tparam Ev
+ *   events that will be persisted
  */
 sealed trait Command[+Ev]
 object Command {
@@ -31,10 +30,14 @@ object PersistenceId {
 /**
  * Description of event sources actor's behavior
  *
- * @param persistenceId unique id used in a datastore for identifying the entity
- * @tparam S state type
- * @tparam F type of messages that actor receives
- * @tparam Ev events that will be persisted
+ * @param persistenceId
+ *   unique id used in a datastore for identifying the entity
+ * @tparam S
+ *   state type
+ * @tparam F
+ *   type of messages that actor receives
+ * @tparam Ev
+ *   events that will be persisted
  */
 abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: PersistenceId) extends AbstractStateful[R, S, F] {
 
@@ -51,8 +54,6 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
     mailboxSize: Int = DefaultActorMailboxSize
   )(initial: S): RIO[R, Actor[F]] = {
 
-    val mirror = universe.runtimeMirror(getClass.getClassLoader)
-
     def retrieveJournal: Task[Journal[Ev]] =
       for {
         configStr    <- ZIO
@@ -62,7 +63,7 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
         pluginClass  <- PersistenceConfig.getPluginClass(systemName, configStr)
         maybeFactory <-
           ZIO
-            .attempt(mirror.reflectModule(mirror.staticModule(pluginClass.value)).instance)
+            .attempt(Class.forName(pluginClass.value + "$").getField("MODULE$").get(null))
             .mapError(e => new IllegalArgumentException(s"Could not load plugin class $pluginClass from $configStr", e))
         factory      <-
           ZIO
@@ -86,19 +87,19 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
         effectfulCompleter  = (s: S, a: A) => state.set(s) *> promise.succeed(a)
         idempotentCompleter = (a: A) => promise.succeed(a)
         fullCompleter       = (
-                                  (
-                                    ev: Command[Ev],
-                                    sa: S => A
-                                  ) =>
-                                    ev match {
-                                      case Command.Ignore      => idempotentCompleter(sa(s))
-                                      case Command.Persist(ev) =>
-                                        for {
-                                          _           <- journal.persistEvent(persistenceId, ev)
-                                          updatedState = sourceEvent(s, ev)
-                                          res         <- effectfulCompleter(updatedState, sa(updatedState))
-                                        } yield res
-                                    }
+                                (
+                                  ev: Command[Ev],
+                                  sa: S => A
+                                ) =>
+                                  ev match {
+                                    case Command.Ignore      => idempotentCompleter(sa(s))
+                                    case Command.Persist(ev) =>
+                                      for {
+                                        _           <- journal.persistEvent(persistenceId, ev)
+                                        updatedState = sourceEvent(s, ev)
+                                        res         <- effectfulCompleter(updatedState, sa(updatedState))
+                                      } yield res
+                                  }
                               ).tupled
         _                  <- receiver.foldZIO(
                                 e =>
@@ -114,11 +115,11 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
       events      <- journal.getEvents(persistenceId)
       sourcedState = applyEvents(events, initial)
       state       <- Ref.make(sourcedState)
-      queue       <- Queue.bounded[PendingMessage[F, _]](mailboxSize)
+      queue       <- Queue.bounded[PendingMessageWrapper[F, ?]](mailboxSize)
       _           <- (for {
-                         t <- queue.take
-                         _ <- process(t, state, journal)
-                       } yield ()).forever.fork
+                       t <- queue.take
+                       _ <- process(t.value, state, journal)
+                     } yield ()).forever.fork
     } yield new Actor[F](queue)(optOutActorSystem)
   }
 

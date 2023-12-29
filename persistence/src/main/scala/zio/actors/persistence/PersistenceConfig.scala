@@ -1,8 +1,8 @@
 package zio.actors.persistence
 
-import zio.actors.ActorsConfig._
+import zio.actors.ActorsConfig.*
 import zio.config.ConfigDescriptor
-import zio.config.ConfigDescriptor._
+import zio.config.ConfigDescriptor.*
 import zio.{ Promise, Runtime, Task, Unsafe, ZIO }
 
 private[actors] object PersistenceConfig {
@@ -19,19 +19,19 @@ private[actors] object PersistenceConfig {
 
   val pluginConfig: ConfigDescriptor[JournalPluginRaw] =
     nested("persistence") {
-      string("plugin").transform(JournalPluginRaw, _.value)
+      string("plugin").transform(JournalPluginRaw.apply, _.value)
     }
 
   def classPathConfig(pluginClass: String): ConfigDescriptor[JournalPluginClass] =
     nested("persistence") {
       nested("datastores") {
-        string(pluginClass).transform(JournalPluginClass, _.value)
+        string(pluginClass).transform(JournalPluginClass.apply, _.value)
       }
     }
 
   val inMemConfig: ConfigDescriptor[InMemConfig] =
     nested("persistence") {
-      string("key").transform(InMemConfig, _.key)
+      string("key").transform(InMemConfig.apply, _.key)
     }
 
   def getPluginClass(systemName: String, configStr: String): Task[JournalPluginClass] =
