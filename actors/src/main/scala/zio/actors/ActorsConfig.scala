@@ -1,7 +1,7 @@
 package zio.actors
 
 import zio.config.ConfigDescriptor
-import zio.config.ConfigDescriptor._
+import zio.config.ConfigDescriptor.*
 import zio.config.typesafe.TypesafeConfig
 import zio.{ Tag, Task, ZIO }
 
@@ -13,8 +13,8 @@ private[actors] object ActorsConfig {
 
   val remoteConfig: ConfigDescriptor[Option[RemoteConfig]] =
     nested("remoting") {
-      (string("hostname").transform[Addr](Addr, _.value) zip
-        int("port").transform[Port](Port, _.value)).to[RemoteConfig]
+      (string("hostname").transform[Addr](Addr.apply, _.value) zip
+        int("port").transform[Port](Port.apply, _.value)).to[RemoteConfig]
     }.optional
 
   private def selectiveSystemConfig[T](systemName: String, configT: ConfigDescriptor[T]) =

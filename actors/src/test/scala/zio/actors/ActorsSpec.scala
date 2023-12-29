@@ -4,8 +4,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import zio.actors.Actor.Stateful
 import zio.stream.{ Stream, ZStream }
 import zio.{ Chunk, IO, Ref, Schedule, Task, UIO, ZIO }
-import zio.test._
-import zio.test.Assertion._
+import zio.test.*
+import zio.test.Assertion.*
 
 object CounterUtils {
   sealed trait Message[+A]
@@ -29,7 +29,7 @@ object ActorsSpec extends ZIOSpecDefault {
   def spec =
     suite("Test the basic actor behavior")(
       test("Sequential message processing") {
-        import CounterUtils._
+        import CounterUtils.*
 
         val handler: Stateful[Any, Int, Message] = new Stateful[Any, Int, Message] {
           override def receive[A](
@@ -59,7 +59,7 @@ object ActorsSpec extends ZIOSpecDefault {
         } yield assertTrue(c1 == 2, c2 == 0, vals == Chunk.apply(0 until 20: _*), c4 == 20)
       },
       test("Error recovery by retrying") {
-        import TickUtils._
+        import TickUtils.*
 
         val maxRetries = 10
 
@@ -93,7 +93,7 @@ object ActorsSpec extends ZIOSpecDefault {
         } yield assertTrue(count == maxRetries)
       },
       test("Error recovery by fallback action") {
-        import TickUtils._
+        import TickUtils.*
 
         val handler = new Stateful[Any, Unit, Message] {
           override def receive[A](
@@ -123,7 +123,7 @@ object ActorsSpec extends ZIOSpecDefault {
         assertZIO(program.exit)(fails(anything)) && assertZIO(ZIO.succeed(called.get))(isTrue)
       },
       test("Stopping actors") {
-        import StopUtils._
+        import StopUtils.*
 
         val handler = new Stateful[Any, Unit, Msg] {
           override def receive[A](
@@ -137,17 +137,17 @@ object ActorsSpec extends ZIOSpecDefault {
         }
         for {
           system <- ActorSystem("test1")
-          actor <- system.make("actor1", Supervisor.none, (), handler)
-          _     <- actor ! Letter
-          _     <- actor ? Letter
-          dump  <- actor.stop
+          actor  <- system.make("actor1", Supervisor.none, (), handler)
+          _      <- actor ! Letter
+          _      <- actor ? Letter
+          dump   <- actor.stop
         } yield assert(dump)(
-          isSubtype[Chunk[_]](anything) &&
-            hasField[Chunk[_], Int]("size", _.size, equalTo(0))
+          isSubtype[Chunk[?]](anything) &&
+            hasField[Chunk[?], Int]("size", _.size, equalTo(0))
         )
       },
       test("Select local actor") {
-        import TickUtils._
+        import TickUtils.*
 
         val handler = new Stateful[Any, Unit, Message] {
           override def receive[A](
@@ -160,7 +160,7 @@ object ActorsSpec extends ZIOSpecDefault {
             }
         }
         for {
-          system <- ActorSystem("test5")
+          system    <- ActorSystem("test5")
           _         <- system.make("actor1-1", Supervisor.none, (), handler)
           actor     <- system.select[Message]("zio://test5@0.0.0.0:0000/actor1-1")
           _         <- actor ! Tick
@@ -168,7 +168,7 @@ object ActorsSpec extends ZIOSpecDefault {
         } yield assertTrue(actorPath == "zio://test5@0.0.0.0:0000/actor1-1")
       },
       test("Local actor does not exist") {
-        import TickUtils._
+        import TickUtils.*
 
         val handler = new Stateful[Any, Unit, Message] {
           override def receive[A](

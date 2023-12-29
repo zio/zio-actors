@@ -1,13 +1,13 @@
 package zio.actors
 
 import zio.actors.Actor.{ AbstractStateful, Stateful }
-import zio.actors.ActorSystemUtils._
-import zio.actors.ActorsConfig._
+import zio.actors.ActorSystemUtils.*
+import zio.actors.ActorsConfig.*
 import zio.nio.channels.{ AsynchronousServerSocketChannel, AsynchronousSocketChannel }
 import zio.nio.{ Buffer, InetAddress, InetSocketAddress }
 import zio.{ Chunk, Promise, RIO, Ref, Task, ZIO }
 
-import java.io._
+import java.io.*
 import java.nio.ByteBuffer
 import scala.io.Source
 
@@ -19,11 +19,13 @@ object ActorSystem {
   /**
    * Constructor for Actor System
    *
-   * @param sysName    - Identifier for Actor System
-   * @param configFile - Optional configuration for a remoting internal module.
-   *                     If not provided the actor system will only handle local actors in terms of actor selection.
-   *                     When provided - remote messaging and remote actor selection is possible
-   * @return instantiated actor system
+   * @param sysName
+   *   \- Identifier for Actor System
+   * @param configFile
+   *   \- Optional configuration for a remoting internal module. If not provided the actor system will only handle local
+   *   actors in terms of actor selection. When provided - remote messaging and remote actor selection is possible
+   * @return
+   *   instantiated actor system
    */
   def apply(sysName: String, configFile: Option[File] = None): Task[ActorSystem] =
     for {
@@ -43,26 +45,34 @@ object ActorSystem {
 final class Context private[actors] (
   private val path: String,
   private val actorSystem: ActorSystem,
-  private val childrenRef: Ref[Set[ActorRef[Any]]]
+  private val childrenRef: Ref[Set[ActorRef[_]]]
 ) {
 
   /**
    * Accessor for self actor reference
    *
-   * @return actor reference in a task
+   * @return
+   *   actor reference in a task
    */
   def self[F[+_]]: Task[ActorRef[F]] = actorSystem.select(path)
 
   /**
    * Creates actor and registers it to dependent actor system
    *
-   * @param actorName name of the actor
-   * @param sup       - supervision strategy
-   * @param init      - initial state
-   * @param stateful  - actor's behavior description
-   * @tparam S  - state type
-   * @tparam F1 - DSL type
-   * @return reference to the created actor in effect that can't fail
+   * @param actorName
+   *   name of the actor
+   * @param sup
+   *   \- supervision strategy
+   * @param init
+   *   \- initial state
+   * @param stateful
+   *   \- actor's behavior description
+   * @tparam S
+   *   \- state type
+   * @tparam F1
+   *   \- DSL type
+   * @return
+   *   reference to the created actor in effect that can't fail
    */
   def make[R, S, F1[+_]](
     actorName: String,
@@ -73,18 +83,21 @@ final class Context private[actors] (
     for {
       actorRef <- actorSystem.make(actorName, sup, init, stateful)
       children <- childrenRef.get
-      _        <- childrenRef.set(children + actorRef.asInstanceOf[ActorRef[Any]])
+      _        <- childrenRef.set(children + actorRef.asInstanceOf[ActorRef[_]])
     } yield actorRef
 
   /**
-   * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module.
-   * If remote configuration was not provided for ActorSystem (so the remoting is disabled) the search will
-   * fail with ActorNotFoundException.
-   * Otherwise it will always create remote actor stub internally and return ActorRef as if it was found.   *
+   * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module. If
+   * remote configuration was not provided for ActorSystem (so the remoting is disabled) the search will fail with
+   * ActorNotFoundException. Otherwise it will always create remote actor stub internally and return ActorRef as if it
+   * was found. *
    *
-   * @param path - absolute path to the actor
-   * @tparam F1 - actor's DSL type
-   * @return task if actor reference. Selection process might fail with "Actor not found error"
+   * @param path
+   *   \- absolute path to the actor
+   * @tparam F1
+   *   \- actor's DSL type
+   * @return
+   *   task if actor reference. Selection process might fail with "Actor not found error"
    */
   def select[F1[+_]](path: String): Task[ActorRef[F1]] =
     actorSystem.select(path)
@@ -98,8 +111,8 @@ final class Context private[actors] (
 }
 
 /**
- * Type representing running instance of actor system provisioning actor herding,
- * remoting and actor creation and selection.
+ * Type representing running instance of actor system provisioning actor herding, remoting and actor creation and
+ * selection.
  */
 final class ActorSystem private[actors] (
   private[actors] val actorSystemName: String,
@@ -112,13 +125,20 @@ final class ActorSystem private[actors] (
   /**
    * Creates actor and registers it to dependent actor system
    *
-   * @param actorName name of the actor
-   * @param sup       - supervision strategy
-   * @param init      - initial state
-   * @param stateful  - actor's behavior description
-   * @tparam S - state type
-   * @tparam F - DSL type
-   * @return reference to the created actor in effect that can't fail
+   * @param actorName
+   *   name of the actor
+   * @param sup
+   *   \- supervision strategy
+   * @param init
+   *   \- initial state
+   * @param stateful
+   *   \- actor's behavior description
+   * @tparam S
+   *   \- state type
+   * @tparam F
+   *   \- DSL type
+   * @return
+   *   reference to the created actor in effect that can't fail
    */
   def make[R, S, F[+_]](
     actorName: String,
@@ -132,7 +152,7 @@ final class ActorSystem private[actors] (
       _            <- ZIO.fail(new Exception(s"Actor $finalName already exists")).when(map.contains(finalName))
       path          = buildPath(actorSystemName, finalName, remoteConfig)
       derivedSystem = new ActorSystem(actorSystemName, config, remoteConfig, refActorMap, Some(finalName))
-      childrenSet  <- Ref.make(Set.empty[ActorRef[Any]])
+      childrenSet  <- Ref.make(Set.empty[ActorRef[_]])
       actor        <- stateful.makeActor(
                         sup,
                         new Context(path, derivedSystem, childrenSet),
@@ -142,14 +162,17 @@ final class ActorSystem private[actors] (
     } yield new ActorRefLocal[F](path, actor)
 
   /**
-   * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module.
-   * If remote configuration was not provided for ActorSystem (so the remoting is disabled) the search will
-   * fail with ActorNotFoundException.
-   * Otherwise it will always create remote actor stub internally and return ActorRef as if it was found.   *
+   * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module. If
+   * remote configuration was not provided for ActorSystem (so the remoting is disabled) the search will fail with
+   * ActorNotFoundException. Otherwise it will always create remote actor stub internally and return ActorRef as if it
+   * was found. *
    *
-   * @param path - absolute path to the actor
-   * @tparam F - actor's DSL type
-   * @return task if actor reference. Selection process might fail with "Actor not found error"
+   * @param path
+   *   \- absolute path to the actor
+   * @tparam F
+   *   \- actor's DSL type
+   * @return
+   *   task if actor reference. Selection process might fail with "Actor not found error"
    */
   def select[F[+_]](path: String): Task[ActorRef[F]] =
     for {
@@ -171,26 +194,27 @@ final class ActorSystem private[actors] (
                     } yield actorRef
                   else
                     for {
-                      address  <- InetAddress
-                                    .byName(addr.value)
-                                    .flatMap(iAddr => InetSocketAddress.inetAddress(iAddr, port.value))
+                      address <- InetAddress
+                                   .byName(addr.value)
+                                   .flatMap(iAddr => InetSocketAddress.inetAddress(iAddr, port.value))
                     } yield new ActorRefRemote[F](path, address)
     } yield actorRef
 
   /**
    * Stops all actors within this ActorSystem.
    *
-   * @return all actors' unprocessed messages
+   * @return
+   *   all actors' unprocessed messages
    */
-  def shutdown: Task[List[_]] =
+  def shutdown: Task[List[?]] =
     for {
       systemActors <- refActorMap.get
-      actorsDump   <- ZIO.foreach(systemActors.values.toList)(_.asInstanceOf[Actor[Any]].stop)
+      actorsDump   <- ZIO.foreach(systemActors.values.toList)(_.asInstanceOf[Actor[_]].stop)
     } yield actorsDump.flatten
 
   /* INTERNAL API */
 
-  private[actors] def dropFromActorMap(path: String, childrenRef: Ref[Set[ActorRef[Any]]]): Task[Unit] =
+  private[actors] def dropFromActorMap(path: String, childrenRef: Ref[Set[ActorRef[_]]]): Task[Unit] =
     for {
       solvedPath          <- resolvePath(path)
       (_, _, _, actorName) = solvedPath
@@ -225,7 +249,7 @@ final class ActorSystem private[actors] (
                                                          for {
                                                            actor    <-
                                                              ZIO
-                                                               .attempt(value.asInstanceOf[Actor[Any]])
+                                                               .attempt(value.asInstanceOf[Actor[_]])
                                                                .mapError(throwable =>
                                                                  new Exception(s"System internal exception - ${throwable.getMessage}")
                                                                )
