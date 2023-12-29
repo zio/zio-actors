@@ -6,7 +6,7 @@
 
 [ZIO Actors](https://zio.dev/zio-actors) is a high-performance, purely functional library for building, composing, and supervising typed actors based on ZIO.
 
-[![Production Ready](https://img.shields.io/badge/Project%20Stage-Production%20Ready-brightgreen.svg)](https://github.com/zio/zio/wiki/Project-Stages) ![CI Badge](https://github.com/zio/zio-actors/workflows/CI/badge.svg) [![Sonatype Releases](https://img.shields.io/nexus/r/https/oss.sonatype.org/dev.zio/zio-actors_2.13.svg?label=Sonatype%20Release)](https://oss.sonatype.org/content/repositories/releases/dev/zio/zio-actors_2.13/) [![Sonatype Snapshots](https://img.shields.io/nexus/s/https/oss.sonatype.org/dev.zio/zio-actors_2.13.svg?label=Sonatype%20Snapshot)](https://oss.sonatype.org/content/repositories/snapshots/dev/zio/zio-actors_2.13/) [![javadoc](https://javadoc.io/badge2/dev.zio/zio-actors-docs_2.13/javadoc.svg)](https://javadoc.io/doc/dev.zio/zio-actors-docs_2.13) [![ZIO Actors](https://img.shields.io/github/stars/zio/zio-actors?style=social)](https://github.com/zio/zio-actors)
+[![Production Ready](https://img.shields.io/badge/Project%20Stage-Production%20Ready-brightgreen.svg)](https://github.com/zio/zio/wiki/Project-Stages) ![CI Badge](https://github.com/zio/zio-actors/workflows/CI/badge.svg) [![Sonatype Snapshots](https://img.shields.io/nexus/s/https/oss.sonatype.org/dev.zio/zio-actors_3.svg?label=Sonatype%20Snapshot)](https://oss.sonatype.org/content/repositories/snapshots/dev/zio/zio-actors_3/) [![ZIO Actors](https://img.shields.io/github/stars/zio/zio-actors?style=social)](https://github.com/zio/zio-actors)
 
 ## Introduction
 
@@ -46,15 +46,15 @@ Here's list of contents available:
 To use this library, we need to add the following line to our library dependencies in `build.sbt` file:
 
 ```scala
-libraryDependencies += "dev.zio" %% "zio-actors" % "0.1.0"
+libraryDependencies += "dev.zio" %% "zio-actors" % "<version>"
 ```
 
 Akka actors also has some other optional modules for persistence (which is useful for event sourcing) and integration with Akka toolkit:
 
 ```scala
-libraryDependencies += "dev.zio" %% "zio-actors-persistence"      % "0.1.0"
-libraryDependencies += "dev.zio" %% "zio-actors-persistence-jdbc" % "0.1.0"
-libraryDependencies += "dev.zio" %% "zio-actors-akka-interop"     % "0.1.0"
+libraryDependencies += "dev.zio" %% "zio-actors-persistence"      % "<version>"
+libraryDependencies += "dev.zio" %% "zio-actors-persistence-jdbc" % "<version>"
+libraryDependencies += "dev.zio" %% "zio-actors-akka-interop"     % "<version>"
 ```
 
 ## Example
