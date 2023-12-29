@@ -34,7 +34,7 @@ import zio.actors._
 import zio.RIO
 import zio._
 
-sealed trait PingPong[+_]
+sealed trait PingPong[+A]
 case class Ping(sender: ActorRef[PingPong])        extends PingPong[Unit]
 case object Pong                                   extends PingPong[Unit]
 case class GameInit(recipient: ActorRef[PingPong]) extends PingPong[Unit]

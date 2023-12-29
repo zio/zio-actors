@@ -28,7 +28,7 @@ import zio.{UIO, ZIO}
 Our domain that will be used:
 
 ```scala mdoc:silent
-sealed trait Command[+_]
+sealed trait Command[+A]
 case class DoubleCommand(value: Int) extends Command[Int]
 ```
 

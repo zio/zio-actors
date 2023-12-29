@@ -68,7 +68,7 @@ import zio.{ZIO, UIO}
 Case objects for messages that our actor can process and persisted events:
 
 ```scala mdoc:silent
-sealed trait Message[+_]
+sealed trait Message[+A]
 case object Reset    extends Message[Unit]
 case object Increase extends Message[Unit]
 case object Get      extends Message[Int]
