@@ -46,15 +46,15 @@ Here's list of contents available:
 To use this library, we need to add the following line to our library dependencies in `build.sbt` file:
 
 ```scala
-libraryDependencies += "dev.zio" %% "zio-actors" % "@VERSION@"
+libraryDependencies += "dev.zio" %% "zio-actors" % "<version>"
 ```
 
 Akka actors also has some other optional modules for persistence (which is useful for event sourcing) and integration with Akka toolkit:
 
 ```scala
-libraryDependencies += "dev.zio" %% "zio-actors-persistence"      % "@VERSION@"
-libraryDependencies += "dev.zio" %% "zio-actors-persistence-jdbc" % "@VERSION@"
-libraryDependencies += "dev.zio" %% "zio-actors-akka-interop"     % "@VERSION@"
+libraryDependencies += "dev.zio" %% "zio-actors-persistence"      % "<version>"
+libraryDependencies += "dev.zio" %% "zio-actors-persistence-jdbc" % "<version>"
+libraryDependencies += "dev.zio" %% "zio-actors-akka-interop"     % "<version>"
 ```
 
 ## Example

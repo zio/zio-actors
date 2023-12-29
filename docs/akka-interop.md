@@ -35,7 +35,7 @@ sealed trait TypedMessage
 case class PingToZio(zioReplyToActor: ActorRef[ZioMessage], msg: String) extends TypedMessage
 case class PingFromZio(zioSenderActor: ActorRef[ZioMessage]) extends TypedMessage
 
-sealed trait ZioMessage[+_]
+sealed trait ZioMessage[+A]
 case class PongFromAkka(msg: String) extends ZioMessage[Unit]
 case class Ping(akkaActor: AkkaTypedActorRefLocal[TypedMessage]) extends ZioMessage[Unit]
 ```

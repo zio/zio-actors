@@ -4,7 +4,7 @@ title: "Basics"
 ---
 
 Actors are higher level concurrency models which receive messages, process them and update their internal state.
-Within processing actor can spawn finite number of children actors and send finite number of messages to other actors.  
+Within processing actor can spawn finite number of children actors and send finite number of messages to other actors.
 
 This can be visualized as a simple diagram:
 
@@ -28,7 +28,7 @@ import zio.{UIO, ZIO}
 Our domain that will be used:
 
 ```scala mdoc:silent
-sealed trait Command[+_]
+sealed trait Command[+A]
 case class DoubleCommand(value: Int) extends Command[Int]
 ```
 
@@ -57,12 +57,12 @@ This is `fire-and-forget` interaction pattern where caller is blocked until reci
 There's also `ask` interaction pattern where for caller sending a message is completed after receiving response message from recipient.
 It's performed via `?` method.
 
-From recipient's point of view these two interaction patterns are indistinguishable. 
+From recipient's point of view these two interaction patterns are indistinguishable.
 
 ### Configuration
 
-For each `ActorSystem` created there should be a config entry in configuration file. 
-By default configuration file is expected to be at `./src/main/resources/application.conf`. 
+For each `ActorSystem` created there should be a config entry in configuration file.
+By default configuration file is expected to be at `./src/main/resources/application.conf`.
 Exemplary configuration entry for an `ActorSystem` named `Test1`:
 
 ```hocon
