@@ -2,10 +2,10 @@ import BuildHelper._
 
 inThisBuild(
   List(
-    organization := "dev.zio",
-    homepage := Some(url("https://zio.dev/zio-actors/")),
-    licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
-    developers := List(
+    organization  := "dev.zio",
+    homepage      := Some(url("https://zio.dev/zio-actors/")),
+    licenses      := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+    developers    := List(
       Developer(
         "jdegoes",
         "John De Goes",
@@ -22,7 +22,7 @@ inThisBuild(
     pgpPassphrase := sys.env.get("PGP_PASSWORD").map(_.toArray),
     pgpPublicRing := file("/tmp/public.asc"),
     pgpSecretRing := file("/tmp/secret.asc"),
-    scmInfo := Some(
+    scmInfo       := Some(
       ScmInfo(url("https://github.com/zio/zio-actors/"), "scm:git:git@github.com:zio/zio-actors.git")
     )
   )
@@ -31,11 +31,11 @@ inThisBuild(
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
-val zioVersion            = "2.0.2"
-val zioNioVersion         = "2.0.0"
-val zioConfigVersion      = "3.0.2"
+val zioVersion            = "2.0.20"
+val zioNioVersion         = "2.0.1"
+val zioConfigVersion      = "3.0.7"
 val zioInteropCatsVersion = "22.0.0.0"
-val akkaActorTypedVersion = "2.6.19"
+val akkaActorTypedVersion = "2.8.0"
 val doobieVersion         = "0.13.4"
 
 lazy val root =
@@ -49,12 +49,11 @@ lazy val zioActors = module("zio-actors", "actors")
   .settings(buildInfoSettings("zio.actors"))
   .settings(
     libraryDependencies ++= Seq(
-      "dev.zio"       %% "zio"                 % zioVersion,
-      "dev.zio"       %% "zio-test"            % zioVersion % "test",
-      "dev.zio"       %% "zio-test-sbt"        % zioVersion % "test",
-      "dev.zio"       %% "zio-nio"             % zioNioVersion,
-      "dev.zio"       %% "zio-config-typesafe" % zioConfigVersion,
-      "org.scala-lang" % "scala-reflect"       % scalaVersion.value
+      "dev.zio" %% "zio"                 % zioVersion,
+      "dev.zio" %% "zio-test"            % zioVersion % "test",
+      "dev.zio" %% "zio-test-sbt"        % zioVersion % "test",
+      "dev.zio" %% "zio-nio"             % zioNioVersion,
+      "dev.zio" %% "zio-config-typesafe" % zioConfigVersion
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
@@ -89,7 +88,7 @@ lazy val zioActorsPersistenceJDBC = module("zio-actors-persistence-jdbc", "persi
 lazy val examples = module("zio-actors-examples", "examples")
   .settings(
     publish / skip := true,
-    fork := true,
+    fork           := true,
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio-test"     % zioVersion % "test",
       "dev.zio" %% "zio-test-sbt" % zioVersion % "test"
@@ -121,20 +120,20 @@ def module(moduleName: String, fileName: String): Project =
 lazy val docs = project
   .in(file("zio-actors-docs"))
   .settings(
-    moduleName := "zio-actors-docs",
+    moduleName                                 := "zio-actors-docs",
     scalacOptions -= "-Yno-imports",
     scalacOptions -= "-Xfatal-warnings",
     libraryDependencies ++= Seq("dev.zio" %% "zio" % zioVersion),
-    projectName := "ZIO Actors",
-    mainModuleName := (zioActors / moduleName).value,
-    projectStage := ProjectStage.ProductionReady,
+    projectName                                := "ZIO Actors",
+    mainModuleName                             := (zioActors / moduleName).value,
+    projectStage                               := ProjectStage.ProductionReady,
     ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(
       zioActors,
       zioActorsPersistence,
       zioActorsPersistenceJDBC,
       zioActorsAkkaInterop
     ),
-    docsPublishBranch := "master"
+    docsPublishBranch                          := "master"
   )
   .dependsOn(zioActors, zioActorsPersistence, zioActorsAkkaInterop)
   .enablePlugins(WebsitePlugin)

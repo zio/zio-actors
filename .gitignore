@@ -372,6 +372,9 @@ captures/
 .idea/codeStyles/Project.xml
 .idea/hydra.xml
 
+# VsCode
+.vscode/*
+
 # Keystore files
 # Uncomment the following line if you do not want to check your keystore files in.
 #*.jks
@@ -461,6 +464,7 @@ project/plugins/project/
 .idea
 project/secret
 project/metals.sbt
+project/project/*
 
 # mdoc
 website/node_modules
