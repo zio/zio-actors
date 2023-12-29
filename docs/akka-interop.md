@@ -53,7 +53,6 @@ val handler = new Stateful[Any, String, ZioMessage] {
                  self <- context.self[ZioMessage]
                  _    <- akkaActor ! PingFromZio(self)
                } yield (state, ())
-      case _=> ZIO.fail(new Exception("fail"))
     }
 }
 ```
