@@ -5,7 +5,6 @@ import zio.nio.{ InetAddress, InetSocketAddress }
 import zio.{ Chunk, Runtime, Task, UIO, Unsafe, ZIO }
 
 import java.io.{ IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException }
-import scala.annotation.targetName
 
 /**
  * Reference to actor that might reside on local JVM instance or be available via remote communication
@@ -98,18 +97,6 @@ private[actors] final class ActorRefLocal[-F[+_]](
   override def !(fa: F[Any]): Task[Unit] = actor ! fa
 
   override val stop: Task[Chunk[?]] = actor.stop
-
-  @throws[IOException]
-  private def writeObject(out: ObjectOutputStream): Unit =
-    super.writeObject1(out)
-
-  @throws[IOException]
-  private def readObject(in: ObjectInputStream): Unit =
-    super.readObject1(in)
-
-  @throws[ObjectStreamException]
-  private def readResolve(): Object =
-    super.readResolve1()
 }
 
 private[actors] final class ActorRefRemote[-F[+_]](
@@ -137,16 +124,4 @@ private[actors] final class ActorRefRemote[-F[+_]](
         result   <- ZIO.fromEither(response)
       } yield result
     }
-
-  @throws[IOException]
-  private def writeObject(out: ObjectOutputStream): Unit =
-    super.writeObject1(out)
-
-  @throws[IOException]
-  private def readObject(in: ObjectInputStream): Unit =
-    super.readObject1(in)
-
-  @throws[ObjectStreamException]
-  private def readResolve(): Object =
-    super.readResolve1()
 }

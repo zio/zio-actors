@@ -16,7 +16,11 @@ object BuildHelper {
     "-deprecation",
     "-Xfatal-warnings",
     "-language:higherKinds",
-    "-language:existentials"
+    "-language:existentials",
+    "-Wunused:privates",
+    "-Wunused:imports",
+    "-Wunused:params",
+    "-Wvalue-discard"
   )
 
   private val stdOpts3 = Seq(
@@ -30,13 +34,8 @@ object BuildHelper {
     "-Xsource:3",
     "-explaintypes",
     "-Yrangepos",
-    "-Wunused:imports",
-    "-Wvalue-discard",
     "-Wunused:patvars",
-    "-Wunused:privates",
-    "-Wunused:params",
-    "-Xlint:-infer-any",
-    "-Wvalue-discard"
+    "-Xlint:-infer-any"
   )
 
   private val stdOptsUpto212 = Seq(
