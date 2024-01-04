@@ -1,14 +1,15 @@
 package zio.actors.examples.persistence
 
+import zio.actors.Supervisor
 import zio.actors.examples.persistence.Deps.*
 import zio.actors.examples.persistence.ShoppingCart.*
-import zio.actors.{ ActorSystem, Supervisor }
 import zio.test.Assertion.*
-import zio.test.{ assert, assertTrue, ZIOSpecDefault }
-import zio.{ Duration, Schedule, Scope, ZIO, ZLayer }
+import zio.test.{Spec, ZIOSpecDefault, assert, assertTrue}
+import zio.{Duration, Schedule, Scope, ZIO, ZLayer}
 
 import java.io.File
 import java.util.concurrent.TimeUnit
+import zio.actors.ActorSystem
 
 object Deps {
   val actorSystem: ZIO[Scope, Throwable, ActorSystem] =
@@ -23,7 +24,7 @@ object Deps {
 }
 
 object ShoppingCartSpec extends ZIOSpecDefault {
-  def spec =
+  def spec: Spec[Any, Throwable] =
     suite("The Shopping Cart should")(
       test("add item") {
         for {

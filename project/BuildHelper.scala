@@ -83,7 +83,7 @@ object BuildHelper {
     Seq(
       name                     := s"$prjName",
       crossScalaVersions       := Seq(Scala212, Scala213, Scala3),
-      ThisBuild / scalaVersion := Scala3,
+      ThisBuild / scalaVersion := Scala213,
       scalacOptions            := stdOptions ++ extraOptions(scalaVersion.value),
       incOptions ~= (_.withLogRecompileOnMacro(false))
     )

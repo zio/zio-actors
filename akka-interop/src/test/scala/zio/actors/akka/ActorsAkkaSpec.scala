@@ -76,7 +76,7 @@ object AskUtils {
 }
 
 object ActorsAkkaSpec extends ZIOSpecDefault {
-  def spec =
+  def spec: Spec[Any, Throwable] =
     suite("Test the basic integration with akka typed actor behavior")(
       test("Send message from zioActor to akkaActor") {
         import AkkaBehaviorsUtils.*

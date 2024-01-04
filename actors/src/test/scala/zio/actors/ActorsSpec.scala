@@ -26,7 +26,7 @@ object StopUtils {
 }
 
 object ActorsSpec extends ZIOSpecDefault {
-  def spec =
+  def spec: Spec[Any, Throwable] =
     suite("Test the basic actor behavior")(
       test("Sequential message processing") {
         import CounterUtils.*

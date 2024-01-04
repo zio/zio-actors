@@ -1,13 +1,13 @@
 package zio.actors
 
-import java.io.File
-import java.net.ConnectException
-
-import zio.{ durationInt, Clock, Console, IO, ZIO }
 import zio.actors.Actor.Stateful
+import zio.actors.SpecUtils.*
 import zio.test.*
 import zio.test.Assertion.*
-import SpecUtils.*
+import zio.{Clock, Console, IO, ZIO, durationInt}
+
+import java.io.{File, NotSerializableException}
+import java.net.ConnectException
 
 object SpecUtils {
   sealed trait Message[+A]
@@ -80,7 +80,7 @@ object SpecUtils {
 }
 
 object RemoteSpec extends ZIOSpecDefault {
-  def spec =
+  def spec: Spec[Any, Throwable] =
     suite("RemoteSpec")(
       suite("Remote communication suite")(
         test("Remote test send message") {
@@ -161,8 +161,10 @@ object RemoteSpec extends ZIOSpecDefault {
             _              <- actorRef ? GameInit(actorRef)
           } yield ()
 
-          assertZIO(program.exit)(
-            fails(isSubtype[Throwable](anything)) &&
+          val exit = program.exit.tap(_.debug)
+
+          assertZIO(exit)(
+            fails(isSubtype[NotSerializableException](anything)) &&
               fails(hasField[Throwable, String]("message", _.getMessage, equalTo("No such remote actor")))
           )
         },
