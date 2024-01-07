@@ -108,23 +108,18 @@ final class ActorSystem private[actors] (
 
       actorMap <- refActorMap.get
 
-      actorRef <- if (pathActSysName == actorSystemName)
-                    for {
-                      actorRef <- actorMap.get(actorName) match {
-                                    case Some(value) =>
-                                      for {
-                                        actor <- ZIO.succeed(value.asInstanceOf[Actor[F]])
-                                      } yield new ActorRefLocal(path, actor)
-                                    case None        =>
-                                      ZIO.fail(new Exception(s"No such actor $actorName in local ActorSystem."))
-                                  }
-                    } yield actorRef
-                  else
-                    for {
-                      address <- InetAddress
-                                   .byName(addr.value)
-                                   .flatMap(iAddr => InetSocketAddress.inetAddress(iAddr, port.value))
-                    } yield new ActorRefRemote[F](path, address)
+      actorRef <-
+        if (pathActSysName == actorSystemName)
+          ZIO
+            .succeed(actorMap.get(actorName))
+            .someOrFail[Actor[Any], Exception](new Exception(s"No such actor $actorName in local ActorSystem."))
+            .map(actor => new ActorRefLocal(path, actor))
+        else
+          for {
+            address <- InetAddress
+                         .byName(addr.value)
+                         .flatMap(iAddr => InetSocketAddress.inetAddress(iAddr, port.value))
+          } yield new ActorRefRemote[F](path, address)
     } yield actorRef
 
   /**
