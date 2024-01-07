@@ -42,7 +42,7 @@ lazy val root =
   project
     .in(file("."))
     .settings(publish / skip := true)
-    .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC, examples, zioActorsAkkaInterop) // , docs)
+    .aggregate(zioActors, zioActorsPersistence, zioActorsPersistenceJDBC, examples, zioActorsAkkaInterop, docs)
 
 lazy val zioActors = module("zio-actors", "actors")
   .enablePlugins(BuildInfoPlugin)
