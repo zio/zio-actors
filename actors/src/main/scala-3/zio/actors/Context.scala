@@ -47,7 +47,7 @@ final class Context private[actors] (
     for {
       actorRef <- actorSystem.make(actorName, sup, init, stateful)
       children <- childrenRef.get
-      _        <- childrenRef.set(children + actorRef.asInstanceOf[ActorRef[?]])
+      _        <- childrenRef.set(children + actorRef)
     } yield actorRef
 
   /**

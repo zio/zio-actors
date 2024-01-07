@@ -27,7 +27,7 @@ object ActorSystem {
    */
   def apply(sysName: String, configFile: Option[File] = None): Task[ActorSystem] =
     for {
-      initActorRefMap <- Ref.make(Map.empty[String, Any])
+      initActorRefMap <- Ref.make(Map.empty[String, Actor[Any]])
       config          <- retrieveConfig(configFile)
       remoteConfig    <- retrieveRemoteConfig(sysName, config)
       actorSystem     <- ZIO.attempt(new ActorSystem(sysName, config, remoteConfig, initActorRefMap, parentActor = None))
@@ -45,7 +45,7 @@ final class ActorSystem private[actors] (
   private[actors] val actorSystemName: String,
   private[actors] val config: Option[String],
   private val remoteConfig: Option[RemoteConfig],
-  private val refActorMap: Ref[Map[String, Any]],
+  private val refActorMap: Ref[Map[String, Actor[Any]]],
   private val parentActor: Option[String]
 ) {
 
@@ -85,7 +85,7 @@ final class ActorSystem private[actors] (
                         new Context(path, derivedSystem, childrenSet),
                         () => dropFromActorMap(path, childrenSet)
                       )(init)
-      _            <- refActorMap.set(map + (finalName -> actor))
+      _            <- refActorMap.set(map + (finalName -> actor.asInstanceOf[Actor[Any]]))
     } yield new ActorRefLocal[F](path, actor)
 
   /**
@@ -136,7 +136,7 @@ final class ActorSystem private[actors] (
   def shutdown: Task[List[?]] =
     for {
       systemActors <- refActorMap.get
-      actorsDump   <- ZIO.foreach(systemActors.values.toList)(_.asInstanceOf[Actor[Any]].stop)
+      actorsDump   <- ZIO.foreach(systemActors.values.toList)(_.stop)
     } yield actorsDump.flatten
 
   /* INTERNAL API */
@@ -172,14 +172,8 @@ final class ActorSystem private[actors] (
                                   actorMap        <- refActorMap.get
                                   remoteActorPath <- resolvePath(envelope.recipient).map(_._4)
                                   _               <- actorMap.get(remoteActorPath) match {
-                                                       case Some(value) =>
+                                                       case Some(actor) =>
                                                          for {
-                                                           actor    <-
-                                                             ZIO
-                                                               .attempt(value.asInstanceOf[Actor[Any]])
-                                                               .mapError(throwable =>
-                                                                 new Exception(s"System internal exception - ${throwable.getMessage}")
-                                                               )
                                                            response <- actor.unsafeOp(envelope.command).either
                                                            _        <- response match {
                                                                          case Right(
