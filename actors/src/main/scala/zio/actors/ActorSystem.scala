@@ -1,15 +1,13 @@
 package zio.actors
 
-import zio.actors.Actor.{ AbstractStateful, Stateful }
+import zio.actors.Actor.AbstractStateful
 import zio.actors.ActorSystemUtils.*
 import zio.actors.ActorsConfig.*
-import zio.nio.channels.{ AsynchronousServerSocketChannel, AsynchronousSocketChannel }
-import zio.nio.{ Buffer, InetAddress, InetSocketAddress }
-import zio.{ Chunk, Promise, RIO, Ref, Task, ZIO }
+import zio.nio.channels.AsynchronousServerSocketChannel
+import zio.nio.{InetAddress, InetSocketAddress}
+import zio.{Promise, RIO, Ref, Task, ZIO}
 
 import java.io.*
-import java.nio.ByteBuffer
-import scala.io.Source
 
 /**
  * Object providing constructor for Actor System with optional remoting module.
@@ -37,77 +35,6 @@ object ActorSystem {
                            .succeed(remoteConfig)
                            .flatMap(_.fold[Task[Unit]](ZIO.unit)(c => actorSystem.receiveLoop(c.addr, c.port)))
     } yield actorSystem
-}
-
-/**
- * Context for actor used inside Stateful which provides self actor reference and actor creation/selection API
- */
-final class Context private[actors] (
-  private val path: String,
-  private val actorSystem: ActorSystem,
-  private val childrenRef: Ref[Set[ActorRef[Any]]]
-) {
-
-  /**
-   * Accessor for self actor reference
-   *
-   * @return
-   *   actor reference in a task
-   */
-  def self[F[+_]]: Task[ActorRef[F]] = actorSystem.select(path)
-
-  /**
-   * Creates actor and registers it to dependent actor system
-   *
-   * @param actorName
-   *   name of the actor
-   * @param sup
-   *   \- supervision strategy
-   * @param init
-   *   \- initial state
-   * @param stateful
-   *   \- actor's behavior description
-   * @tparam S
-   *   \- state type
-   * @tparam F1
-   *   \- DSL type
-   * @return
-   *   reference to the created actor in effect that can't fail
-   */
-  def make[R, S, F1[+_]](
-    actorName: String,
-    sup: Supervisor[R],
-    init: S,
-    stateful: Stateful[R, S, F1]
-  ): ZIO[R, Throwable, ActorRef[F1]] =
-    for {
-      actorRef <- actorSystem.make(actorName, sup, init, stateful)
-      children <- childrenRef.get
-      _        <- childrenRef.set(children + actorRef.asInstanceOf[ActorRef[Any]])
-    } yield actorRef
-
-  /**
-   * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module. If
-   * remote configuration was not provided for ActorSystem (so the remoting is disabled) the search will fail with
-   * ActorNotFoundException. Otherwise it will always create remote actor stub internally and return ActorRef as if it
-   * was found. *
-   *
-   * @param path
-   *   \- absolute path to the actor
-   * @tparam F1
-   *   \- actor's DSL type
-   * @return
-   *   task if actor reference. Selection process might fail with "Actor not found error"
-   */
-  def select[F1[+_]](path: String): Task[ActorRef[F1]] =
-    actorSystem.select(path)
-
-  /* INTERNAL API */
-
-  private[actors] def actorSystemName = actorSystem.actorSystemName
-
-  private[actors] def actorSystemConfig = actorSystem.config
-
 }
 
 /**
@@ -280,93 +207,4 @@ final class ActorSystem private[actors] (
         _         <- p.await
       } yield ()
     }
-}
-
-/* INTERNAL API */
-
-private[actors] object ActorSystemUtils {
-
-  private val RegexName = "[\\w+|\\d+|(\\-_.*$+:@&=,!~';.)|\\/]+".r
-
-  private val RegexFullPath =
-    "^(?:zio:\\/\\/)(\\w+)[@](\\d+\\.\\d+\\.\\d+\\.\\d+)[:](\\d+)[/]([\\w+|\\d+|\\-_.*$+:@&=,!~';.|\\/]+)$".r
-
-  def resolvePath(path: String): Task[(String, Addr, Port, String)] =
-    RegexFullPath.findFirstMatchIn(path) match {
-      case Some(value) if value.groupCount == 4 =>
-        val actorSystemName = value.group(1)
-        val address         = Addr(value.group(2))
-        val port            = Port(value.group(3).toInt)
-        val actorName       = "/" + value.group(4)
-        ZIO.succeed((actorSystemName, address, port, actorName))
-      case _                                    =>
-        ZIO.fail(
-          new Exception(
-            "Invalid path provided. The pattern is zio://YOUR_ACTOR_SYSTEM_NAME@ADDRES:PORT/RELATIVE_ACTOR_PATH"
-          )
-        )
-    }
-
-  private[actors] def buildFinalName(parentActorName: String, actorName: String): Task[String] =
-    actorName match {
-      case ""            => ZIO.fail(new Exception("Actor actor must not be empty"))
-      case null          => ZIO.fail(new Exception("Actor actor must not be null"))
-      case RegexName(_*) => ZIO.succeed(parentActorName + "/" + actorName)
-      case _             => ZIO.fail(new Exception(s"Invalid actor name provided $actorName. Valid symbols are -_.*$$+:@&=,!~';"))
-    }
-
-  def buildPath(actorSystemName: String, actorPath: String, remoteConfig: Option[RemoteConfig]): String =
-    s"zio://$actorSystemName@${remoteConfig.map(c => c.addr.value + ":" + c.port.value).getOrElse("0.0.0.0:0000")}$actorPath"
-
-  def retrieveConfig(configFile: Option[File]): Task[Option[String]] =
-    configFile.fold[Task[Option[String]]](ZIO.none) { file =>
-      ZIO.scoped {
-        ZIO
-          .acquireRelease(ZIO.attempt(Source.fromFile(file)))(f => ZIO.succeed(f.close()))
-          .flatMap(s => ZIO.some(s.mkString))
-      }
-    }
-
-  def retrieveRemoteConfig(sysName: String, configStr: Option[String]): Task[Option[RemoteConfig]] =
-    configStr.fold[Task[Option[RemoteConfig]]](ZIO.none)(file => ActorsConfig.getRemoteConfig(sysName, file))
-
-  def objFromByteArray(bytes: Array[Byte]): Task[Any] =
-    ZIO.scoped {
-      ZIO
-        .acquireRelease(ZIO.attempt(new ObjectInputStream(new ByteArrayInputStream(bytes))))(s =>
-          ZIO.succeed(s.close())
-        )
-        .flatMap { s =>
-          ZIO.attempt(s.readObject())
-        }
-    }
-
-  def readFromWire(socket: AsynchronousSocketChannel): Task[Any] =
-    for {
-      size      <- socket.readChunk(4)
-      buffer    <- Buffer.byte(size)
-      intBuffer <- buffer.asIntBuffer
-      toRead    <- intBuffer.get(0)
-      content   <- socket.readChunk(toRead)
-      bytes      = content.toArray
-      obj       <- objFromByteArray(bytes)
-    } yield obj
-
-  def objToByteArray(obj: Any): Task[Array[Byte]] =
-    for {
-      stream <- ZIO.succeed(new ByteArrayOutputStream())
-      bytes  <- ZIO.scoped {
-                  ZIO.acquireRelease(ZIO.attempt(new ObjectOutputStream(stream)))(s => ZIO.succeed(s.close())).flatMap {
-                    s =>
-                      ZIO.attempt(s.writeObject(obj)) *> ZIO.succeed(stream.toByteArray)
-                  }
-                }
-    } yield bytes
-
-  def writeToWire(socket: AsynchronousSocketChannel, obj: Any): Task[Unit] =
-    for {
-      bytes <- objToByteArray(obj)
-      _     <- socket.writeChunk(Chunk.fromArray(ByteBuffer.allocate(4).putInt(bytes.length).array()))
-      _     <- socket.writeChunk(Chunk.fromArray(bytes))
-    } yield ()
 }
