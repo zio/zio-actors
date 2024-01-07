@@ -1,10 +1,11 @@
 package zio.actors
 
 import zio.nio.channels.AsynchronousSocketChannel
-import zio.nio.{ InetAddress, InetSocketAddress }
-import zio.{ Chunk, Runtime, Task, UIO, Unsafe, ZIO }
+import zio.nio.{InetAddress, InetSocketAddress}
+import zio.{Chunk, Runtime, Task, UIO, Unsafe, ZIO}
 
-import java.io.{ IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException }
+import java.io.{IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException}
+import scala.annotation.unused
 
 /**
  * Reference to actor that might reside on local JVM instance or be available via remote communication
@@ -98,14 +99,17 @@ private[actors] final class ActorRefLocal[-F[+_]](
 
   override val stop: Task[Chunk[?]] = actor.stop
 
+  @unused("overrides method from Serializable")
   @throws[IOException]
   private def writeObject(out: ObjectOutputStream): Unit =
     super.writeObject1(out)
 
+  @unused("overrides method from Serializable")
   @throws[IOException]
   private def readObject(in: ObjectInputStream): Unit =
     super.readObject1(in)
 
+  @unused("overrides method from Serializable")
   @throws[ObjectStreamException]
   private def readResolve(): Object =
     super.readResolve1()
@@ -137,14 +141,17 @@ private[actors] final class ActorRefRemote[-F[+_]](
       } yield result
     }
 
+  @unused("overrides method from Serializable")
   @throws[IOException]
   private def writeObject(out: ObjectOutputStream): Unit =
     super.writeObject1(out)
 
+  @unused("overrides method from Serializable")
   @throws[IOException]
   private def readObject(in: ObjectInputStream): Unit =
     super.readObject1(in)
 
+  @unused("overrides method from Serializable")
   @throws[ObjectStreamException]
   private def readResolve(): Object =
     super.readResolve1()
