@@ -6,7 +6,7 @@
 
 [ZIO Actors](https://zio.dev/zio-actors) is a high-performance, purely functional library for building, composing, and supervising typed actors based on ZIO.
 
-[![Production Ready](https://img.shields.io/badge/Project%20Stage-Production%20Ready-brightgreen.svg)](https://github.com/zio/zio/wiki/Project-Stages) ![CI Badge](https://github.com/zio/zio-actors/workflows/CI/badge.svg) [![Sonatype Snapshots](https://img.shields.io/nexus/s/https/oss.sonatype.org/dev.zio/zio-actors_3.svg?label=Sonatype%20Snapshot)](https://oss.sonatype.org/content/repositories/snapshots/dev/zio/zio-actors_3/) [![ZIO Actors](https://img.shields.io/github/stars/zio/zio-actors?style=social)](https://github.com/zio/zio-actors)
+[![Production Ready](https://img.shields.io/badge/Project%20Stage-Production%20Ready-brightgreen.svg)](https://github.com/zio/zio/wiki/Project-Stages) ![CI Badge](https://github.com/zio/zio-actors/workflows/CI/badge.svg) [![Sonatype Snapshots](https://img.shields.io/nexus/s/https/oss.sonatype.org/dev.zio/zio-actors_2.13.svg?label=Sonatype%20Snapshot)](https://oss.sonatype.org/content/repositories/snapshots/dev/zio/zio-actors_2.13/) [![ZIO Actors](https://img.shields.io/github/stars/zio/zio-actors?style=social)](https://github.com/zio/zio-actors)
 
 ## Introduction
 
