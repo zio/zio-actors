@@ -1,7 +1,7 @@
 package zio.actors
 
-import zio.{Ref, Task, ZIO}
 import zio.actors.Actor.Stateful
+import zio.{Ref, Task, ZIO}
 
 /**
  * Context for actor used inside Stateful which provides self actor reference and actor creation/selection API
