@@ -4,8 +4,8 @@ import zio.actors.Supervisor
 import zio.actors.examples.persistence.Deps.*
 import zio.actors.examples.persistence.ShoppingCart.*
 import zio.test.Assertion.*
-import zio.test.{Spec, ZIOSpecDefault, assert, assertTrue}
-import zio.{Duration, Schedule, Scope, ZIO, ZLayer}
+import zio.test.{ assert, assertTrue, Spec, ZIOSpecDefault }
+import zio.{ Duration, Schedule, Scope, ZIO, ZLayer }
 
 import java.io.File
 import java.util.concurrent.TimeUnit

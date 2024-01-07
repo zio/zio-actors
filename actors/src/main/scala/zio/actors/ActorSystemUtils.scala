@@ -1,11 +1,11 @@
 package zio.actors
 
-import zio.{Chunk, Task, ZIO}
-import zio.actors.ActorsConfig.{Addr, Port, RemoteConfig}
+import zio.{ Chunk, Task, ZIO }
+import zio.actors.ActorsConfig.{ Addr, Port, RemoteConfig }
 import zio.nio.Buffer
 import zio.nio.channels.AsynchronousSocketChannel
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream}
+import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream }
 import java.nio.ByteBuffer
 import scala.io.Source
 
@@ -83,11 +83,11 @@ private[actors] object ActorSystemUtils {
     for {
       stream <- ZIO.succeed(new ByteArrayOutputStream())
       bytes  <- ZIO.scoped {
-        ZIO.acquireRelease(ZIO.attempt(new ObjectOutputStream(stream)))(s => ZIO.succeed(s.close())).flatMap {
-          s =>
-            ZIO.attempt(s.writeObject(obj)) *> ZIO.succeed(stream.toByteArray)
-        }
-      }
+                  ZIO.acquireRelease(ZIO.attempt(new ObjectOutputStream(stream)))(s => ZIO.succeed(s.close())).flatMap {
+                    s =>
+                      ZIO.attempt(s.writeObject(obj)) *> ZIO.succeed(stream.toByteArray)
+                  }
+                }
     } yield bytes
 
   def writeToWire(socket: AsynchronousSocketChannel, obj: Any): Task[Unit] =

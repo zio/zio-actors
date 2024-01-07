@@ -1,10 +1,10 @@
 package zio.actors
 
 import zio.nio.channels.AsynchronousSocketChannel
-import zio.nio.{InetAddress, InetSocketAddress}
-import zio.{Chunk, Runtime, Task, UIO, Unsafe, ZIO}
+import zio.nio.{ InetAddress, InetSocketAddress }
+import zio.{ Chunk, Runtime, Task, UIO, Unsafe, ZIO }
 
-import java.io.{IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException}
+import java.io.{ IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException }
 import scala.annotation.unused
 
 /**

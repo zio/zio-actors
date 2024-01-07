@@ -4,7 +4,7 @@ import zio.actors.Actor.Stateful
 import zio.actors.SpecUtils.*
 import zio.test.*
 import zio.test.Assertion.*
-import zio.{Clock, Console, IO, ZIO, durationInt}
+import zio.{ durationInt, Clock, Console, IO, ZIO }
 
 import java.io.File
 import java.net.ConnectException
