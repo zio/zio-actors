@@ -1,16 +1,16 @@
 package zio.actors
 
 import zio.actors.Actor.Stateful
-import zio.{Ref, Task, ZIO}
+import zio.{ Ref, Task, ZIO }
 
 /**
  * Context for actor used inside Stateful which provides self actor reference and actor creation/selection API
  */
 final class Context private[actors] (
-                                      private val path: String,
-                                      private val actorSystem: ActorSystem,
-                                      private val childrenRef: Ref[Set[ActorRef[?]]]
-                                    ) {
+  private val path: String,
+  private val actorSystem: ActorSystem,
+  private val childrenRef: Ref[Set[ActorRef[?]]]
+) {
 
   /**
    * Accessor for self actor reference
@@ -39,11 +39,11 @@ final class Context private[actors] (
    *   reference to the created actor in effect that can't fail
    */
   def make[R, S, F1[+_]](
-                          actorName: String,
-                          sup: Supervisor[R],
-                          init: S,
-                          stateful: Stateful[R, S, F1]
-                        ): ZIO[R, Throwable, ActorRef[F1]] =
+    actorName: String,
+    sup: Supervisor[R],
+    init: S,
+    stateful: Stateful[R, S, F1]
+  ): ZIO[R, Throwable, ActorRef[F1]] =
     for {
       actorRef <- actorSystem.make(actorName, sup, init, stateful)
       children <- childrenRef.get
@@ -73,4 +73,3 @@ final class Context private[actors] (
   private[actors] def actorSystemConfig = actorSystem.config
 
 }
-
