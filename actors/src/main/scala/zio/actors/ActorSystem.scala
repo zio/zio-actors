@@ -45,7 +45,7 @@ object ActorSystem {
 final class Context private[actors] (
   private val path: String,
   private val actorSystem: ActorSystem,
-  private val childrenRef: Ref[Set[ActorRef[_]]]
+  private val childrenRef: Ref[Set[ActorRef[Any]]]
 ) {
 
   /**
@@ -83,7 +83,7 @@ final class Context private[actors] (
     for {
       actorRef <- actorSystem.make(actorName, sup, init, stateful)
       children <- childrenRef.get
-      _        <- childrenRef.set(children + actorRef.asInstanceOf[ActorRef[_]])
+      _        <- childrenRef.set(children + actorRef.asInstanceOf[ActorRef[Any]])
     } yield actorRef
 
   /**
@@ -152,7 +152,7 @@ final class ActorSystem private[actors] (
       _            <- ZIO.fail(new Exception(s"Actor $finalName already exists")).when(map.contains(finalName))
       path          = buildPath(actorSystemName, finalName, remoteConfig)
       derivedSystem = new ActorSystem(actorSystemName, config, remoteConfig, refActorMap, Some(finalName))
-      childrenSet  <- Ref.make(Set.empty[ActorRef[_]])
+      childrenSet  <- Ref.make(Set.empty[ActorRef[Any]])
       actor        <- stateful.makeActor(
                         sup,
                         new Context(path, derivedSystem, childrenSet),
@@ -209,12 +209,12 @@ final class ActorSystem private[actors] (
   def shutdown: Task[List[?]] =
     for {
       systemActors <- refActorMap.get
-      actorsDump   <- ZIO.foreach(systemActors.values.toList)(_.asInstanceOf[Actor[_]].stop)
+      actorsDump   <- ZIO.foreach(systemActors.values.toList)(_.asInstanceOf[Actor[Any]].stop)
     } yield actorsDump.flatten
 
   /* INTERNAL API */
 
-  private[actors] def dropFromActorMap(path: String, childrenRef: Ref[Set[ActorRef[_]]]): Task[Unit] =
+  private[actors] def dropFromActorMap(path: String, childrenRef: Ref[Set[ActorRef[Any]]]): Task[Unit] =
     for {
       solvedPath          <- resolvePath(path)
       (_, _, _, actorName) = solvedPath
@@ -249,7 +249,7 @@ final class ActorSystem private[actors] (
                                                          for {
                                                            actor    <-
                                                              ZIO
-                                                               .attempt(value.asInstanceOf[Actor[_]])
+                                                               .attempt(value.asInstanceOf[Actor[Any]])
                                                                .mapError(throwable =>
                                                                  new Exception(s"System internal exception - ${throwable.getMessage}")
                                                                )

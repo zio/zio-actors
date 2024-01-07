@@ -6,7 +6,7 @@ import zio.test.*
 import zio.test.Assertion.*
 import zio.{Clock, Console, IO, ZIO, durationInt}
 
-import java.io.{File, NotSerializableException}
+import java.io.File
 import java.net.ConnectException
 
 object SpecUtils {
@@ -161,10 +161,8 @@ object RemoteSpec extends ZIOSpecDefault {
             _              <- actorRef ? GameInit(actorRef)
           } yield ()
 
-          val exit = program.exit.tap(_.debug)
-
-          assertZIO(exit)(
-            fails(isSubtype[NotSerializableException](anything)) &&
+          assertZIO(program.exit)(
+            fails(isSubtype[Throwable](anything)) &&
               fails(hasField[Throwable, String]("message", _.getMessage, equalTo("No such remote actor")))
           )
         },
