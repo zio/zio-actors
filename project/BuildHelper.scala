@@ -16,7 +16,9 @@ object BuildHelper {
     "-deprecation",
     "-Xfatal-warnings",
     "-language:higherKinds",
-    "-language:existentials",
+    "-language:existentials"
+  )
+  private val stdOpts213And3 = Seq(
     "-Wunused:privates",
     "-Wunused:imports",
     "-Wunused:params",
@@ -57,8 +59,8 @@ object BuildHelper {
 
   private def extraOptions(scalaVersion: String) =
     CrossVersion.partialVersion(scalaVersion) match {
-      case Some((3, _))  => stdOpts3
-      case Some((2, 13)) => stdOpts213
+      case Some((3, _))  => stdOpts3 ++ stdOpts213And3
+      case Some((2, 13)) => stdOpts213 ++ stdOpts213And3
       case Some((2, 12)) =>
         Seq(
           "-opt-warnings",
