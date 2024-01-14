@@ -1,9 +1,11 @@
 package zio.actors
 
+import zio.actors.Actor.AbstractStateful
 import zio.actors.ActorSystemUtils._
+import zio.actors.ActorsConfig.RemoteConfig
 import zio.nio.channels.AsynchronousServerSocketChannel
 import zio.nio.{ InetAddress, InetSocketAddress }
-import zio.{ Promise, Ref, Task, ZIO }
+import zio.{ Promise, RIO, Ref, Task, UIO, ZIO }
 
 /**
  * Base class for the ActorSystem which represents a running instance of the actor system provisioning actor herding,
@@ -11,17 +13,84 @@ import zio.{ Promise, Ref, Task, ZIO }
  */
 private[actors] abstract class BaseActorSystem private[actors] (
   private[actors] val actorSystemName: String,
-  private[actors] val config: Option[String]
+  private[actors] val config: Option[String],
+  private val remoteConfig: Option[RemoteConfig],
+  private val parentActor: Option[String]
 ) {
 
   /**
    * Getter for the mutable reference containing all actors within this ActorSystem
+   *
    * @tparam F
    *   \- actor's DSL type
    * @return
    *   mutable reference containing all actors within this ActorSystem
    */
   private[actors] def refActorMap[F[+_]]: Ref[Map[String, Actor[F]]]
+
+  /**
+   * Returns a new actor system
+   */
+  private[actors] def newActorSystem[F[+_]](
+    actorSystemName: String,
+    config: Option[String],
+    remoteConfig: Option[RemoteConfig],
+    refActorMap: Ref[Map[String, Actor[F]]],
+    parentActor: Option[String]
+  ): ActorSystem
+
+  /**
+   * Returns an effect which contains a new mutable reference containing all child references
+   */
+  private[actors] def newChildrenRefSet[F[+_]]: UIO[Ref[Set[ActorRef[F]]]]
+
+  /**
+   * Returns a new Context
+   */
+  private[actors] def newContext[F[+_]](
+    path: String,
+    derivedSystem: ActorSystem,
+    childrenSet: Ref[Set[ActorRef[F]]]
+  ): Context
+
+  /**
+   * Creates actor and registers it to dependent actor system
+   *
+   * @param actorName
+   *   name of the actor
+   * @param sup
+   *   \- supervision strategy
+   * @param init
+   *   \- initial state
+   * @param stateful
+   *   \- actor's behavior description
+   * @tparam S
+   *   \- state type
+   * @tparam F
+   *   \- DSL type
+   * @return
+   *   reference to the created actor in effect that can't fail
+   */
+  def make[R, S, F[+_]](
+    actorName: String,
+    sup: Supervisor[R],
+    init: S,
+    stateful: AbstractStateful[R, S, F]
+  ): RIO[R, ActorRef[F]] =
+    for {
+      map          <- refActorMap.get
+      finalName    <- buildFinalName(parentActor.getOrElse(""), actorName)
+      _            <- ZIO.fail(new Exception(s"Actor $finalName already exists")).when(map.contains(finalName))
+      path          = buildPath(actorSystemName, finalName, remoteConfig)
+      derivedSystem = newActorSystem(actorSystemName, config, remoteConfig, refActorMap, Some(finalName))
+      childrenSet  <- newChildrenRefSet[F]
+      actor        <- stateful.makeActor(
+                        sup,
+                        newContext(path, derivedSystem, childrenSet),
+                        () => dropFromActorMap[F](path, childrenSet)
+                      )(init)
+      _            <- refActorMap.set(map + (finalName -> actor))
+    } yield new ActorRefLocal[F](path, actor)
 
   /**
    * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module. If
