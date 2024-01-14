@@ -15,6 +15,15 @@ private[actors] abstract class BaseActorSystem private[actors] (
 ) {
 
   /**
+   * Getter for the mutable reference containing all actors within this ActorSystem
+   * @tparam F
+   *   \- actor's DSL type
+   * @return
+   *   mutable reference containing all actors within this ActorSystem
+   */
+  private[actors] def refActorMap[F[+_]]: Ref[Map[String, Actor[F]]]
+
+  /**
    * Looks up for actor on local actor system, and in case of its absence - delegates it to remote internal module. If
    * remote configuration was not provided for ActorSystem (so the remoting is disabled) the search will fail with
    * ActorNotFoundException. Otherwise it will always create remote actor stub internally and return ActorRef as if it
@@ -27,8 +36,6 @@ private[actors] abstract class BaseActorSystem private[actors] (
    * @return
    *   task if actor reference. Selection process might fail with "Actor not found error"
    */
-  private[actors] def refActorMap[F[+_]]: Ref[Map[String, Actor[F]]]
-
   def select[F[+_]](path: String): Task[ActorRef[F]] =
     for {
       solvedPath                             <- resolvePath(path)
