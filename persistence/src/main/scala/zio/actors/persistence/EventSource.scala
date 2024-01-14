@@ -115,7 +115,7 @@ abstract class EventSourcedStateful[R, S, -F[+_], Ev](persistenceId: Persistence
       events      <- journal.getEvents(persistenceId)
       sourcedState = applyEvents(events, initial)
       state       <- Ref.make(sourcedState)
-      queue       <- Queue.bounded[PendingMessageWrapper[F, ?]](mailboxSize)
+      queue       <- Queue.bounded[PendingMessageWrapper[F, _]](mailboxSize)
       _           <- (for {
                        t <- queue.take
                        _ <- process(t.value, state, journal)

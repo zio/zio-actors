@@ -61,7 +61,7 @@ private[actors] abstract class BaseActorSystem private[actors] (
    * @return
    *   all actors' unprocessed messages
    */
-  def shutdown: Task[List[?]] =
+  def shutdown: Task[List[_]] =
     for {
       systemActors <- refActorMap.get
       actorsDump   <- ZIO.foreach(systemActors.values.toList)(_.stop)

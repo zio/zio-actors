@@ -30,7 +30,7 @@ object InMemJournal extends JournalFactory {
   lazy val journalMap      = {
     val journalEff =
       for {
-        j <- Ref.make(Map.empty[String, InMemJournal[?]])
+        j <- Ref.make(Map.empty[String, InMemJournal[_]])
         _ <- j.set(Map.empty)
       } yield j
 

@@ -111,7 +111,7 @@ private[actors] final class Actor[-Req[+_]](
         this.stop
     }
 
-  val stop: Task[Chunk[?]] =
+  val stop: Task[Chunk[_]] =
     for {
       tall <- queue.takeAll
       _    <- queue.shutdown

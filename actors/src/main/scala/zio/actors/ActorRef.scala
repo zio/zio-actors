@@ -46,7 +46,7 @@ sealed trait ActorRef[-F[+_]] extends Serializable {
   /**
    * Stops actor and all its children
    */
-  val stop: Task[Chunk[?]]
+  val stop: Task[Chunk[_]]
 
 }
 
@@ -97,7 +97,7 @@ private[actors] final class ActorRefLocal[-F[+_]](
 
   override def !(fa: F[Any]): Task[Unit] = actor ! fa
 
-  override val stop: Task[Chunk[?]] = actor.stop
+  override val stop: Task[Chunk[_]] = actor.stop
 
   @unused
   @throws[IOException]
@@ -125,7 +125,7 @@ private[actors] final class ActorRefRemote[-F[+_]](
 
   override def !(fa: F[Any]): Task[Unit] = sendEnvelope[Unit](Command.Tell(fa))
 
-  override val stop: Task[Chunk[?]] = sendEnvelope(Command.Stop)
+  override val stop: Task[Chunk[_]] = sendEnvelope(Command.Stop)
 
   private def sendEnvelope[A](command: Command): Task[A] =
     ZIO.scoped {
