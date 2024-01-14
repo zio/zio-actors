@@ -1,7 +1,7 @@
 package zio.actors.persistence
 
-import zio.actors.Actor.*
-import zio.actors.persistence.PersistenceId.*
+import zio.actors.Actor._
+import zio.actors.persistence.PersistenceId._
 import zio.actors.persistence.journal.{ Journal, JournalFactory }
 import zio.actors.{ Actor, Context, Supervisor }
 import zio.{ Queue, RIO, Ref, Task, ZIO }

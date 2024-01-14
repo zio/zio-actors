@@ -59,7 +59,7 @@ private[actors] object ActorRefSerial {
 private[actors] sealed abstract class ActorRefSerial[-F[+_]](private var actorPath: String)
     extends ActorRef[F]
     with Serializable {
-  import ActorSystemUtils.*
+  import ActorSystemUtils._
 
   @throws[IOException]
   protected def writeObject1(out: ObjectOutputStream): Unit =
@@ -119,7 +119,7 @@ private[actors] final class ActorRefRemote[-F[+_]](
   private val actorName: String,
   address: InetSocketAddress
 ) extends ActorRefSerial[F](actorName) {
-  import ActorSystemUtils.*
+  import ActorSystemUtils._
 
   override def ?[A](fa: F[A]): Task[A] = sendEnvelope(Command.Ask(fa))
 

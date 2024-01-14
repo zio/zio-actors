@@ -1,7 +1,7 @@
 package zio.actors
 
 import zio.config.ConfigDescriptor
-import zio.config.ConfigDescriptor.*
+import zio.config.ConfigDescriptor._
 import zio.config.typesafe.TypesafeConfig
 import zio.{ Tag, Task, ZIO }
 

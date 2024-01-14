@@ -1,11 +1,11 @@
 package zio.actors
 
 import zio.actors.Actor.AbstractStateful
-import zio.actors.ActorSystemUtils.*
-import zio.actors.ActorsConfig.*
+import zio.actors.ActorSystemUtils._
+import zio.actors.ActorsConfig._
 import zio.{ RIO, Ref, Task, ZIO }
 
-import java.io.*
+import java.io._
 
 /**
  * Object providing constructor for Actor System with optional remoting module.

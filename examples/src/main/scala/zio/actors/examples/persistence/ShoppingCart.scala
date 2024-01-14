@@ -4,7 +4,7 @@ import java.time.Instant
 import zio.{ UIO, ZIO }
 import zio.actors.persistence.PersistenceId.PersistenceId
 import zio.actors.{ persistence, Context }
-import zio.actors.persistence.*
+import zio.actors.persistence._
 
 /**
  * This is a full example of

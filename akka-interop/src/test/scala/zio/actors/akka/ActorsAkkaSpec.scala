@@ -5,10 +5,10 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
 import zio.actors.Actor.Stateful
-import zio.actors.*
-import zio.actors.akka.AkkaBehaviorsUtils.*
-import zio.test.Assertion.*
-import zio.test.*
+import zio.actors._
+import zio.actors.akka.AkkaBehaviorsUtils._
+import zio.test.Assertion._
+import zio.test._
 import zio.{ IO, Runtime, Unsafe, ZIO }
 
 import scala.concurrent.duration.*

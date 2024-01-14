@@ -1,6 +1,6 @@
 package zio.actors
 
-import zio.actors.ActorSystemUtils.*
+import zio.actors.ActorSystemUtils._
 import zio.nio.channels.AsynchronousServerSocketChannel
 import zio.nio.{ InetAddress, InetSocketAddress }
 import zio.{ Promise, Ref, Task, ZIO }

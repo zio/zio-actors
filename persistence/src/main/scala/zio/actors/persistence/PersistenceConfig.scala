@@ -1,8 +1,8 @@
 package zio.actors.persistence
 
-import zio.actors.ActorsConfig.*
+import zio.actors.ActorsConfig._
 import zio.config.ConfigDescriptor
-import zio.config.ConfigDescriptor.*
+import zio.config.ConfigDescriptor._
 import zio.{ Promise, Runtime, Task, Unsafe, ZIO }
 
 private[actors] object PersistenceConfig {

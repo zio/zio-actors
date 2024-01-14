@@ -1,7 +1,7 @@
 package zio.actors.persistence.jdbc
 
 import doobie.{ Query0, Update0 }
-import doobie.implicits.*
+import doobie.implicits._
 
 import zio.actors.persistence.PersistenceId.PersistenceId
 

@@ -4,9 +4,9 @@ import java.io.File
 import zio.actors.{ ActorSystem, Context, Supervisor }
 import zio.{ UIO, ZIO }
 import zio.test.*
-import zio.test.Assertion.*
-import CounterUtils.*
-import SpecUtils.*
+import zio.test.Assertion._
+import CounterUtils._
+import SpecUtils._
 
 object CounterUtils {
   sealed trait Message[+A]

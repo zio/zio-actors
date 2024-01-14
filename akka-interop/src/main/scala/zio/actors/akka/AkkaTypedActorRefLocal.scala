@@ -2,7 +2,7 @@ package zio.actors.akka
 
 import akka.actor.typed
 import akka.actor.typed.Scheduler
-import akka.actor.typed.scaladsl.AskPattern.*
+import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
 import zio.{ Task, UIO, ZIO }
 

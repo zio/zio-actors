@@ -1,9 +1,9 @@
 package zio.actors.examples.persistence
 
 import zio.actors.Supervisor
-import zio.actors.examples.persistence.Deps.*
-import zio.actors.examples.persistence.ShoppingCart.*
-import zio.test.Assertion.*
+import zio.actors.examples.persistence.Deps._
+import zio.actors.examples.persistence.ShoppingCart._
+import zio.test.Assertion._
 import zio.test.{ assert, assertTrue, Spec, ZIOSpecDefault }
 import zio.{ Duration, Schedule, Scope, ZIO, ZLayer }
 
