@@ -79,12 +79,12 @@ final class ActorSystem private[actors] (
       finalName    <- buildFinalName(parentActor.getOrElse(""), actorName)
       _            <- ZIO.fail(new Exception(s"Actor $finalName already exists")).when(map.contains(finalName))
       path          = buildPath(actorSystemName, finalName, remoteConfig)
-      derivedSystem = new ActorSystem(actorSystemName, config, remoteConfig, refActorMap, Some(finalName))
+      derivedSystem = new ActorSystem(actorSystemName, config, remoteConfig, refActorMap.asInstanceOf[Ref[Map[String, Actor[Any]]]], Some(finalName))
       childrenSet  <- Ref.make(Set.empty[ActorRef[Any]])
       actor        <- stateful.makeActor(
                         sup,
                         new Context(path, derivedSystem, childrenSet),
-                        () => dropFromActorMap(path, childrenSet)
+                        () => dropFromActorMap[Any](path, childrenSet)
                       )(init)
       _            <- refActorMap.set(map + (finalName -> actor.asInstanceOf[Actor[Any]]))
     } yield new ActorRefLocal[F](path, actor)
