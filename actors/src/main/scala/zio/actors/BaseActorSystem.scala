@@ -6,10 +6,10 @@ import zio.nio.{ InetAddress, InetSocketAddress }
 import zio.{ Promise, Ref, Task, ZIO }
 
 /**
- * Type representing running instance of actor system provisioning actor herding, remoting and actor creation and
- * selection.
+ * Base class for the ActorSystem which represents a running instance of the actor system provisioning actor herding,
+ * remoting, actor creation and selection.
  */
-abstract class BaseActorSystem private[actors] (
+private[actors] abstract class BaseActorSystem private[actors] (
   private[actors] val actorSystemName: String,
   private[actors] val config: Option[String]
 ) {
