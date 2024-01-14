@@ -43,12 +43,12 @@ final class ActorSystem private[actors] (
   override private[actors] val actorSystemName: String,
   override private[actors] val config: Option[String],
   private val remoteConfig: Option[RemoteConfig],
-  private val initRefActorMap: Ref[Map[String, Actor[Any]]],
+  private val initActorRefMap: Ref[Map[String, Actor[Any]]],
   private val parentActor: Option[String]
 ) extends BaseActorSystem(actorSystemName, config) {
 
   override private[actors] def refActorMap[F[+_]]: Ref[Map[String, Actor[F]]] =
-    initRefActorMap.asInstanceOf[Ref[Map[String, Actor[F]]]]
+    initActorRefMap.asInstanceOf[Ref[Map[String, Actor[F]]]]
 
   /**
    * Creates actor and registers it to dependent actor system

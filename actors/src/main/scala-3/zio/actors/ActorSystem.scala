@@ -43,12 +43,12 @@ final class ActorSystem private[actors] (
   override private[actors] val actorSystemName: String,
   override private[actors] val config: Option[String],
   private val remoteConfig: Option[RemoteConfig],
-  private val initRefActorMap: Ref[Map[String, Actor[?]]],
+  private val initActorRefMap: Ref[Map[String, Actor[?]]],
   private val parentActor: Option[String]
 ) extends BaseActorSystem(actorSystemName, config) {
 
   override private[actors] def refActorMap[F[+_]]: Ref[Map[String, Actor[F]]] =
-    initRefActorMap.asInstanceOf[Ref[Map[String, Actor[F]]]]
+    initActorRefMap.asInstanceOf[Ref[Map[String, Actor[F]]]]
 
   /**
    * Creates actor and registers it to dependent actor system
@@ -75,18 +75,18 @@ final class ActorSystem private[actors] (
     stateful: AbstractStateful[R, S, F]
   ): RIO[R, ActorRef[F]] =
     for {
-      map          <- initRefActorMap.get
+      map          <- refActorMap.get
       finalName    <- buildFinalName(parentActor.getOrElse(""), actorName)
       _            <- ZIO.fail(new Exception(s"Actor $finalName already exists")).when(map.contains(finalName))
       path          = buildPath(actorSystemName, finalName, remoteConfig)
-      derivedSystem = new ActorSystem(actorSystemName, config, remoteConfig, initRefActorMap, Some(finalName))
+      derivedSystem = new ActorSystem(actorSystemName, config, remoteConfig, refActorMap.asInstanceOf[Ref[Map[String, Actor[?]]]], Some(finalName))
       childrenSet  <- Ref.make(Set.empty[ActorRef[?]])
       actor        <- stateful.makeActor(
                         sup,
                         new Context(path, derivedSystem, childrenSet),
                         () => dropFromActorMap(path, childrenSet.asInstanceOf[Ref[Set[ActorRef[F]]]])
                       )(init)
-      _            <- initRefActorMap.set(map + (finalName -> actor))
+      _            <- refActorMap.set(map + (finalName -> actor))
     } yield new ActorRefLocal[F](path, actor)
 
 }
