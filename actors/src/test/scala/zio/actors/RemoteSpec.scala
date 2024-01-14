@@ -1,9 +1,9 @@
 package zio.actors
 
 import zio.actors.Actor.Stateful
-import zio.actors.SpecUtils.*
-import zio.test.*
-import zio.test.Assertion.*
+import zio.actors.SpecUtils._
+import zio.test._
+import zio.test.Assertion._
 import zio.{ durationInt, Clock, Console, IO, ZIO }
 
 import java.io.File

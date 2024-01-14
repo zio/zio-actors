@@ -3,7 +3,7 @@ package zio.actors.persistence
 import java.io.File
 import zio.actors.{ ActorSystem, Context, Supervisor }
 import zio.{ UIO, ZIO }
-import zio.test.*
+import zio.test._
 import zio.test.Assertion._
 import CounterUtils._
 import SpecUtils._

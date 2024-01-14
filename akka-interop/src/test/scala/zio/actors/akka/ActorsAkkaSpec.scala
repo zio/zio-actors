@@ -11,7 +11,7 @@ import zio.test.Assertion._
 import zio.test._
 import zio.{ IO, Runtime, Unsafe, ZIO }
 
-import scala.concurrent.duration.*
+import scala.concurrent.duration._
 
 object AkkaBehaviorsUtils {
 
@@ -79,7 +79,7 @@ object ActorsAkkaSpec extends ZIOSpecDefault {
   def spec: Spec[Any, Throwable] =
     suite("Test the basic integration with akka typed actor behavior")(
       test("Send message from zioActor to akkaActor") {
-        import AkkaBehaviorsUtils.*
+        import AkkaBehaviorsUtils._
 
         val handler = new Stateful[Any, Int, ZioMessage] {
           override def receive[A](
@@ -103,7 +103,7 @@ object ActorsAkkaSpec extends ZIOSpecDefault {
         assertZIO(program.exit)(succeeds(anything))
       },
       test("Send message from akkaActor to zioActor") {
-        import AkkaBehaviorsUtils.*
+        import AkkaBehaviorsUtils._
         val handler = new Stateful[Any, String, ZioMessage] {
           override def receive[A](
             state: String,
@@ -153,7 +153,7 @@ object ActorsAkkaSpec extends ZIOSpecDefault {
       },
       test("send ask message to akkaActor and get response") {
 
-        import AskUtils.*
+        import AskUtils._
 
         val typedActorSystem = typed.ActorSystem(AskTestBehavior(), "typedSystem")
 
@@ -167,7 +167,7 @@ object ActorsAkkaSpec extends ZIOSpecDefault {
       },
       test("send message to zioActor and ask akkaActor for the response") {
 
-        import AskUtils.*
+        import AskUtils._
 
         val typedActorSystem = typed.ActorSystem(AskTestBehavior(), "typedSystem")
 
