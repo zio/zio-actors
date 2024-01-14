@@ -1,7 +1,7 @@
 package zio.actors
 
 import zio.actors.Actor.PendingMessageWrapper
-import zio.{ Supervisor as _, * }
+import zio.{ Chunk, Promise, Queue, RIO, Ref, Task, URIO }
 
 object Actor {
 
