@@ -43,7 +43,6 @@ object BuildHelper {
     "-Ywarn-numeric-widen",
     "-Ywarn-value-discard",
     "-Xlint:_,-type-parameter-shadow",
-    "-Xsource:3",
     "-explaintypes",
     "-Yrangepos",
     "-Xfuture",
