@@ -44,7 +44,7 @@ object SpecUtils {
 }
 
 object PersistenceSpec extends ZIOSpecDefault {
-  def spec =
+  def spec: Spec[Any, Throwable] =
     suite("PersistenceSpec")(
       suite("Basic persistence operation")(
         test("Restarting persisted actor") {

@@ -14,9 +14,9 @@ private[actors] object JDBCConfig {
 
   val dbConfig: ConfigDescriptor[DbConfig] =
     nested("persistence") {
-      (string("url").transform[DbURL](DbURL, _.value) zip
-        string("user").transform[DbUser](DbUser, _.value) zip
-        string("pass").transform[DbPass](DbPass, _.value)).to[DbConfig]
+      (string("url").transform[DbURL](DbURL.apply, _.value) zip
+        string("user").transform[DbUser](DbUser.apply, _.value) zip
+        string("pass").transform[DbPass](DbPass.apply, _.value)).to[DbConfig]
     }
 
   def getDbConfig(systemName: String, configStr: String): Task[DbConfig] =

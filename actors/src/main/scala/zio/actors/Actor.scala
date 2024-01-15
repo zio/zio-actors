@@ -1,29 +1,38 @@
 package zio.actors
 
-import zio.actors.Actor.PendingMessage
-import zio.{ Supervisor => _, _ }
+import zio.actors.Actor.PendingMessageWrapper
+import zio.{ Chunk, Promise, Queue, RIO, Ref, Task, URIO }
 
 object Actor {
 
   private[actors] type PendingMessage[F[_], A] = (F[A], Promise[Throwable, A])
+  private[actors] final case class PendingMessageWrapper[F[_], A](value: PendingMessage[F, A])
 
   /**
    * Description of actor behavior (can act as FSM)
    *
-   * @tparam R environment type
-   * @tparam S state type that is updated every message digested
-   * @tparam F message DSL
+   * @tparam R
+   *   environment type
+   * @tparam S
+   *   state type that is updated every message digested
+   * @tparam F
+   *   message DSL
    */
   trait Stateful[R, S, -F[+_]] extends AbstractStateful[R, S, F] {
 
     /**
      * Override method triggered on message received
      *
-     * @param state available for this method
-     * @param msg - message received
-     * @param context - provisions actor's self (as ActorRef) and actors' creation and selection
-     * @tparam A - domain of return entities
-     * @return effectful result
+     * @param state
+     *   available for this method
+     * @param msg
+     *   \- message received
+     * @param context
+     *   \- provisions actor's self (as ActorRef) and actors' creation and selection
+     * @tparam A
+     *   \- domain of return entities
+     * @return
+     *   effectful result
      */
     def receive[A](state: S, msg: F[A], context: Context): RIO[R, (S, A)]
 
@@ -53,15 +62,14 @@ object Actor {
 
       for {
         state <- Ref.make(initial)
-        queue <- Queue.bounded[PendingMessage[F, _]](mailboxSize)
+        queue <- Queue.bounded[PendingMessageWrapper[F, _]](mailboxSize)
         _     <- (for {
-                     t <- queue.take
-                     _ <- process(t, state)
-                   } yield ()).forever.fork
+                   t <- queue.take
+                   _ <- process(t.value, state)
+                 } yield ()).forever.fork
       } yield new Actor[F](queue)(optOutActorSystem)
     }
   }
-
   private[actors] trait AbstractStateful[R, S, -F[+_]] {
 
     private[actors] def makeActor(
@@ -77,28 +85,28 @@ object Actor {
 
 }
 
-private[actors] final class Actor[-F[+_]](
-  queue: Queue[PendingMessage[F, _]]
+private[actors] final class Actor[-Req[+_]](
+  queue: Queue[PendingMessageWrapper[Req, _]]
 )(optOutActorSystem: () => Task[Unit]) {
-  def ?[A](fa: F[A]): Task[A] =
+  def ?[Res](fa: Req[Res]): Task[Res] =
     for {
-      promise <- Promise.make[Throwable, A]
-      _       <- queue.offer((fa, promise))
+      promise <- Promise.make[Throwable, Res]
+      _       <- queue.offer(PendingMessageWrapper((fa, promise)))
       value   <- promise.await
     } yield value
 
-  def !(fa: F[_]): Task[Unit] =
+  def !(fa: Req[Any]): Task[Unit] =
     for {
       promise <- Promise.make[Throwable, Any]
-      _       <- queue.offer((fa, promise))
+      _       <- queue.offer(PendingMessageWrapper((fa, promise)))
     } yield ()
 
   def unsafeOp(command: Command): Task[Any] =
     command match {
       case Command.Ask(msg)  =>
-        this ? msg.asInstanceOf[F[_]]
+        this ? msg.asInstanceOf[Req[Any]]
       case Command.Tell(msg) =>
-        this ! msg.asInstanceOf[F[_]]
+        this ! msg.asInstanceOf[Req[Any]]
       case Command.Stop      =>
         this.stop
     }

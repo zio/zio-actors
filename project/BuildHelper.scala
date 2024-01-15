@@ -4,38 +4,47 @@ import sbtbuildinfo._
 import BuildInfoKeys._
 
 object BuildHelper {
-  private val Scala212        = "2.12.15"
-  private val Scala213        = "2.13.8"
-  private val SilencerVersion = "1.7.9"
+  private val Scala212 = "2.12.18"
+  val Scala213         = "2.13.12"
+  val Scala3           = "3.3.1"
 
-  private val stdOptions = Seq(
+  private val stdOptions     = Seq(
     "-encoding",
     "UTF-8",
-    "-explaintypes",
-    "-Yrangepos",
     "-feature",
-    "-language:higherKinds",
-    "-language:existentials",
-    "-Xlint:_,-type-parameter-shadow",
-    "-Xsource:2.13",
-    "-Ywarn-numeric-widen",
-    "-Ywarn-value-discard",
     "-unchecked",
     "-deprecation",
-    "-Xfatal-warnings"
+    "-Xfatal-warnings",
+    "-language:higherKinds",
+    "-language:existentials"
   )
-
-  private val stdOpts213 = Seq(
-    "-Wunused:imports",
-    "-Wvalue-discard",
-    "-Wunused:patvars",
+  private val stdOpts213And3 = Seq(
     "-Wunused:privates",
+    "-Wunused:imports",
     "-Wunused:params",
-    "-Xlint:-infer-any",
     "-Wvalue-discard"
   )
 
+  private val stdOpts3 = Seq(
+    "-explain-types"
+  )
+
+  private val stdOpts213 = Seq(
+    "-Ywarn-numeric-widen",
+    "-Ywarn-value-discard",
+    "-Xlint:_,-type-parameter-shadow",
+    "-explaintypes",
+    "-Yrangepos",
+    "-Wunused:patvars",
+    "-Xlint:-infer-any"
+  )
+
   private val stdOptsUpto212 = Seq(
+    "-Ywarn-numeric-widen",
+    "-Ywarn-value-discard",
+    "-Xlint:_,-type-parameter-shadow",
+    "-explaintypes",
+    "-Yrangepos",
     "-Xfuture",
     "-Ypartial-unification",
     "-Ywarn-nullary-override",
@@ -48,8 +57,8 @@ object BuildHelper {
 
   private def extraOptions(scalaVersion: String) =
     CrossVersion.partialVersion(scalaVersion) match {
-      case Some((2, 13)) =>
-        stdOpts213
+      case Some((3, _))  => stdOpts3 ++ stdOpts213And3
+      case Some((2, 13)) => stdOpts213 ++ stdOpts213And3
       case Some((2, 12)) =>
         Seq(
           "-opt-warnings",
@@ -65,24 +74,17 @@ object BuildHelper {
 
   def buildInfoSettings(packageName: String) =
     Seq(
-      buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion, isSnapshot),
+      buildInfoKeys    := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion, isSnapshot),
       buildInfoPackage := packageName,
-      buildInfoObject := "BuildInfo"
+      buildInfoObject  := "BuildInfo"
     )
 
   def stdSettings(prjName: String) =
     Seq(
-      name := s"$prjName",
-      crossScalaVersions := Seq(Scala212, Scala213),
-      scalaVersion in ThisBuild := Scala213,
-      scalacOptions := stdOptions ++ extraOptions(scalaVersion.value),
-      libraryDependencies ++=
-        Seq(
-          ("com.github.ghik"                % "silencer-lib"    % SilencerVersion % Provided)
-            .cross(CrossVersion.full),
-          compilerPlugin(("com.github.ghik" % "silencer-plugin" % SilencerVersion).cross(CrossVersion.full)),
-          compilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
-        ),
+      name                     := s"$prjName",
+      crossScalaVersions       := Seq(Scala212, Scala213, Scala3),
+      ThisBuild / scalaVersion := Scala213,
+      scalacOptions            := stdOptions ++ extraOptions(scalaVersion.value),
       incOptions ~= (_.withLogRecompileOnMacro(false))
     )
 }

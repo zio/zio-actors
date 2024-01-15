@@ -15,13 +15,13 @@ import scala.concurrent.duration._
 
 object AkkaBehaviorsUtils {
 
-  sealed trait TypedMessage[+A]
+  sealed trait TypedMessage
 
-  case object HelloFromZio extends TypedMessage[Unit]
+  case object HelloFromZio extends TypedMessage
 
-  case class PingFromZio(zioSenderActor: ActorRef[ZioMessage]) extends TypedMessage[Unit]
+  case class PingFromZio(zioSenderActor: ActorRef[ZioMessage]) extends TypedMessage
 
-  case class PingToZio(zioReplyToActor: ActorRef[ZioMessage], msg: String) extends TypedMessage[Unit]
+  case class PingToZio(zioReplyToActor: ActorRef[ZioMessage], msg: String) extends TypedMessage
 
   sealed trait ZioMessage[+A]
 
@@ -34,7 +34,7 @@ object AkkaBehaviorsUtils {
   object TestBehavior {
     lazy val runtime = Runtime.default
 
-    def apply(): Behavior[TypedMessage[_]] =
+    def apply(): Behavior[TypedMessage] =
       Behaviors.receiveMessage { message =>
         message match {
           case HelloFromZio                         => ()
@@ -54,21 +54,21 @@ object AkkaBehaviorsUtils {
 }
 
 object AskUtils {
-  sealed trait AskMessage[+A]
-  case class PingAsk(value: Int, replyTo: typed.ActorRef[Int]) extends AskMessage[Int]
+  sealed trait AkkaMessage
+  case class AddOneToValue(value: Int, replyTo: typed.ActorRef[Int]) extends AkkaMessage
 
   sealed trait ZioMessage[+A]
-  case class GetState(akkaActor: AkkaTypedActorRefLocal[AskMessage]) extends ZioMessage[Int]
+  case class ForwardToAkka(akkaActor: AkkaTypedActorRefLocal[AkkaMessage]) extends ZioMessage[Int]
 
-  def PingAskDeferred(value: Int): typed.ActorRef[Int] => PingAsk =
-    (hiddenRef: typed.ActorRef[Int]) => PingAsk(value, hiddenRef)
+  def AddOneToValueDeferred(value: Int)(actorRef: typed.ActorRef[Int]): AddOneToValue =
+    AddOneToValue(value, actorRef)
 
   object AskTestBehavior {
 
-    def apply(): Behavior[AskMessage[_]] =
+    def apply(): Behavior[AkkaMessage] =
       Behaviors.receiveMessage { message =>
         message match {
-          case PingAsk(value, replyTo) => replyTo ! value
+          case AddOneToValue(value, replyTo) => replyTo ! (value + 1)
         }
         Behaviors.same
       }
@@ -76,7 +76,7 @@ object AskUtils {
 }
 
 object ActorsAkkaSpec extends ZIOSpecDefault {
-  def spec =
+  def spec: Spec[Any, Throwable] =
     suite("Test the basic integration with akka typed actor behavior")(
       test("Send message from zioActor to akkaActor") {
         import AkkaBehaviorsUtils._
@@ -160,13 +160,10 @@ object ActorsAkkaSpec extends ZIOSpecDefault {
         implicit val timeout: Timeout           = 3.seconds
         implicit val scheduler: typed.Scheduler = typedActorSystem.scheduler
 
-        def PingAskDeferred(value: Int): typed.ActorRef[Int] => PingAsk =
-          (hiddenRef: typed.ActorRef[Int]) => PingAsk(value, hiddenRef)
-
         for {
           akkaActor <- AkkaTypedActor.make(typedActorSystem)
-          result    <- akkaActor ? PingAskDeferred(1000)
-        } yield assertTrue(result == 1000)
+          result    <- akkaActor ? AddOneToValueDeferred(1000)
+        } yield assertTrue(result == 1001)
       },
       test("send message to zioActor and ask akkaActor for the response") {
 
@@ -185,17 +182,17 @@ object ActorsAkkaSpec extends ZIOSpecDefault {
               context: Context
             ): IO[Throwable, (Int, A)] =
               msg match {
-                case GetState(akkaActor) =>
-                  (akkaActor ? PingAskDeferred(1000)).map(newState => (newState, newState))
-                case _                   => ZIO.fail(new Exception("fail"))
+                case ForwardToAkka(akkaActor) =>
+                  (akkaActor ? AddOneToValueDeferred(1000)).map(newState => (newState, newState))
+                case _                        => ZIO.fail(new Exception("fail"))
               }
           }
         for {
-          system <- ActorSystem("test3")
+          system    <- ActorSystem("test3")
           zioActor  <- system.make("actor3", Supervisor.none, 0, handler)
           akkaActor <- AkkaTypedActor.make(typedActorSystem)
-          result    <- zioActor ? GetState(akkaActor)
-        } yield assertTrue(result == 1000)
+          result    <- zioActor ? ForwardToAkka(akkaActor)
+        } yield assertTrue(result == 1001)
       }
     )
 }

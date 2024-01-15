@@ -5,32 +5,37 @@ import zio.nio.{ InetAddress, InetSocketAddress }
 import zio.{ Chunk, Runtime, Task, UIO, Unsafe, ZIO }
 
 import java.io.{ IOException, ObjectInputStream, ObjectOutputStream, ObjectStreamException }
+import scala.annotation.unused
 
 /**
  * Reference to actor that might reside on local JVM instance or be available via remote communication
  *
- * @tparam F wrapper type constructing DSL
+ * @tparam F
+ *   wrapper type constructing DSL
  */
 sealed trait ActorRef[-F[+_]] extends Serializable {
 
   /**
-   * Send a message to an actor as `ask` interaction pattern -
-   * caller is blocked until the response is received
+   * Send a message to an actor as `ask` interaction pattern - caller is blocked until the response is received
    *
-   * @param fa message
-   * @tparam A return type
-   * @return effectful response
+   * @param fa
+   *   message
+   * @tparam A
+   *   return type
+   * @return
+   *   effectful response
    */
   def ?[A](fa: F[A]): Task[A]
 
   /**
-   * Send message to an actor as `fire-and-forget` -
-   * caller is blocked until message is enqueued in stub's mailbox
+   * Send message to an actor as `fire-and-forget` - caller is blocked until message is enqueued in stub's mailbox
    *
-   * @param fa message
-   * @return lifted unit
+   * @param fa
+   *   message
+   * @return
+   *   lifted unit
    */
-  def !(fa: F[_]): Task[Unit]
+  def !(fa: F[Any]): Task[Unit]
 
   /**
    * Get referential absolute actor path
@@ -90,18 +95,21 @@ private[actors] final class ActorRefLocal[-F[+_]](
 ) extends ActorRefSerial[F](actorName) {
   override def ?[A](fa: F[A]): Task[A] = actor ? fa
 
-  override def !(fa: F[_]): Task[Unit] = actor ! fa
+  override def !(fa: F[Any]): Task[Unit] = actor ! fa
 
   override val stop: Task[Chunk[_]] = actor.stop
 
+  @unused
   @throws[IOException]
   private def writeObject(out: ObjectOutputStream): Unit =
     super.writeObject1(out)
 
+  @unused
   @throws[IOException]
   private def readObject(in: ObjectInputStream): Unit =
     super.readObject1(in)
 
+  @unused
   @throws[ObjectStreamException]
   private def readResolve(): Object =
     super.readResolve1()
@@ -115,7 +123,7 @@ private[actors] final class ActorRefRemote[-F[+_]](
 
   override def ?[A](fa: F[A]): Task[A] = sendEnvelope(Command.Ask(fa))
 
-  override def !(fa: F[_]): Task[Unit] = sendEnvelope[Unit](Command.Tell(fa))
+  override def !(fa: F[Any]): Task[Unit] = sendEnvelope[Unit](Command.Tell(fa))
 
   override val stop: Task[Chunk[_]] = sendEnvelope(Command.Stop)
 
@@ -133,14 +141,17 @@ private[actors] final class ActorRefRemote[-F[+_]](
       } yield result
     }
 
+  @unused
   @throws[IOException]
   private def writeObject(out: ObjectOutputStream): Unit =
     super.writeObject1(out)
 
+  @unused
   @throws[IOException]
   private def readObject(in: ObjectInputStream): Unit =
     super.readObject1(in)
 
+  @unused
   @throws[ObjectStreamException]
   private def readResolve(): Object =
     super.readResolve1()

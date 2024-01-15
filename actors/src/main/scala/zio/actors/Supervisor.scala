@@ -7,7 +7,7 @@ private[actors] trait Supervisor[-R] {
 }
 
 /**
- *  Supervising policies
+ * Supervising policies
  */
 object Supervisor {
 

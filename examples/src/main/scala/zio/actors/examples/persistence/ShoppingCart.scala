@@ -7,7 +7,8 @@ import zio.actors.{ persistence, Context }
 import zio.actors.persistence._
 
 /**
- * This is a full example of [[https://github.com/akka/akka-samples/tree/2.6/akka-sample-persistence-scala Akka persistence shopping cart]]
+ * This is a full example of
+ * [[https://github.com/akka/akka-samples/tree/2.6/akka-sample-persistence-scala Akka persistence shopping cart]]
  * rewritten in ZIO-Actors together with tests.
  */
 object ShoppingCart {
@@ -46,8 +47,8 @@ object ShoppingCart {
   final case class AddItem(itemId: String, quantity: Int)            extends Command[Confirmation]
   final case class RemoveItem(itemId: String)                        extends Command[Confirmation]
   final case class AdjustItemQuantity(itemId: String, quantity: Int) extends Command[Confirmation]
-  final case object Checkout                                         extends Command[Confirmation]
-  final case object Get                                              extends Command[Summary]
+  case object Checkout                                               extends Command[Confirmation]
+  case object Get                                                    extends Command[Summary]
 
   final case class Summary(items: Map[String, Int], checkedOut: Boolean)
 
@@ -119,14 +120,14 @@ object ShoppingCart {
             (Command.ignore, _ => Rejected(s"Cannot adjust quantity for item '$itemId'. Item not present on cart"))
           )
 
-      case Checkout                             =>
+      case Checkout =>
         if (state.isEmpty)
           ZIO.succeed((Command.ignore, _ => Rejected("Cannot checkout an empty shopping cart")))
         else
           ZIO.succeed(
             (Command.persist(CheckedOut(cartId, Instant.now())), updatedCart => Accepted(updatedCart.toSummary))
           )
-      case Get                                  =>
+      case Get      =>
         ZIO.succeed((Command.ignore, _ => state.toSummary))
     }
 
