@@ -35,8 +35,9 @@ val zioVersion            = "2.0.20"
 val zioNioVersion         = "2.0.1"
 val zioConfigVersion      = "3.0.7"
 val zioInteropCatsVersion = "22.0.0.0"
-val akkaActorTypedVersion = "2.8.0"
 val doobieVersion         = "0.13.4"
+// Akka cannot be upgraded since later versions have the Business Source License
+val akkaActorTypedVersion = "2.6.19"
 
 lazy val root =
   project
