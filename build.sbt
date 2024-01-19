@@ -33,7 +33,7 @@ addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck"
 
 val zioVersion            = "2.0.20"
 val zioNioVersion         = "2.0.1"
-val zioConfigVersion      = "3.0.7"
+val zioConfigVersion      = "4.0.1"
 val zioInteropCatsVersion = "22.0.0.0"
 val doobieVersion         = "0.13.4"
 // Akka cannot be upgraded since later versions have the Business Source License
